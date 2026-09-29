@@ -12,12 +12,31 @@ import {
 } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import siteLogo from '../img/10dfe2bf-120c-41cf-9b7d-3da49f7928bc.jfif'
+import { ShipmentProvider, useShipments } from './context/ShipmentContext'
+import type { ShippingMode } from './types'
+import { ClientLiveMap } from './components/ClientLiveMap'
+import { WaybillLabelModal } from './components/admin/WaybillLabelModal'
+import { AdminLayout } from './components/admin/AdminLayout'
+import { AdminDashboard } from './components/admin/AdminDashboard'
+import { AdminShipments } from './components/admin/AdminShipments'
+import { AdminDispatch } from './components/admin/AdminDispatch'
+import { AdminCarriers } from './components/admin/AdminCarriers'
+import { AdminRates } from './components/admin/AdminRates'
+import { AdminUsers } from './components/admin/AdminUsers'
+import { AdminTelemetry } from './components/admin/AdminTelemetry'
+import { AdminLogs } from './components/admin/AdminLogs'
+import { AdminInquiries } from './components/admin/AdminInquiries'
+import { AdminChats } from './components/admin/AdminChats'
+import { AdminLiveTracking } from './components/admin/AdminLiveTracking'
+import { AdminCreateShipment } from './components/admin/AdminCreateShipment'
 import './App.css'
 
 const publicLinks = [
   { to: '/', label: 'Home' },
   { to: '/services', label: 'Services' },
   { to: '/about', label: 'Enterprise' },
+  { to: '/dashboard', label: 'Client Portal' },
+  { to: '/admin', label: 'Admin Console' },
 ]
 
 const dashboardLinks = [
@@ -26,6 +45,7 @@ const dashboardLinks = [
   { to: '/dashboard/ship', label: 'New Shipment' },
   { to: '/dashboard/notifications', label: 'Notifications' },
   { to: '/dashboard/account', label: 'Account' },
+  { to: '/admin', label: '⚡ Admin Console' },
 ]
 
 const carrierLogos = [
@@ -74,9 +94,11 @@ const serviceCards = [
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <ShipmentProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </ShipmentProvider>
   )
 }
 
@@ -104,6 +126,25 @@ function AppRoutes() {
         <Route path="/dashboard/ship" element={<CreateShipmentPage />} />
         <Route path="/dashboard/notifications" element={<NotificationsPage />} />
         <Route path="/dashboard/account" element={<AccountPage />} />
+      </Route>
+
+      {/* Admin Operations Console */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminDashboard />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="tracking" element={<AdminLiveTracking />} />
+        <Route path="shipments" element={<AdminShipments />} />
+        <Route path="shipments/new" element={<AdminCreateShipment />} />
+        <Route path="new-consignment" element={<AdminCreateShipment />} />
+        <Route path="dispatch" element={<AdminDispatch />} />
+        <Route path="rates" element={<AdminRates />} />
+        <Route path="inquiries" element={<AdminInquiries />} />
+        <Route path="chats" element={<AdminChats />} />
+        <Route path="carriers" element={<AdminCarriers />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="settings" element={<AdminUsers />} />
+        <Route path="telemetry" element={<AdminTelemetry />} />
+        <Route path="logs" element={<AdminLogs />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
@@ -534,7 +575,7 @@ function ShipPage() {
       if (!dimensions.width || Number(dimensions.width) <= 0) nextErrors.width = 'Width must be greater than zero.'
       if (!dimensions.height || Number(dimensions.height) <= 0) nextErrors.height = 'Height must be greater than zero.'
     }
-    if (currentStep === 5 && !document.querySelector('#confirm-ack')?.checked) {
+    if (currentStep === 5 && !(document.querySelector('#confirm-ack') as HTMLInputElement)?.checked) {
       nextErrors.confirmation = 'Please confirm the shipment details before continuing.'
     }
 
@@ -874,8 +915,8 @@ function ShipPage() {
             <p>Your details stay saved as you move through the request.</p>
           </div>
           <p className="summary-footnote">No booking is submitted until the final step.</p>
-          </aside>
-        </div>
+        </aside>
+      </div>
       )}
     </section>
   )
@@ -883,10 +924,14 @@ function ShipPage() {
 
 function TrackPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const { getShipment, shipments } = useShipments()
   const [waybillInput, setWaybillInput] = useState(searchParams.get('waybill') ?? '')
   const [shareStatus, setShareStatus] = useState('')
+  const [printModalOpen, setPrintModalOpen] = useState(false)
   const requestedWaybill = searchParams.get('waybill')?.trim() ?? ''
-  const isSampleShipment = requestedWaybill.toUpperCase() === 'NTS-99420-CT4'
+  
+  const matchedShipment = requestedWaybill ? getShipment(requestedWaybill) : undefined
+
   useEffect(() => setShareStatus(''), [requestedWaybill])
 
   const copyTrackingLink = async () => {
@@ -895,28 +940,23 @@ function TrackPage() {
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable')
       await navigator.clipboard.writeText(trackingUrl)
-      setShareStatus('Tracking link copied.')
+      setShareStatus('Tracking link copied to clipboard.')
     } catch {
       setShareStatus('Copy is unavailable here. You can share the tracking URL in your address bar.')
     }
   }
-  const milestones = [
-    { title: 'Shipment booked', detail: 'Label created and carrier assigned', location: 'New York, NY', time: 'Today · 08:42', complete: true },
-    { title: 'Picked up', detail: 'Shipment collected from sender', location: 'New York, NY', time: 'Today · 10:16', complete: true },
-    { title: 'In transit', detail: 'Departed origin gateway', location: 'John F. Kennedy International (JFK)', time: 'Today · 14:22', complete: true, current: true },
-    { title: 'Out for delivery', detail: 'With local delivery partner', location: 'London, UK', time: 'Estimated tomorrow', complete: false },
-    { title: 'Delivered', detail: 'Shipment received at destination', location: 'London, UK', time: 'Pending', complete: false },
-  ]
 
   return (
     <section className="section-block page-shell tracking-page">
       <div className="tracking-page-heading">
         <div>
-          <p className="eyebrow">Shipment visibility</p>
-          <h1>Track a shipment</h1>
-          <p>Search a waybill to review its route, current status, and shipment milestones.</p>
+          <p className="eyebrow">Real-Time Telemetry Visibility</p>
+          <h1>Track a Consignment</h1>
+          <p>Search any waybill number to review live satellite telemetry, customs clearance logs, vehicle coordinates, and milestone checkpoints.</p>
         </div>
-        <div className="tracking-service-note"><span className="network-pulse" /> Tracking preview <strong>Sample data</strong></div>
+        <div className="tracking-service-note">
+          <span className="network-pulse" /> 4s Telemetry Engine <strong>Active</strong>
+        </div>
       </div>
 
       <form
@@ -938,7 +978,7 @@ function TrackPage() {
               required
               value={waybillInput}
               onChange={(event) => setWaybillInput(event.target.value)}
-              placeholder="Enter a waybill, e.g. NTS-99420-CT4"
+              placeholder="Enter a waybill, e.g. PLOT-70955-JFD, PLOT-99420-CT4, or PLOT-11280-FT2"
             />
           </div>
         </label>
@@ -948,60 +988,257 @@ function TrackPage() {
       {!requestedWaybill && (
         <div className="tracking-empty card">
           <div className="tracking-empty-mark">↗</div>
-          <div><strong>Start with a waybill</strong><p>Enter the shipment reference from your confirmation. Only the sample waybill is available in this preview.</p></div>
-          <div className="tracking-empty-route" aria-label="Example route from New York JFK to London Heathrow">
+          <div>
+            <strong>Start with a Waybill Identification Code</strong>
+            <p>Select any registered consignment below to test live satellite telemetry and trajectory visualization:</p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', margin: '1rem 0' }}>
+            {shipments.slice(0, 6).map((s) => (
+              <button
+                key={s.waybill}
+                type="button"
+                className="tracking-example-button"
+                style={{ margin: 0, padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}
+                onClick={() => {
+                  setWaybillInput(s.waybill)
+                  setSearchParams({ waybill: s.waybill })
+                }}
+              >
+                {s.waybill} ({s.carrier} • {s.status.toUpperCase()})
+              </button>
+            ))}
+          </div>
+
+          <div className="tracking-empty-route" aria-label="Global corridor network">
             <div><span>ORIGIN</span><strong>JFK</strong></div>
             <span className="tracking-empty-route-line" aria-hidden="true" />
             <div><span>DESTINATION</span><strong>LHR</strong></div>
           </div>
-          <button type="button" className="tracking-example-button" onClick={() => { setWaybillInput('NTS-99420-CT4'); setSearchParams({ waybill: 'NTS-99420-CT4' }) }}>
-            View sample tracking
-          </button>
         </div>
       )}
 
-      {requestedWaybill && !isSampleShipment && (
+      {requestedWaybill && !matchedShipment && (
         <div className="tracking-not-found card" role="status">
           <span className="tracking-not-found-mark" aria-hidden="true">!</span>
-          <div><strong>No preview shipment found for {requestedWaybill}</strong><p>Check the reference and try again. This demo only includes NTS-99420-CT4.</p><Link to={`/contact?waybill=${encodeURIComponent(requestedWaybill)}`}>Ask operations about this waybill <span aria-hidden="true">→</span></Link></div>
+          <div>
+            <strong>No active shipment found for "{requestedWaybill}"</strong>
+            <p>Please double-check the waybill code. You can also generate or register a new waybill in the Consignment Studio.</p>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+              <Link to="/admin/shipments/new" style={{ color: '#00d2ff', fontWeight: 600, fontSize: '0.85rem' }}>
+                + Create Consignment in Admin Studio →
+              </Link>
+              <Link to="/contact" style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+                Contact Support Desk →
+              </Link>
+            </div>
+          </div>
         </div>
       )}
 
-      {isSampleShipment && (
+      {matchedShipment && (
         <section className="tracking-result" aria-label="Shipment tracking result">
+          {/* Header Row */}
           <div className="tracking-result-heading">
             <div>
-              <p className="eyebrow">Sample tracking result</p>
-              <h2>{requestedWaybill.toUpperCase()}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <p className="eyebrow" style={{ margin: 0 }}>Verified Freight Consignment</p>
+                <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(2, 132, 199, 0.15)', color: '#38bdf8', fontWeight: 600 }}>
+                  {matchedShipment.transportScope || 'International'}
+                </span>
+              </div>
+              <h2>{matchedShipment.waybill.toUpperCase()}</h2>
             </div>
+
             <div className="tracking-result-actions">
-              <span className="tracking-state"><i /> In transit</span>
+              <span className={`tracking-state ${matchedShipment.status === 'exception' ? 'tracking-state-alert' : ''}`}>
+                <i /> {matchedShipment.status.replace('_', ' ').toUpperCase()}
+              </span>
               <button type="button" className="tracking-copy-button" onClick={copyTrackingLink}>
-                {shareStatus === 'Tracking link copied.' ? 'Copied' : 'Copy link'} <span aria-hidden="true">↗</span>
+                {shareStatus === 'Tracking link copied to clipboard.' ? '✓ Copied' : 'Copy link'} <span aria-hidden="true">↗</span>
+              </button>
+              <button
+                type="button"
+                className="tracking-copy-button"
+                style={{ background: 'rgba(255,255,255,0.06)' }}
+                onClick={() => setPrintModalOpen(true)}
+              >
+                🏷️ Print Label
               </button>
             </div>
           </div>
+
           {shareStatus && <p className="tracking-share-status" role="status">{shareStatus}</p>}
+
+          {/* Interactive Live Map Section */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
+                <strong style={{ fontSize: '0.9rem', color: '#f1f5f9' }}>Live Movement Trajectory & Corridor Vector</strong>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                Mode: <strong>{matchedShipment.mode.toUpperCase()}</strong> · Carrier: <strong>{matchedShipment.carrier}</strong>
+              </span>
+            </div>
+            <ClientLiveMap shipment={matchedShipment} height="420px" />
+          </div>
 
           <div className="tracking-result-grid">
             <div className="tracking-main-column">
+              {/* Corridor Topline */}
               <article className="tracking-route-card card">
-                <div className="tracking-route-topline"><span>SAMPLE SHIPMENT ROUTE</span><span>Last checkpoint · today at 14:22</span></div>
-                <div className="tracking-route-visual">
-                  <div className="tracking-route-stop"><i className="route-origin-dot" /><span>ORIGIN</span><strong>New York, USA</strong><small>JFK · United States</small></div>
-                  <div className="tracking-route-path"><span>✈</span><i /></div>
-                  <div className="tracking-route-stop tracking-route-destination"><i className="route-destination-dot" /><span>DESTINATION</span><strong>London, UK</strong><small>LHR · United Kingdom</small></div>
+                <div className="tracking-route-topline">
+                  <span>TRANSIT CORRIDOR ({matchedShipment.mode.toUpperCase()})</span>
+                  <span>Vector: {matchedShipment.currentLocation.name}</span>
                 </div>
-                <div className="tracking-route-footer"><span>Indicative delivery window</span><strong>Tomorrow by 18:00</strong></div>
+                <div className="tracking-route-visual">
+                  <div className="tracking-route-stop">
+                    <i className="route-origin-dot" />
+                    <span>ORIGIN HUB</span>
+                    <strong>{matchedShipment.origin.code}</strong>
+                    <small>{matchedShipment.origin.name}</small>
+                  </div>
+                  <div className="tracking-route-path">
+                    <span>{matchedShipment.mode === 'air' ? '✈️' : matchedShipment.mode === 'sea' ? '🚢' : '🚚'}</span>
+                    <i />
+                  </div>
+                  <div className="tracking-route-stop tracking-route-destination">
+                    <i className="route-destination-dot" />
+                    <span>DESTINATION HUB</span>
+                    <strong>{matchedShipment.destination.code}</strong>
+                    <small>{matchedShipment.destination.name}</small>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>
+                    <span>Corridor Transit Progress</span>
+                    <strong style={{ color: '#38bdf8' }}>{matchedShipment.progressPct || (matchedShipment.status === 'pending' ? 0 : 45)}%</strong>
+                  </div>
+                  <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${matchedShipment.progressPct || (matchedShipment.status === 'pending' ? 0 : 45)}%`,
+                        background: 'linear-gradient(90deg, #0284c7, #38bdf8)',
+                        borderRadius: '3px',
+                        transition: 'width 0.6s ease',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="tracking-route-footer" style={{ marginTop: '0.75rem' }}>
+                  <span>Estimated Delivery Schedule (ETA)</span>
+                  <strong style={{ color: '#38bdf8' }}>{matchedShipment.eta}</strong>
+                </div>
               </article>
 
+              {/* Sender & Receiver Card */}
+              <article className="card" style={{ padding: '1.25rem' }}>
+                <p className="eyebrow" style={{ marginBottom: '8px' }}>Parties & Routing Contacts</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.85rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 700, letterSpacing: '0.5px', marginBottom: '4px' }}>
+                      SENDER / SHIPPER
+                    </div>
+                    <strong style={{ display: 'block', fontSize: '0.95rem', color: '#f8fafc' }}>
+                      {matchedShipment.senderName || 'Consignment Shipper'}
+                    </strong>
+                    <span style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>
+                      {matchedShipment.origin.name}
+                    </span>
+                    {matchedShipment.senderPhone && (
+                      <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                        📞 {matchedShipment.senderPhone}
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.85rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#38bdf8', fontWeight: 700, letterSpacing: '0.5px', marginBottom: '4px' }}>
+                      CONSIGNEE / RECIPIENT
+                    </div>
+                    <strong style={{ display: 'block', fontSize: '0.95rem', color: '#f8fafc' }}>
+                      {matchedShipment.receiverName || matchedShipment.clientName}
+                    </strong>
+                    <span style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>
+                      {matchedShipment.destination.name}
+                    </span>
+                    {(matchedShipment.receiverPhone || matchedShipment.clientEmail) && (
+                      <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                        📞 {matchedShipment.receiverPhone || matchedShipment.clientEmail}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </article>
+
+              {/* Exception Notice */}
+              {matchedShipment.status === 'exception' && (
+                <div
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    color: '#fca5a5',
+                    padding: '1rem 1.25rem',
+                    borderRadius: '8px',
+                    marginBottom: '1.25rem',
+                  }}
+                >
+                  <strong style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>
+                    ⚠️ Operational Exception Notice
+                  </strong>
+                  <span style={{ fontSize: '0.82rem' }}>
+                    {matchedShipment.statusNote || 'Cargo undergoing secondary transit verification.'}
+                  </span>
+                </div>
+              )}
+
+              {/* Pending Approval Notice */}
+              {matchedShipment.status === 'pending' && (
+                <div
+                  style={{
+                    background: 'rgba(245, 158, 11, 0.12)',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    color: '#fde68a',
+                    padding: '1rem 1.25rem',
+                    borderRadius: '8px',
+                    marginBottom: '1.25rem',
+                  }}
+                >
+                  <strong style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>
+                    ⏳ Awaiting Dispatch Approval
+                  </strong>
+                  <span style={{ fontSize: '0.82rem' }}>
+                    This freight consignment is recorded and awaiting final dispatch authorization before entering the active transit corridor.
+                  </span>
+                </div>
+              )}
+
+              {/* Checkpoint Timeline */}
               <article className="tracking-timeline-card card">
-                <div className="tracking-card-heading"><div><p className="eyebrow">Journey history</p><h3>Shipment progress</h3></div><span>3 of 5 milestones</span></div>
+                <div className="tracking-card-heading">
+                  <div>
+                    <p className="eyebrow">Checkpoint Progression</p>
+                    <h3>Milestone Journey</h3>
+                  </div>
+                  <span>{matchedShipment.checkpoints.length} recorded events</span>
+                </div>
                 <ol className="tracking-timeline">
-                  {milestones.map((milestone) => (
-                    <li key={milestone.title} className={`${milestone.complete ? 'milestone-complete' : ''} ${milestone.current ? 'milestone-current' : ''}`}>
-                      <span className="milestone-indicator">{milestone.complete ? '✓' : ''}</span>
-                      <div className="milestone-copy"><strong>{milestone.title}</strong><span>{milestone.detail}</span><small>{milestone.location}</small></div>
+                  {matchedShipment.checkpoints.map((milestone) => (
+                    <li
+                      key={milestone.id}
+                      className={`${milestone.completed ? 'milestone-complete' : ''} ${milestone.current ? 'milestone-current' : ''}`}
+                    >
+                      <span className="milestone-indicator">{milestone.completed ? '✓' : ''}</span>
+                      <div className="milestone-copy">
+                        <strong>{milestone.title}</strong>
+                        <span>{milestone.detail}</span>
+                        <small>📍 {milestone.location}</small>
+                      </div>
                       <time>{milestone.time}</time>
                     </li>
                   ))}
@@ -1009,18 +1246,73 @@ function TrackPage() {
               </article>
             </div>
 
+            {/* Sidebar Specifications */}
             <aside className="tracking-detail-card card">
-              <div className="tracking-detail-heading"><p className="eyebrow">Shipment details</p><span className="tracking-demo-tag">SAMPLE</span></div>
-              <div className="tracking-carrier-lockup"><img src={carrierLogos[0].logo} alt="DHL logo" /><div><strong>DHL Express</strong><span>International priority</span></div></div>
+              <div className="tracking-detail-heading">
+                <p className="eyebrow">Consignment Specifications</p>
+                <span className="tracking-demo-tag">{matchedShipment.carrierCode}</span>
+              </div>
+              
+              <div className="tracking-carrier-lockup">
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <strong style={{ fontSize: '1.1rem', color: '#f8fafc' }}>{matchedShipment.carrier}</strong>
+                  <span style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600 }}>
+                    {matchedShipment.serviceTier || 'STANDARD'} • {matchedShipment.mode.toUpperCase()} FREIGHT
+                  </span>
+                </div>
+              </div>
+
+              {/* Package Image if Available */}
+              {matchedShipment.packageImageUrl && (
+                <div style={{ margin: '0.75rem 0', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <img
+                    src={matchedShipment.packageImageUrl}
+                    alt="Package Cargo Preview"
+                    style={{ width: '100%', height: '140px', objectFit: 'cover' }}
+                  />
+                  <div style={{ padding: '4px 8px', background: 'rgba(15,23,42,0.9)', fontSize: '0.65rem', color: '#94a3b8' }}>
+                    CARGO VERIFICATION PHOTOGRAPH
+                  </div>
+                </div>
+              )}
+
+              {/* QR Code */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255,255,255,0.04)', padding: '1rem', borderRadius: '8px', margin: '0.75rem 0' }}>
+                <QRCodeSVG
+                  value={`${window.location.origin}/track?waybill=${encodeURIComponent(matchedShipment.waybill)}`}
+                  size={120}
+                  level="M"
+                />
+                <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '6px', fontWeight: 600 }}>
+                  SCAN FOR MOBILE TELEMETRY
+                </span>
+              </div>
+
               <dl className="tracking-detail-list">
-                <div><dt>Service</dt><dd>Express Worldwide</dd></div>
-                <div><dt>Pieces</dt><dd>1 package</dd></div>
-                <div><dt>Total weight</dt><dd>12 kg</dd></div>
-                <div><dt>Reference</dt><dd>{requestedWaybill.toUpperCase()}</dd></div>
+                <div><dt>Driver / Pilot</dt><dd>{matchedShipment.assignedDriver || 'Amina Bello'}</dd></div>
+                <div><dt>Assigned Vehicle</dt><dd>{matchedShipment.vehicleId || 'VEH-101'}</dd></div>
+                <div><dt>Pieces</dt><dd>{matchedShipment.packageCount} PKG</dd></div>
+                <div><dt>Total Weight</dt><dd>{matchedShipment.weightKg} KG</dd></div>
+                <div><dt>Declared Value</dt><dd>${matchedShipment.declaredValue.toLocaleString()} USD</dd></div>
+                <div><dt>Freight Tariff</dt><dd style={{ color: '#10b981', fontWeight: 700 }}>${matchedShipment.rate.toFixed(2)} USD</dd></div>
+                <div><dt>Scope</dt><dd>{matchedShipment.transportScope || 'International'}</dd></div>
               </dl>
-                <div className="tracking-help"><strong>Need assistance?</strong><span>Our operations team is available around the clock.</span><Link to={`/contact?waybill=${encodeURIComponent(requestedWaybill)}`}>Contact support <span aria-hidden="true">↗</span></Link></div>
+
+              <div className="tracking-help">
+                <strong>Operations Control Desk</strong>
+                <span>24/7 dedicated freight coordinator support.</span>
+                <Link to={`/contact?waybill=${encodeURIComponent(matchedShipment.waybill)}`}>
+                  Contact Dispatch Desk <span aria-hidden="true">↗</span>
+                </Link>
+              </div>
             </aside>
           </div>
+
+          <WaybillLabelModal
+            shipment={matchedShipment}
+            isOpen={printModalOpen}
+            onClose={() => setPrintModalOpen(false)}
+          />
         </section>
       )}
     </section>
@@ -1617,19 +1909,18 @@ function AuthPage({ mode }: { mode: 'login' | 'register' }) {
 }
 
 function OverviewPage() {
-  const stats = [
-    { label: 'In Transit', value: '18', tone: 'blue' },
-    { label: 'Customs Hold', value: '4', tone: 'amber' },
-    { label: 'Delivered (7d)', value: '62', tone: 'green' },
-    { label: 'Exceptions', value: '2', tone: 'red' },
-  ]
+  const { shipments, auditLogs } = useShipments()
 
-  const activities = [
-    { title: 'Shipment NTS-99420-CT4 cleared customs', time: '4 minutes ago' },
-    { title: 'Driver assigned for outbound dispatch', time: '18 minutes ago' },
-    { title: 'Delay notice sent for one ocean route', time: '1 hour ago' },
-    { title: 'Collected from New York origin hub', time: '2 hours ago' },
-    { title: 'Proof of delivery uploaded for LHR parcel', time: 'Yesterday' },
+  const inTransitCount = shipments.filter((s) => s.status === 'in_transit').length
+  const customsCount = shipments.filter((s) => s.status === 'customs').length
+  const deliveredCount = shipments.filter((s) => s.status === 'delivered').length
+  const exceptionCount = shipments.filter((s) => s.status === 'exception').length
+
+  const stats = [
+    { label: 'In Transit', value: String(inTransitCount), tone: 'blue' },
+    { label: 'Customs Hold', value: String(customsCount), tone: 'amber' },
+    { label: 'Delivered', value: String(deliveredCount), tone: 'green' },
+    { label: 'Exceptions', value: String(exceptionCount), tone: 'red' },
   ]
 
   return (
@@ -1650,17 +1941,11 @@ function OverviewPage() {
               <p className="eyebrow">Live network</p>
               <h2>Active shipments map</h2>
             </div>
-            <span className="panel-badge">18 in motion</span>
+            <span className="panel-badge">{inTransitCount} in motion</span>
           </div>
 
-          <div className="map-visual" aria-label="Map of active shipments">
-            <span className="map-pin map-pin-nyc">NYC</span>
-            <span className="map-pin map-pin-ord">ORD</span>
-            <span className="map-pin map-pin-lhr">LHR</span>
-            <span className="map-pin map-pin-dxb">DXB</span>
-            <span className="map-route route-one" />
-            <span className="map-route route-two" />
-            <span className="map-route route-three" />
+          <div style={{ marginTop: '1rem', borderRadius: '10px', overflow: 'hidden' }}>
+            {shipments[0] && <ClientLiveMap shipment={shipments[0]} height="260px" />}
           </div>
         </div>
 
@@ -1668,18 +1953,18 @@ function OverviewPage() {
           <div className="panel-heading">
             <div>
               <p className="eyebrow">Operations</p>
-              <h2>Recent activity</h2>
+              <h2>Recent activity feed</h2>
             </div>
             <Link to="/dashboard/notifications" className="panel-link">View all</Link>
           </div>
 
           <ul className="activity-list">
-            {activities.map((activity) => (
-              <li key={activity.title} className="activity-item">
+            {auditLogs.slice(0, 5).map((activity) => (
+              <li key={activity.id} className="activity-item">
                 <span className="activity-dot" aria-hidden="true" />
                 <div>
-                  <strong>{activity.title}</strong>
-                  <small>{activity.time}</small>
+                  <strong>{activity.action}: {activity.details}</strong>
+                  <small>{new Date(activity.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
                 </div>
               </li>
             ))}
@@ -1691,19 +1976,13 @@ function OverviewPage() {
 }
 
 function ShipmentsPage() {
-  const shipments = [
-    { waybill: 'NTS-99420-CT4', carrier: 'DHL Express', mode: 'Air', route: 'NYC → LHR', status: 'In transit', eta: '14h 22m', tag: 'in_transit' },
-    { waybill: 'NTS-11280-FT2', carrier: 'Maersk Intermodal', mode: 'Sea', route: 'Houston → Rotterdam', status: 'Customs', eta: '3d 4h', tag: 'customs' },
-    { waybill: 'NTS-77812-QA1', carrier: 'FedEx Priority', mode: 'Air', route: 'Chicago → Dubai', status: 'Delivered', eta: 'Delivered', tag: 'delivered' },
-    { waybill: 'NTS-55290-HM7', carrier: 'UPS Worldwide', mode: 'Land', route: 'Toronto → Detroit', status: 'Exception', eta: 'Needs review', tag: 'exception' },
-  ]
-
+  const { shipments } = useShipments()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
 
   const visibleShipments = shipments.filter((shipment) => {
-    const matchesQuery = `${shipment.waybill} ${shipment.carrier}`.toLowerCase().includes(query.toLowerCase())
-    const matchesFilter = filter === 'all' || shipment.tag === filter
+    const matchesQuery = `${shipment.waybill} ${shipment.carrier} ${shipment.origin.name} ${shipment.destination.name}`.toLowerCase().includes(query.toLowerCase())
+    const matchesFilter = filter === 'all' || shipment.status === filter
     return matchesQuery && matchesFilter
   })
 
@@ -1713,7 +1992,7 @@ function ShipmentsPage() {
         <div className="table-toolbar">
           <div>
             <p className="eyebrow">Shipment list</p>
-            <h2>Active freight</h2>
+            <h2>Active freight ({shipments.length})</h2>
           </div>
 
           <div className="table-controls">
@@ -1721,7 +2000,7 @@ function ShipmentsPage() {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search waybill or carrier"
+              placeholder="Search waybill, carrier, or route..."
               aria-label="Search shipments"
             />
             <div className="filter-row" aria-label="Shipment status filters">
@@ -1760,10 +2039,10 @@ function ShipmentsPage() {
                     </Link>
                   </td>
                   <td>{shipment.carrier}</td>
-                  <td>{shipment.mode}</td>
-                  <td>{shipment.route}</td>
+                  <td>{shipment.mode.toUpperCase()}</td>
+                  <td>{shipment.origin.code} → {shipment.destination.code}</td>
                   <td>
-                    <span className={`status-pill status-${shipment.tag}`}>{shipment.status}</span>
+                    <span className={`status-pill status-${shipment.status}`}>{shipment.status.replace('_', ' ')}</span>
                   </td>
                   <td>{shipment.eta}</td>
                 </tr>
@@ -1787,26 +2066,21 @@ function ShipmentsPage() {
 
 function ShipmentDetailPage() {
   const { waybill } = useParams()
+  const { getShipment, shipments } = useShipments()
+  const [printModalOpen, setPrintModalOpen] = useState(false)
 
-  const shipment = {
-    waybill: waybill ?? 'NTS-99420-CT4',
-    carrier: 'DHL Express',
-    mode: 'Air',
-    route: 'NYC → LHR',
-    status: 'In transit',
-    tag: 'in_transit',
-    eta: '14h 22m',
+  const shipment = (waybill ? getShipment(waybill) : undefined) || shipments[0]
+
+  if (!shipment) {
+    return (
+      <section className="dashboard-page">
+        <div className="card">
+          <h2>Shipment not found</h2>
+          <Link to="/dashboard/shipments" className="button button-primary">Back to Shipments</Link>
+        </div>
+      </section>
+    )
   }
-
-  const timeline = [
-    { label: 'Booked', time: '09:12', done: true },
-    { label: 'Dispatched', time: '11:40', done: true },
-    { label: 'In transit', time: 'Live', done: true, current: true },
-    { label: 'Customs', time: 'Pending', done: false },
-    { label: 'Delivered', time: 'ETA 18:00', done: false },
-  ]
-
-  const documents = ['Invoice', 'Customs clearance', 'Proof of delivery', 'Label export']
 
   return (
     <section className="dashboard-page">
@@ -1817,31 +2091,32 @@ function ShipmentDetailPage() {
               <p className="eyebrow">Shipment detail</p>
               <h2>{shipment.waybill}</h2>
             </div>
-            <span className={`status-pill status-${shipment.tag}`}>{shipment.status}</span>
+            <span className={`status-pill status-${shipment.status}`}>{shipment.status.replace('_', ' ')}</span>
           </div>
 
-          <p className="detail-subtitle">{shipment.carrier} • {shipment.mode} • {shipment.route}</p>
+          <p className="detail-subtitle">{shipment.carrier} • {shipment.mode.toUpperCase()} • {shipment.origin.code} → {shipment.destination.code}</p>
 
           <div className="detail-actions">
-            <button type="button" className="button button-secondary">Share tracking link</button>
-            <button type="button" className="button button-primary">Print waybill</button>
+            <Link to={`/track?waybill=${encodeURIComponent(shipment.waybill)}`} className="button button-secondary">
+              Open Public Tracker ↗
+            </Link>
+            <button type="button" className="button button-primary" onClick={() => setPrintModalOpen(true)}>
+              Print waybill
+            </button>
           </div>
 
-          <div className="detail-map-panel">
-            <div className="map-mini" aria-label="Shipment path map">
-              <span className="map-pin map-pin-nyc">Origin</span>
-              <span className="map-pin map-pin-lhr">Destination</span>
-              <span className="map-route map-route-live route-one" />
-            </div>
+          <div className="detail-map-panel" style={{ margin: '1.25rem 0', borderRadius: '12px', overflow: 'hidden' }}>
+            <ClientLiveMap shipment={shipment} height="360px" />
           </div>
 
           <ul className="timeline">
-            {timeline.map((item) => (
-              <li key={item.label} className={item.current ? 'timeline-current' : item.done ? 'timeline-done' : ''}>
+            {shipment.checkpoints.map((item) => (
+              <li key={item.id} className={item.current ? 'timeline-current' : item.completed ? 'timeline-done' : ''}>
                 <span className="timeline-marker" aria-hidden="true" />
                 <div>
-                  <strong>{item.label}</strong>
-                  <small>{item.time}</small>
+                  <strong>{item.title}</strong>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>{item.detail}</p>
+                  <small>{item.location} • {item.time}</small>
                 </div>
               </li>
             ))}
@@ -1850,15 +2125,20 @@ function ShipmentDetailPage() {
 
         <div className="card detail-side">
           <div className="detail-side-header">
-            <h3>Documents</h3>
-            <button type="button" className="button button-secondary small-button">Download all</button>
+            <h3>Documents ({shipment.documents.length})</h3>
+            <button type="button" className="button button-secondary small-button" onClick={() => setPrintModalOpen(true)}>
+              Print Label
+            </button>
           </div>
 
           <ul className="document-list">
-            {documents.map((document) => (
-              <li key={document}>
-                <span>{document}</span>
-                <button type="button">Download</button>
+            {shipment.documents.map((doc) => (
+              <li key={doc.id}>
+                <div>
+                  <span>{doc.name}</span>
+                  <small style={{ display: 'block', color: '#64748b', fontSize: '0.7rem' }}>{doc.size} • {doc.date}</small>
+                </div>
+                <button type="button" onClick={() => setPrintModalOpen(true)}>View</button>
               </li>
             ))}
           </ul>
@@ -1866,31 +2146,45 @@ function ShipmentDetailPage() {
           <div className="detail-meta">
             <h4>Shipment details</h4>
             <dl>
-              <div><dt>Weight</dt><dd>12 kg</dd></div>
-              <div><dt>Rate</dt><dd>$420.00</dd></div>
-              <div><dt>Reference</dt><dd>Acme Corp</dd></div>
-              <div><dt>ETA</dt><dd>Today 18:00</dd></div>
+              <div><dt>Weight</dt><dd>{shipment.weightKg} kg</dd></div>
+              <div><dt>Rate</dt><dd>${shipment.rate.toFixed(2)} USD</dd></div>
+              <div><dt>Reference</dt><dd>{shipment.clientReference}</dd></div>
+              <div><dt>Consignee</dt><dd>{shipment.clientName}</dd></div>
+              <div><dt>ETA</dt><dd>{shipment.eta}</dd></div>
             </dl>
           </div>
         </div>
       </div>
+
+      <WaybillLabelModal
+        shipment={shipment}
+        isOpen={printModalOpen}
+        onClose={() => setPrintModalOpen(false)}
+      />
     </section>
   )
 }
 
 function CreateShipmentPage() {
+  const { createShipment, calculateRate } = useShipments()
   const [step, setStep] = useState(0)
+  const [createdWaybill, setCreatedWaybill] = useState('')
   const [draft, setDraft] = useState({
-    mode: 'air',
+    mode: 'air' as ShippingMode,
     carrier: 'DHL Express',
-    origin: 'New York, NY',
-    destination: 'London, UK',
+    origin: 'New York, NY (JFK)',
+    originCode: 'JFK',
+    destination: 'London, UK (LHR)',
+    destCode: 'LHR',
     weight: '12',
     value: '2500',
+    clientRef: 'PO-2026-01',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const steps = ['Mode & Carrier', 'Route', 'Package & Rate']
+
+  const calculatedRate = calculateRate(draft.mode, Number(draft.weight || 1), Number(draft.value || 0))
 
   const validateDraftStep = () => {
     const nextErrors: Record<string, string> = {}
@@ -1909,15 +2203,56 @@ function CreateShipmentPage() {
     return Object.keys(nextErrors).length === 0
   }
 
+  const handleFinalSubmit = () => {
+    if (!validateDraftStep()) return
+
+    const newShip = createShipment({
+      carrier: draft.carrier,
+      mode: draft.mode,
+      origin: { name: draft.origin, code: draft.originCode || 'ORIGIN', lat: 40.6413, lng: -73.7781 },
+      destination: { name: draft.destination, code: draft.destCode || 'DEST', lat: 51.47, lng: -0.4543 },
+      weightKg: Number(draft.weight),
+      declaredValue: Number(draft.value),
+      clientReference: draft.clientRef,
+      rate: calculatedRate,
+      eta: 'In 2 business days',
+    })
+
+    setCreatedWaybill(newShip.waybill)
+  }
+
+  if (createdWaybill) {
+    return (
+      <section className="dashboard-page">
+        <div className="card" style={{ padding: '2.5rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎉</div>
+          <h2>Shipment Created Successfully!</h2>
+          <p style={{ color: '#94a3b8' }}>Your new consignment has been registered with the carrier dispatch engine.</p>
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: 'monospace', color: '#00d2ff', margin: '1rem 0' }}>
+            {createdWaybill}
+          </div>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1.5rem' }}>
+            <Link to={`/dashboard/shipments/${createdWaybill}`} className="button button-primary">
+              View Shipment Details
+            </Link>
+            <Link to={`/track?waybill=${encodeURIComponent(createdWaybill)}`} className="button button-secondary">
+              Track Publicly ↗
+            </Link>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   const stepContent = [
     <div key="mode" className="wizard-panel">
       <div className="wizard-grid">
-        {['Air', 'Ocean', 'Land'].map((mode) => (
+        {(['Air', 'Ocean', 'Land'] as const).map((mode) => (
           <button
             key={mode}
             type="button"
             className={draft.mode === mode.toLowerCase() ? 'mode-card active' : 'mode-card'}
-            onClick={() => setDraft((current) => ({ ...current, mode: mode.toLowerCase() }))}
+            onClick={() => setDraft((current) => ({ ...current, mode: mode.toLowerCase() as ShippingMode }))}
           >
             <strong>{mode}</strong>
             <small>{mode === 'Air' ? 'Priority network' : mode === 'Ocean' ? 'Container shipping' : 'Regional linehaul'}</small>
@@ -1940,12 +2275,12 @@ function CreateShipmentPage() {
     <div key="route" className="wizard-panel">
       <div className="field-row two-col">
         <label>
-          Origin
+          Origin Hub
           <input value={draft.origin} onChange={(event) => { setDraft((current) => ({ ...current, origin: event.target.value })); setErrors((previous) => ({ ...previous, origin: '' })) }} />
           {errors.origin && <span className="field-error">{errors.origin}</span>}
         </label>
         <label>
-          Destination
+          Destination Hub
           <input value={draft.destination} onChange={(event) => { setDraft((current) => ({ ...current, destination: event.target.value })); setErrors((previous) => ({ ...previous, destination: '' })) }} />
           {errors.destination && <span className="field-error">{errors.destination}</span>}
         </label>
@@ -1959,14 +2294,14 @@ function CreateShipmentPage() {
           {errors.weight && <span className="field-error">{errors.weight}</span>}
         </label>
         <label>
-          Declared value
+          Declared value ($)
           <input value={draft.value} onChange={(event) => { setDraft((current) => ({ ...current, value: event.target.value })); setErrors((previous) => ({ ...previous, value: '' })) }} />
           {errors.value && <span className="field-error">{errors.value}</span>}
         </label>
       </div>
       <div className="rate-box">
         <span>Estimated rate</span>
-        <strong>$315.00</strong>
+        <strong>${calculatedRate.toFixed(2)} USD</strong>
       </div>
     </div>,
   ]
@@ -2005,11 +2340,15 @@ function CreateShipmentPage() {
             type="button"
             className="button button-primary"
             onClick={() => {
-              if (!validateDraftStep()) return
-              setStep((current) => Math.min(steps.length - 1, current + 1))
+              if (step === steps.length - 1) {
+                handleFinalSubmit()
+              } else {
+                if (!validateDraftStep()) return
+                setStep((current) => Math.min(steps.length - 1, current + 1))
+              }
             }}
           >
-            {step === steps.length - 1 ? 'Create draft' : 'Continue'}
+            {step === steps.length - 1 ? '⚡ Confirm & Book Consignment' : 'Continue'}
           </button>
         </div>
       </div>

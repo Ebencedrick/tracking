@@ -1,0 +1,2519 @@
+/* ==========================================================================
+   Package Pilot Tracker — Operations & Fleet Command Center Theme
+   Exact match to the high-contrast Command Center UI specification
+   ========================================================================== */
+
+:root {
+  --cmd-sidebar-bg: #111625;
+  --cmd-sidebar-hover: rgba(255, 255, 255, 0.07);
+  --cmd-sidebar-active: #facc15;
+  --cmd-sidebar-active-text: #0f172a;
+  --cmd-sidebar-text: #94a3b8;
+  --cmd-sidebar-text-bright: #f8fafc;
+  
+  --cmd-main-bg: #f4f6fa;
+  --cmd-card-bg: #ffffff;
+  --cmd-card-border: #e2e8f0;
+  
+  --cmd-text-heading: #0f172a;
+  --cmd-text-body: #334155;
+  --cmd-text-muted: #64748b;
+  --cmd-text-subtle: #94a3b8;
+  
+  --cmd-red: #dc2626;
+  --cmd-red-hover: #b91c1c;
+  --cmd-red-light: #fee2e2;
+  --cmd-red-text: #991b1b;
+  
+  --cmd-blue: #0284c7;
+  --cmd-blue-light: #e0f2fe;
+  --cmd-blue-text: #0369a1;
+  
+  --cmd-green: #10b981;
+  --cmd-green-light: #dcfce7;
+  --cmd-green-text: #15803d;
+  
+  --cmd-yellow: #facc15;
+  --cmd-yellow-light: #fef9c3;
+  --cmd-yellow-text: #854d0e;
+  
+  --cmd-navy-btn: #1e293b;
+  --cmd-navy-btn-hover: #0f172a;
+  
+  --cmd-sidebar-width: 250px;
+}
+
+/* Overall Shell */
+.cmd-shell {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--cmd-main-bg);
+  color: var(--cmd-text-body);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+}
+
+/* Sidebar (Fixed & Sticky - Does not move when main scrolls) */
+.cmd-sidebar {
+  width: var(--cmd-sidebar-width);
+  background-color: var(--cmd-sidebar-bg);
+  color: var(--cmd-sidebar-text);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 50;
+  flex-shrink: 0;
+  padding: 1.25rem 0.85rem;
+  box-sizing: border-box;
+  overflow-y: auto;
+  border-right: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+/* Brand Header */
+.cmd-brand-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cmd-brand-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background-color: var(--cmd-yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(250, 204, 21, 0.35);
+}
+
+.cmd-brand-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.cmd-brand-name {
+  font-size: 0.92rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.cmd-brand-status {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
+
+.cmd-brand-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+/* New Consignment Top CTA Button in Sidebar */
+.cmd-sidebar-cta {
+  width: 100%;
+  background-color: var(--cmd-red);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 1.5rem;
+  text-decoration: none;
+}
+
+.cmd-sidebar-cta:hover {
+  background-color: var(--cmd-red-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.5);
+}
+
+.cmd-sidebar-cta-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* Sidebar Navigation Items */
+.cmd-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.cmd-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  color: var(--cmd-sidebar-text);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.cmd-nav-item:hover {
+  background-color: var(--cmd-sidebar-hover);
+  color: var(--cmd-sidebar-text-bright);
+}
+
+/* Active Nav Item - Bright Yellow Pill with Black Text */
+.cmd-nav-item.active {
+  background-color: var(--cmd-sidebar-active);
+  color: var(--cmd-sidebar-active-text);
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(250, 204, 21, 0.3);
+}
+
+.cmd-nav-item.active .cmd-nav-icon {
+  color: var(--cmd-sidebar-active-text);
+}
+
+.cmd-nav-icon {
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  flex-shrink: 0;
+}
+
+.cmd-nav-badge {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.cmd-nav-badge.alert {
+  background: var(--cmd-red);
+  color: #ffffff;
+}
+
+/* Sidebar Bottom Footer */
+.cmd-sidebar-footer {
+  padding-top: 1rem;
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.cmd-nav-item.sign-out {
+  color: #ef4444;
+}
+
+.cmd-nav-item.sign-out:hover {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+
+/* Main Content Canvas */
+.cmd-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-y: auto;
+  background-color: var(--cmd-main-bg);
+}
+
+.cmd-canvas {
+  padding: 2rem 2.5rem 4rem;
+  max-width: 1440px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+/* Top Operations Header */
+.cmd-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.cmd-header-left {
+  max-width: 680px;
+}
+
+.cmd-node-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.08em;
+  color: #059669;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.cmd-node-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 10px #10b981;
+  animation: cmdPulse 2s infinite;
+}
+
+@keyframes cmdPulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.cmd-title {
+  font-size: 1.85rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--cmd-text-heading);
+  margin: 0 0 0.4rem 0;
+  line-height: 1.15;
+}
+
+.cmd-subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--cmd-text-muted);
+  line-height: 1.45;
+}
+
+/* Header Top-Right Action Buttons */
+.cmd-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.cmd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  border: none;
+}
+
+.cmd-btn-red {
+  background-color: var(--cmd-red);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
+}
+
+.cmd-btn-red:hover {
+  background-color: var(--cmd-red-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.4);
+}
+
+.cmd-btn-navy {
+  background-color: var(--cmd-navy-btn);
+  color: #facc15;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+}
+
+.cmd-btn-navy:hover {
+  background-color: var(--cmd-navy-btn-hover);
+  transform: translateY(-1px);
+  color: #fde047;
+}
+
+.cmd-btn-white {
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.cmd-btn-white:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+/* 4 Stat Cards Row */
+.cmd-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 1200px) {
+  .cmd-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .cmd-stats-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cmd-stat-card {
+  background: var(--cmd-card-bg);
+  border: 1px solid var(--cmd-card-border);
+  border-radius: 16px;
+  padding: 1.35rem 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cmd-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.07);
+}
+
+.cmd-stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.cmd-stat-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cmd-text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.cmd-stat-number {
+  font-size: 2.1rem;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 0.45rem;
+  color: var(--cmd-text-heading);
+}
+
+.cmd-stat-card.blue .cmd-stat-number { color: var(--cmd-blue); }
+.cmd-stat-card.green .cmd-stat-number { color: var(--cmd-green); }
+.cmd-stat-card.red .cmd-stat-number { color: var(--cmd-red); }
+
+.cmd-stat-subtext {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--cmd-text-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.cmd-stat-card.blue .cmd-stat-subtext { color: var(--cmd-blue); }
+.cmd-stat-card.green .cmd-stat-subtext { color: var(--cmd-green); }
+.cmd-stat-card.red .cmd-stat-subtext { color: var(--cmd-red); }
+
+/* Stat Card Icon Boxes */
+.cmd-stat-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.cmd-stat-icon-box.gray {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.cmd-stat-icon-box.blue {
+  background-color: var(--cmd-blue-light);
+  color: var(--cmd-blue);
+  border-radius: 50%;
+}
+
+.cmd-stat-icon-box.green {
+  background-color: var(--cmd-green-light);
+  color: var(--cmd-green);
+  border-radius: 50%;
+}
+
+.cmd-stat-icon-box.red {
+  background-color: var(--cmd-red-light);
+  color: var(--cmd-red);
+  border-radius: 14px;
+}
+
+/* Recent Freight Consignments Card */
+.cmd-card {
+  background: var(--cmd-card-bg);
+  border: 1px solid var(--cmd-card-border);
+  border-radius: 18px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  margin-bottom: 2rem;
+}
+
+.cmd-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cmd-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--cmd-text-heading);
+  margin: 0;
+}
+
+.cmd-card-title-icon {
+  font-size: 1.3rem;
+}
+
+.cmd-card-link-red {
+  color: var(--cmd-red);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.cmd-card-link-red:hover {
+  color: var(--cmd-red-hover);
+  transform: translateX(3px);
+}
+
+/* Waybills Table */
+.cmd-table-wrap {
+  overflow-x: auto;
+}
+
+.cmd-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.cmd-table th {
+  padding: 0.85rem 1rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cmd-text-muted);
+  border-bottom: 2px solid #f1f5f9;
+  white-space: nowrap;
+}
+
+.cmd-table td {
+  padding: 1.15rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.88rem;
+  color: var(--cmd-text-body);
+  vertical-align: middle;
+}
+
+.cmd-table tr:last-child td {
+  border-bottom: none;
+}
+
+.cmd-table tr:hover td {
+  background-color: #fafbfc;
+}
+
+/* Waybill Code + Carrier Badge */
+.cmd-waybill-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.cmd-waybill-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+  font-size: 0.92rem;
+  color: var(--cmd-text-heading);
+  text-decoration: none;
+}
+
+.cmd-waybill-code:hover {
+  color: var(--cmd-blue);
+  text-decoration: underline;
+}
+
+.cmd-carrier-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background-color: var(--cmd-yellow-light);
+  color: var(--cmd-yellow-text);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.cmd-carrier-badge.fedex {
+  background-color: #f3e8ff;
+  color: #6b21a8;
+  border-color: #d8b4fe;
+}
+
+.cmd-carrier-badge.ups {
+  background-color: #fef3c7;
+  color: #78350f;
+  border-color: #fde68a;
+}
+
+.cmd-carrier-badge.maersk {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+/* Location Pins */
+.cmd-origin-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.cmd-origin-pin {
+  color: #ef4444;
+  font-size: 1rem;
+}
+
+.cmd-dest-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+  color: #334155;
+  max-width: 320px;
+}
+
+.cmd-dest-hub-icon {
+  color: #64748b;
+  font-size: 1rem;
+}
+
+/* Status Badges */
+.cmd-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.cmd-status-pill.in_transit {
+  background-color: var(--cmd-blue-light);
+  color: var(--cmd-blue-text);
+}
+
+.cmd-status-pill.delivered {
+  background-color: var(--cmd-green-light);
+  color: var(--cmd-green-text);
+}
+
+.cmd-status-pill.customs {
+  background-color: var(--cmd-yellow-light);
+  color: var(--cmd-yellow-text);
+}
+
+.cmd-status-pill.exception {
+  background-color: var(--cmd-red-light);
+  color: var(--cmd-red-text);
+}
+
+.cmd-status-pill.pending {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+/* Actions Column */
+.cmd-action-track {
+  color: var(--cmd-red);
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.cmd-action-track:hover {
+  background-color: var(--cmd-red-light);
+  color: var(--cmd-red-hover);
+}
+
+/* Modal Styling */
+.cmd-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+.cmd-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  max-width: 680px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  padding: 2rem;
+  box-sizing: border-box;
+  animation: cmdModalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cmdModalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.cmd-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cmd-modal-header h3 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin: 0;
+  color: #0f172a;
+}
+
+.cmd-modal-close {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cmd-modal-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Form Controls */
+.cmd-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.15rem;
+}
+
+.cmd-form-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cmd-input, .cmd-select, .cmd-textarea {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  color: #0f172a;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cmd-input:focus, .cmd-select:focus, .cmd-textarea:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.cmd-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/* ==========================================================================
+   Unified Subpage System (.admin-*) matching Command Center Look & Feel
+   ========================================================================== */
+
+.admin-page {
+  padding: 2rem 2.5rem 4rem;
+  max-width: 1440px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.admin-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.admin-page-header h2 {
+  font-size: 1.85rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--cmd-text-heading);
+  margin: 0 0 0.4rem 0;
+  line-height: 1.2;
+}
+
+.admin-page-header p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--cmd-text-muted);
+  line-height: 1.45;
+}
+
+.admin-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.admin-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.admin-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 1100px) {
+  .admin-grid-2, .admin-grid-3, .admin-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-card {
+  background: var(--cmd-card-bg);
+  border: 1px solid var(--cmd-card-border);
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: 1.5rem;
+}
+
+.admin-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.admin-card-header h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--cmd-text-heading);
+  margin: 0;
+}
+
+.admin-table-container {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--cmd-card-border);
+  background: #ffffff;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th {
+  padding: 0.85rem 1rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cmd-text-muted);
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.88rem;
+  color: var(--cmd-text-body);
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tr:hover td {
+  background-color: #fafbfc;
+}
+
+.admin-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: var(--cmd-text-heading);
+}
+
+.admin-quick-btn:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.admin-quick-btn.primary {
+  background-color: var(--cmd-red);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.admin-quick-btn.primary:hover {
+  background-color: var(--cmd-red-hover);
+  transform: translateY(-1px);
+}
+
+.admin-quick-btn.danger {
+  background-color: #ef4444;
+  color: #ffffff;
+  border: none;
+}
+
+.admin-quick-btn.danger:hover {
+  background-color: #dc2626;
+}
+
+.admin-quick-btn.cyan, .admin-quick-btn.blue {
+  background-color: var(--cmd-blue);
+  color: #ffffff;
+  border: none;
+}
+
+.admin-quick-btn.cyan:hover, .admin-quick-btn.blue:hover {
+  background-color: #0369a1;
+}
+
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.admin-badge.active, .admin-badge.delivered, .admin-badge.resolved {
+  background-color: var(--cmd-green-light);
+  color: var(--cmd-green-text);
+}
+
+.admin-badge.in_transit, .admin-badge.open {
+  background-color: var(--cmd-blue-light);
+  color: var(--cmd-blue-text);
+}
+
+.admin-badge.customs, .admin-badge.pending {
+  background-color: var(--cmd-yellow-light);
+  color: var(--cmd-yellow-text);
+}
+
+.admin-badge.exception, .admin-badge.inactive, .admin-badge.closed {
+  background-color: var(--cmd-red-light);
+  color: var(--cmd-red-text);
+}
+
+.admin-input, .admin-select, .admin-textarea {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.7rem 0.95rem;
+  color: #0f172a;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-input:focus, .admin-select:focus, .admin-textarea:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.admin-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.15rem;
+}
+
+.admin-form-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+.admin-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  max-width: 680px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  padding: 2rem;
+  box-sizing: border-box;
+  animation: cmdModalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-modal-header h3 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin: 0;
+  color: #0f172a;
+}
+
+.admin-modal-close {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-modal-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.admin-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.admin-telemetry-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #dcfce7;
+  color: #15803d;
+  padding: 0.6rem 1.15rem;
+  border-radius: 30px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  border: 1px solid #bbf7d0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-telemetry-pill.paused {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.admin-telemetry-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: cmdPulse 2s infinite;
+}
+
+.admin-telemetry-pill.paused .admin-telemetry-pulse {
+  background-color: #ef4444;
+  box-shadow: none;
+  animation: none;
+}
+
+.admin-packet-stream {
+  background-color: #0b1120;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  max-height: 380px;
+  overflow-y: auto;
+  border: 1px solid #1e293b;
+}
+
+.admin-packet-line {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 0.78rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}
+
+.admin-packet-time {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.admin-packet-wb {
+  color: #38bdf8;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.admin-packet-coords {
+  color: #facc15;
+}
+
+.admin-packet-speed {
+  color: #4ade80;
+  margin-left: auto;
+}
+
+/* ==========================================================================
+   Live Tracking Interactive Map & Active Shipments Sidebar (.live-track-*)
+   ========================================================================== */
+
+.live-track-layout {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background-color: #f4f6fa;
+  position: relative;
+}
+
+.live-track-map-wrapper {
+  flex: 1;
+  position: relative;
+  height: 100%;
+  min-width: 0;
+}
+
+.live-track-leaflet-container {
+  width: 100%;
+  height: 100%;
+  background-color: #e2e8f0;
+  z-index: 1;
+}
+
+/* Floating Top Telemetry HUD Bar */
+.live-track-hud-bar {
+  position: absolute;
+  top: 1.25rem;
+  left: 1.25rem;
+  right: calc(1.25rem + 150px);
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 0.85rem 1.25rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.live-track-hud-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.live-track-hud-waybill-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.live-track-hud-mode-icon {
+  font-size: 1.1rem;
+}
+
+.live-track-hud-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.live-track-hud-copy-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.live-track-hud-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.live-track-stopped-badge {
+  background-color: #ea580c;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+  animation: cmdPulse 2s infinite;
+}
+
+.live-track-hud-route-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  flex-wrap: wrap;
+}
+
+.live-track-hud-corridor {
+  color: #f1f5f9;
+}
+
+.live-track-hud-driver {
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.live-track-hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.live-track-hud-btn {
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.live-track-hud-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.live-track-hud-btn.hold {
+  background-color: #ea580c;
+  border-color: #f97316;
+}
+
+.live-track-hud-btn.hold:hover {
+  background-color: #c2410c;
+}
+
+.live-track-hud-btn.resume {
+  background-color: #10b981;
+  border-color: #34d399;
+}
+
+.live-track-hud-btn.resume:hover {
+  background-color: #059669;
+}
+
+.live-track-hud-btn.primary {
+  background-color: #0284c7;
+  border-color: #38bdf8;
+}
+
+.live-track-hud-btn.primary:hover {
+  background-color: #0369a1;
+}
+
+/* Floating Top-Right Legend Box */
+.live-track-legend {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.live-track-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.live-track-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.live-track-dot.green {
+  background-color: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.live-track-dot.blue {
+  background-color: #0284c7;
+  box-shadow: 0 0 6px #0284c7;
+}
+
+.live-track-dot.red {
+  background-color: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
+}
+
+/* Right Sidebar: Active Shipments */
+.live-track-sidebar {
+  width: 400px;
+  height: 100%;
+  background: #ffffff;
+  border-left: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.04);
+  z-index: 500;
+}
+
+.live-track-sidebar-header {
+  padding: 1.25rem 1.25rem 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.live-track-pulse-beacon {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: cmdPulse 2s infinite;
+}
+
+.live-track-title {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.live-track-count-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #0284c7;
+  background-color: #e0f2fe;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+}
+
+/* Search Box */
+.live-track-search-box {
+  margin: 0.65rem 0 0.75rem;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.live-track-search-icon {
+  position: absolute;
+  left: 0.85rem;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.live-track-search-input {
+  width: 100%;
+  padding: 0.65rem 1rem 0.65rem 2.4rem;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 0.82rem;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.live-track-search-input:focus {
+  border-color: #0284c7;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+}
+
+.live-track-search-clear {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.25rem;
+}
+
+/* Mode Filter Tabs */
+.live-track-filter-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.live-track-filter-pill {
+  padding: 0.3rem 0.65rem;
+  border-radius: 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.live-track-filter-pill:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.live-track-filter-pill.active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
+}
+
+/* Shipment Cards List */
+.live-track-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.85rem 1.25rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.live-track-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: #94a3b8;
+  font-size: 0.88rem;
+}
+
+.live-track-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1rem 1.15rem;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+  border-left: 4px solid transparent;
+}
+
+.live-track-card:hover {
+  border-color: #cbd5e1;
+  border-left-color: #94a3b8;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05);
+}
+
+.live-track-card.selected {
+  border-color: #0284c7;
+  border-left: 4px solid #0284c7;
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.12);
+  background: #f0f9ff;
+}
+
+.live-track-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+}
+
+.live-track-card-id-group {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.live-track-mode-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background-color: #e0f2fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.live-track-waybill {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+  display: block;
+}
+
+.live-track-carrier-text {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Corridor Box */
+.live-track-corridor-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 0.6rem;
+}
+
+.live-track-corridor-node {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-width: 45%;
+}
+
+.live-track-corridor-node.right {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.live-track-corridor-code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #10b981;
+}
+
+.live-track-corridor-code.dest {
+  color: #ef4444;
+}
+
+.live-track-corridor-city {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.live-track-corridor-arrow {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+/* Driver & Hold Row */
+.live-track-driver-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.74rem;
+  color: #64748b;
+}
+
+.live-track-driver-tag {
+  font-weight: 600;
+}
+
+.live-track-card-hold-badge {
+  background-color: #ea580c;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* Card Footer */
+.live-track-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f1f5f9;
+  font-size: 0.75rem;
+}
+
+.live-track-eta {
+  color: #475569;
+}
+
+.live-track-speed {
+  color: #0284c7;
+  font-weight: 800;
+  font-family: ui-monospace, monospace;
+}
+
+@keyframes pulseVehicle {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+/* ==========================================================================
+   Shipment Management & Bookings View (.shipment-*)
+   ========================================================================== */
+
+.shipment-mgmt-canvas {
+  padding: 2rem 2.5rem 4rem;
+  max-width: 1440px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.shipment-mgmt-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.shipment-mgmt-title {
+  font-size: 1.85rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0 0 0.35rem 0;
+  letter-spacing: -0.02em;
+}
+
+.shipment-mgmt-subtitle {
+  font-size: 0.95rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.shipment-create-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  background-color: #0f172a;
+  color: #ffffff;
+  padding: 0.75rem 1.35rem;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+}
+
+.shipment-create-btn:hover {
+  background-color: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.35);
+}
+
+.shipment-create-btn-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+/* Sub-header & Filter Tabs */
+.shipment-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.shipment-section-title {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.shipment-tabs-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.shipment-tab-btn {
+  padding: 0.45rem 1.1rem;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.shipment-tab-btn:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.shipment-tab-btn.active {
+  background-color: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+}
+
+/* Shipment Cards */
+.shipment-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.shipment-card-empty {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 3rem;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.shipment-mgmt-card {
+  background: #ffffff;
+  border: 2px solid #facc15;
+  border-radius: 18px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 4px 16px rgba(250, 204, 21, 0.12);
+  transition: all 0.2s ease;
+}
+
+.shipment-mgmt-card:hover {
+  box-shadow: 0 8px 24px rgba(250, 204, 21, 0.22);
+}
+
+.shipment-card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.85rem;
+}
+
+.shipment-card-badges-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.shipment-card-waybill {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.shipment-badge-carrier {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background-color: #fef9c3;
+  color: #854d0e;
+  border: 1px solid rgba(234, 179, 8, 0.35);
+}
+
+.shipment-badge-tier {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background-color: #e0f2fe;
+  color: #0369a1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.shipment-badge-mode {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+
+.shipment-badge-booking {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.shipment-badge-booking-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #d97706;
+}
+
+.shipment-badge-price {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+.shipment-card-badges-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.shipment-status-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.95rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.shipment-status-tag.in_transit, .shipment-status-tag.delivered {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.shipment-status-tag.customs, .shipment-status-tag.pending {
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+
+.shipment-status-tag.exception {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.shipment-track-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.95rem;
+  border-radius: 20px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0284c7;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.shipment-track-link-btn:hover {
+  background-color: #f0f9ff;
+  border-color: #0284c7;
+}
+
+.shipment-card-client-line {
+  font-size: 0.95rem;
+  color: #334155;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+.shipment-card-client-line strong {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.shipment-card-route-line {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.shipment-pin-red {
+  color: #ef4444;
+  font-size: 1rem;
+}
+
+.shipment-route-origin {
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.shipment-route-arrow {
+  color: #94a3b8;
+  font-weight: 700;
+  margin: 0 0.15rem;
+}
+
+.shipment-hub-icon {
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.shipment-route-dest {
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.shipment-card-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-top: 1.15rem;
+  padding: 1rem 0;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+@media (max-width: 900px) {
+  .shipment-card-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.shipment-metric-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.shipment-metric-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.shipment-metric-val {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.shipment-metric-val.progress {
+  color: #0284c7;
+  font-weight: 800;
+}
+
+.shipment-card-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 1.15rem;
+  flex-wrap: wrap;
+}
+
+.shipment-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.shipment-action-btn.reassign {
+  background-color: #059669;
+  color: #ffffff;
+}
+
+.shipment-action-btn.reassign:hover {
+  background-color: #047857;
+}
+
+.shipment-action-btn.edit {
+  background-color: #0284c7;
+  color: #ffffff;
+}
+
+.shipment-action-btn.edit:hover {
+  background-color: #0369a1;
+}
+
+.shipment-action-btn.stop {
+  background-color: #ea580c;
+  color: #ffffff;
+}
+
+.shipment-action-btn.stop:hover {
+  background-color: #c2410c;
+}
+
+.shipment-action-btn.resume {
+  background-color: #10b981;
+  color: #ffffff;
+}
+
+.shipment-action-btn.resume:hover {
+  background-color: #059669;
+}
+
+.shipment-action-select {
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0f172a;
+  outline: none;
+  cursor: pointer;
+}
+
+.shipment-action-btn.update-status {
+  background-color: #0f172a;
+  color: #ffffff;
+}
+
+.shipment-action-btn.update-status:hover {
+  background-color: #1e293b;
+}
+
+.shipment-action-btn.copy {
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.shipment-action-btn.copy:hover {
+  background-color: #f8fafc;
+}
+
+.shipment-action-btn.delete {
+  margin-left: auto;
+  background: none;
+  color: #ef4444;
+  padding: 0.55rem 0.75rem;
+}
+
+.shipment-action-btn.delete:hover {
+  text-decoration: underline;
+  color: #dc2626;
+}
+
+.shipment-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 0.85rem 1.35rem;
+  border-radius: 10px;
+  z-index: 1000;
+  font-size: 0.88rem;
+  font-weight: 700;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  border: 1px solid #38bdf8;
+}
+
+/* Brand Logo Image in Sidebar and Header */
+.cmd-brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.cmd-dashboard-header-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Full-Page Create Freight Shipment Studio (.create-shipment-*)
+   ========================================================================== */
+
+.create-shipment-full-page {
+  padding: 2rem 2.5rem 5rem;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.create-shipment-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.create-shipment-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #0284c7;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-decoration: none;
+  margin-bottom: 0.5rem;
+  transition: color 0.15s ease;
+}
+
+.create-shipment-back-link:hover {
+  color: #0369a1;
+  text-decoration: underline;
+}
+
+.create-shipment-title {
+  font-size: 1.95rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0 0 0.4rem 0;
+  letter-spacing: -0.03em;
+}
+
+.create-shipment-subtitle {
+  font-size: 0.95rem;
+  color: #64748b;
+  margin: 0;
+  max-width: 780px;
+  line-height: 1.45;
+}
+
+.create-shipment-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.create-shipment-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.create-shipment-section-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 1.75rem 2rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.create-shipment-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.create-shipment-badge-step {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #0f172a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.create-shipment-card-title h3 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.create-shipment-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.75rem;
+}
+
+@media (max-width: 900px) {
+  .create-shipment-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.create-shipment-subpanel {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.35rem 1.5rem;
+}
+
+.create-shipment-subpanel-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.create-shipment-corridor-presets {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.create-shipment-preset-chip {
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.create-shipment-preset-chip:hover {
+  background-color: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+.create-shipment-location-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.35rem 1.5rem;
+  position: relative;
+}
+
+.create-shipment-loc-badge {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  margin-bottom: 1rem;
+}
+
+.create-shipment-loc-badge.green {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.create-shipment-loc-badge.red {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.create-shipment-map-wrapper {
+  margin-top: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid #cbd5e1;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.create-shipment-map-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.88rem;
+  color: #0f172a;
+}
+
+.create-shipment-distance-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.create-shipment-leaflet-map {
+  width: 100%;
+  height: 380px;
+  background: #e2e8f0;
+}
+
+.create-shipment-image-preview-box {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background: #f8fafc;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.create-shipment-preview-img {
+  width: 90px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+}
+
+.create-shipment-summary-card {
+  background: #ffffff;
+  border: 2px solid #0f172a;
+  border-radius: 18px;
+  padding: 1.75rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.create-shipment-summary-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.create-shipment-summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+
+
+
