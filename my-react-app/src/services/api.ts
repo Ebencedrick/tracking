@@ -1,6 +1,7 @@
 import type { Shipment, Carrier, InquiryMessage, ChatSession, TariffSettings } from '../types'
 
-const API_BASE = '/api'
+const RAW_API_URL = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL
+const API_BASE = RAW_API_URL ? `${RAW_API_URL.replace(/\/$/, '')}/api` : '/api'
 
 export const apiService = {
   // --- Shipments ---
