@@ -10,6 +10,7 @@ import type {
   ShippingMode,
   UserAccount,
 } from '../types'
+import { apiService } from '../services/api'
 
 interface ShipmentContextType {
   shipments: Shipment[]
@@ -738,6 +739,25 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
   const [telemetryActive, setTelemetryActive] = useState<boolean>(true)
   const [telemetryPackets, setTelemetryPackets] = useState<Array<{ id: string; time: string; waybill: string; lat: number; lng: number; speed: string; altitude?: string }>>([])
 
+  // Sync with MongoDB backend on mount
+  useEffect(() => {
+    let isCancelled = false
+    apiService
+      .getShipments()
+      .then((data) => {
+        if (!isCancelled && Array.isArray(data) && data.length > 0) {
+          setShipments(data)
+        }
+      })
+      .catch(() => {
+        // Backend not yet running or network delay; state falls back to local storage
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
+
   // Persist state to LocalStorage
   useEffect(() => {
     try {
@@ -897,6 +917,9 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
       setShipments((prev) => [newShipment, ...prev])
     })
 
+    // Persist to MongoDB backend
+    apiService.createShipment(newShipment).catch(() => {})
+
     addAuditLog('SHIPMENT_CREATED', 'SHIPMENT', `Created waybill ${waybill} (${origin.name} -> ${destination.name})`, 'info', waybill)
     return newShipment
   }
@@ -912,6 +935,10 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
         })
       )
     })
+
+    // Persist to MongoDB backend
+    apiService.updateShipment(waybill, data).catch(() => {})
+
     addAuditLog('SHIPMENT_UPDATED', 'SHIPMENT', `Updated shipment ${waybill}`, 'info', waybill)
   }
 
@@ -919,6 +946,10 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
     startTransition(() => {
       setShipments((prev) => prev.filter((s) => s.waybill.toUpperCase() !== waybill.toUpperCase()))
     })
+
+    // Persist to MongoDB backend
+    apiService.deleteShipment(waybill).catch(() => {})
+
     addAuditLog('SHIPMENT_DELETED', 'SHIPMENT', `Deleted shipment record ${waybill}`, 'warning', waybill)
   }
 

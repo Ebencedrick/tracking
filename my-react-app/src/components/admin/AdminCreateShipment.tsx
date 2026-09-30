@@ -1096,18 +1096,6 @@ export function AdminCreateShipment() {
             </div>
 
             <div className="cmd-form-group">
-              <label className="cmd-form-label">Quoted Shipment Tariff / Rate ($ USD)</label>
-              <input
-                type="number"
-                step="0.01"
-                className="cmd-input"
-                value={customRate}
-                onChange={(e) => setCustomRate(parseFloat(e.target.value) || 0)}
-                required
-              />
-            </div>
-
-            <div className="cmd-form-group">
               <label className="cmd-form-label">Estimated Route Distance (KM)</label>
               <input
                 type="number"
@@ -1119,17 +1107,17 @@ export function AdminCreateShipment() {
           </div>
         </div>
 
-        {/* Section 6: Summary & Tariff Action */}
+        {/* Section 6: Consignment Manifest Summary */}
         <div className="create-shipment-summary-card">
           <div className="create-shipment-summary-left">
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b' }}>
-              AGREED CONSIGNMENT TARIFF
+              CONSIGNMENT DISPATCH MANIFEST
             </span>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0284c7' }}>
-              ${customRate.toFixed(2)} USD
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0284c7' }}>
+              {carrierName} • {shippingMode.toUpperCase()}
             </div>
             <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-              {isEditMode ? `Waybill Reference: ${editWaybill}` : 'Initial Status: ' + shipmentStatus.toUpperCase()}
+              {isEditMode ? `Waybill Reference: ${editWaybill}` : 'Initial Status: ' + shipmentStatus.toUpperCase()} • Direct client billing
             </span>
           </div>
 

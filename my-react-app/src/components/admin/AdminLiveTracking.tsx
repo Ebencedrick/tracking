@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useShipments } from '../../context/ShipmentContext'
-import type { Shipment, ShippingMode } from '../../types'
+import type { Shipment, ShippingMode, ShipmentStatus } from '../../types'
 import { WaybillLabelModal } from './WaybillLabelModal'
 import {
   MAP_TILE_PROVIDERS,
@@ -11,12 +11,12 @@ import {
 } from '../../utils/mapApis'
 
 export function AdminLiveTracking() {
-  const { shipments, updateShipment } = useShipments()
+  const { shipments, updateShipment, addAuditLog } = useShipments()
 
   // Filter active / in-transit shipments
   const activeShipments = useMemo(() => {
     const active = shipments.filter(
-      (s) => s.status === 'in_transit' || s.status === 'customs' || s.status === 'pending'
+      (s) => s.status === 'in_transit' || s.status === 'customs' || s.status === 'pending' || s.status === 'exception'
     )
     return active.length > 0 ? active : shipments
   }, [shipments])
@@ -29,6 +29,29 @@ export function AdminLiveTracking() {
   const [labelModalWaybill, setLabelModalWaybill] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState('')
   const [activeTileKey, setActiveTileKey] = useState<MapTileKey>('voyager')
+  const [isFleetSidebarOpen, setIsFleetSidebarOpen] = useState(true)
+
+  // Invalidate map size when sidebar opens or closes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      mapInstanceRef.current?.invalidateSize({ animate: true })
+    }, 280)
+    return () => clearTimeout(timer)
+  }, [isFleetSidebarOpen])
+
+  // Fleet Edit Modal State
+  const [editingShipment, setEditingShipment] = useState<Shipment | null>(null)
+  const [editForm, setEditForm] = useState({
+    status: 'in_transit' as ShipmentStatus,
+    isMovementStopped: false,
+    progressPct: 50,
+    assignedDriver: '',
+    vehicleId: '',
+    currentLocationName: '',
+    statusNote: '',
+    newCheckpointTitle: '',
+    newCheckpointLocation: '',
+  })
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -149,104 +172,135 @@ export function AdminLiveTracking() {
       className: 'leaflet-custom-marker-start',
       html: `
         <div style="
-          width: 16px;
-          height: 16px;
-          background-color: #10b981;
+          width: 28px; height: 28px;
+          background: #10b981;
           border: 3px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.4);
-        "></div>
-      `,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
-    })
-
-    // Vehicle Marker (Pulsing Icon)
-    const modeEmoji = selectedShipment.mode === 'air' ? '✈️' : selectedShipment.mode === 'sea' ? '🚢' : '🚚'
-    const vehicleIcon = L.divIcon({
-      className: 'leaflet-custom-marker-vehicle',
-      html: `
-        <div style="
-          width: 28px;
-          height: 28px;
-          background-color: ${selectedShipment.isMovementStopped ? '#ef4444' : '#0284c7'};
-          border: 3px solid #ffffff;
-          border-radius: 50%;
-          box-shadow: 0 0 16px ${selectedShipment.isMovementStopped ? 'rgba(239, 68, 68, 0.8)' : 'rgba(2, 132, 199, 0.8)'};
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.6);
+          display: flex; align-items: center; justify-content: center;
+          color: #ffffff; font-size: 13px; font-weight: 800;
         ">
-          ${modeEmoji}
+          🟢
         </div>
       `,
       iconSize: [28, 28],
       iconAnchor: [14, 14],
     })
 
+    const startMarker = L.marker(startCoord, { icon: startIcon }).addTo(markersGroup)
+    startMarker.bindPopup(`
+      <div style="font-family: inherit; font-size: 12px;">
+        <strong style="color: #10b981; font-size: 13px;">ORIGIN TERMINAL</strong><br>
+        <b>Location:</b> ${selectedShipment.origin.name}<br>
+        <b>Code:</b> ${selectedShipment.origin.code}
+      </div>
+    `)
+
+    // Vehicle Marker (Moving Beacon)
+    const vehicleEmoji = selectedShipment.mode === 'air' ? '✈️' : selectedShipment.mode === 'sea' ? '🚢' : '🚚'
+    const vehicleIcon = L.divIcon({
+      className: 'leaflet-custom-marker-vehicle',
+      html: `
+        <div style="
+          width: 38px; height: 38px;
+          background: ${selectedShipment.isMovementStopped ? '#ea580c' : '#0284c7'};
+          border: 3px solid #ffffff;
+          border-radius: 50%;
+          box-shadow: 0 0 20px ${selectedShipment.isMovementStopped ? 'rgba(234, 88, 12, 0.9)' : 'rgba(2, 132, 199, 0.9)'};
+          display: flex; align-items: center; justify-content: center;
+          font-size: 18px;
+          position: relative;
+          cursor: pointer;
+        ">
+          ${vehicleEmoji}
+          <div style="
+            position: absolute;
+            inset: -6px;
+            border: 2px solid ${selectedShipment.isMovementStopped ? '#ea580c' : '#38bdf8'};
+            border-radius: 50%;
+            animation: radar-pulse 2s infinite;
+          "></div>
+        </div>
+      `,
+      iconSize: [38, 38],
+      iconAnchor: [19, 19],
+    })
+
+    const vehicleMarker = L.marker(vehicleCoord, { icon: vehicleIcon }).addTo(markersGroup)
+    vehicleMarker.bindPopup(`
+      <div style="font-family: inherit; font-size: 12px; min-width: 190px;">
+        <strong style="color: #0284c7; font-size: 13px;">${selectedShipment.carrier} (${selectedShipment.waybill})</strong><br>
+        <b>Status:</b> ${selectedShipment.status.toUpperCase()} (${selectedShipment.progressPct || 50}%)<br>
+        <b>Position:</b> ${selectedShipment.currentLocation?.name || 'In Corridor'}<br>
+        <b>Driver:</b> ${selectedShipment.assignedDriver || 'Linehaul Operator'}<br>
+        <b>Vehicle:</b> ${selectedShipment.vehicleId || 'Active Fleet'}<br>
+        <b>Movement:</b> ${selectedShipment.isMovementStopped ? '<span style="color:#ea580c;font-weight:bold;">HOLD (STOPPED)</span>' : '<span style="color:#10b981;font-weight:bold;">ACTIVE</span>'}
+      </div>
+    `)
+
     // Destination Marker (Red Pin)
     const destIcon = L.divIcon({
       className: 'leaflet-custom-marker-dest',
       html: `
         <div style="
-          width: 16px;
-          height: 16px;
-          background-color: #ef4444;
+          width: 28px; height: 28px;
+          background: #ef4444;
           border: 3px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.4);
-        "></div>
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.6);
+          display: flex; align-items: center; justify-content: center;
+          color: #ffffff; font-size: 13px; font-weight: 800;
+        ">
+          🔴
+        </div>
       `,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
     })
 
-    // Add Markers to Layer
-    const startMarker = L.marker(startCoord, { icon: startIcon }).bindPopup(
-      `<b>Origin Gateway:</b> ${selectedShipment.origin.name}<br/>Lat: ${startLat.toFixed(4)}, Lng: ${startLng.toFixed(4)}`
-    )
-    const vehicleMarker = L.marker(vehicleCoord, { icon: vehicleIcon }).bindPopup(
-      `<b>Active Telemetry Vector:</b> ${selectedShipment.waybill}<br/>Status: <b>${selectedShipment.status.toUpperCase()}</b><br/>Carrier: ${selectedShipment.carrier}<br/>Current: ${selectedShipment.currentLocation?.name || 'In Transit'}`
-    )
-    const destMarker = L.marker(destCoord, { icon: destIcon }).bindPopup(
-      `<b>Destination Hub:</b> ${selectedShipment.destination.name}<br/>Lat: ${destLat.toFixed(4)}, Lng: ${destLng.toFixed(4)}`
-    )
+    const destMarker = L.marker(destCoord, { icon: destIcon }).addTo(markersGroup)
+    destMarker.bindPopup(`
+      <div style="font-family: inherit; font-size: 12px;">
+        <strong style="color: #ef4444; font-size: 13px;">DESTINATION HUB</strong><br>
+        <b>Location:</b> ${selectedShipment.destination.name}<br>
+        <b>Code:</b> ${selectedShipment.destination.code}<br>
+        <b>ETA:</b> ${selectedShipment.eta}
+      </div>
+    `)
 
-    markersGroup.addLayer(startMarker)
-    markersGroup.addLayer(vehicleMarker)
-    markersGroup.addLayer(destMarker)
+    // Fetch and Draw Real Route Polyline
+    fetchLiveRouteGeometry(startCoord, destCoord, selectedShipment.mode)
+      .then((res) => {
+        if (!mapInstanceRef.current) return
+        if (routeLayerRef.current) {
+          mapInstanceRef.current.removeLayer(routeLayerRef.current)
+        }
 
-    // Calculate Real Route Geometry via OSRM / Geodesic Arc
-    let isCancelled = false
-    fetchLiveRouteGeometry(startCoord, destCoord, selectedShipment.mode).then((res) => {
-      if (isCancelled || !map) return
-      const polyline = L.polyline(res.coordinates, {
-        color: selectedShipment.isMovementStopped ? '#ea580c' : '#0284c7',
-        weight: 3.5,
-        opacity: 0.85,
-        dashArray: '6, 6',
-      }).addTo(map)
-      routeLayerRef.current = polyline
-    })
+        const polyline = L.polyline(res.coordinates, {
+          color: selectedShipment.isMovementStopped ? '#ea580c' : '#0284c7',
+          weight: 4,
+          opacity: 0.85,
+          dashArray: selectedShipment.mode === 'air' ? '8, 8' : undefined,
+        }).addTo(mapInstanceRef.current)
 
-    // Fit map bounds
-    try {
-      const bounds = L.latLngBounds([startCoord, destCoord])
-      map.fitBounds(bounds, { padding: [70, 70], maxZoom: 9 })
-    } catch {
-      // ignore
-    }
-
-    return () => {
-      isCancelled = true
-    }
+        routeLayerRef.current = polyline
+      })
+      .catch(() => {
+        // Fallback direct geodesic line
+        if (!mapInstanceRef.current) return
+        const polyline = L.polyline([startCoord, vehicleCoord, destCoord], {
+          color: '#0284c7',
+          weight: 3.5,
+          dashArray: '6, 6',
+        }).addTo(mapInstanceRef.current)
+        routeLayerRef.current = polyline
+      })
   }, [selectedShipment])
 
   const handleCenterVehicle = () => {
     if (!mapInstanceRef.current || !selectedShipment) return
-    const lat = selectedShipment.currentLocation?.lat || selectedShipment.origin.lat || 40.6413
-    const lng = selectedShipment.currentLocation?.lng || selectedShipment.origin.lng || -73.7781
+    const lat = selectedShipment.currentLocation?.lat || selectedShipment.origin.lat
+    const lng = selectedShipment.currentLocation?.lng || selectedShipment.origin.lng
     mapInstanceRef.current.flyTo([lat, lng], 8, { animate: true, duration: 1.2 })
     showToast(`Centered map on ${selectedShipment.waybill}`)
   }
@@ -262,6 +316,73 @@ export function AdminLiveTracking() {
     showToast('Corridor bounds adjusted')
   }
 
+  // Open Edit Modal
+  const handleOpenEditModal = (s: Shipment) => {
+    setSelectedWaybill(s.waybill)
+    setEditingShipment(s)
+    setEditForm({
+      status: s.status,
+      isMovementStopped: !!s.isMovementStopped,
+      progressPct: s.progressPct || 50,
+      assignedDriver: s.assignedDriver || '',
+      vehicleId: s.vehicleId || '',
+      currentLocationName: s.currentLocation?.name || '',
+      statusNote: s.statusNote || '',
+      newCheckpointTitle: '',
+      newCheckpointLocation: '',
+    })
+  }
+
+  // Save Modal Updates
+  const handleSaveFleetUpdates = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingShipment) return
+
+    const updates: Partial<Shipment> = {
+      status: editForm.status,
+      isMovementStopped: editForm.isMovementStopped,
+      progressPct: Number(editForm.progressPct),
+      assignedDriver: editForm.assignedDriver,
+      vehicleId: editForm.vehicleId,
+      statusNote: editForm.statusNote,
+    }
+
+    if (editForm.currentLocationName) {
+      updates.currentLocation = {
+        name: editForm.currentLocationName,
+        lat: editingShipment.currentLocation?.lat || editingShipment.origin.lat,
+        lng: editingShipment.currentLocation?.lng || editingShipment.origin.lng,
+      }
+    }
+
+    if (editForm.newCheckpointTitle.trim()) {
+      const newCp = {
+        id: `cp-${Date.now()}`,
+        title: editForm.newCheckpointTitle.trim(),
+        location: editForm.newCheckpointLocation.trim() || editForm.currentLocationName || editingShipment.destination.name,
+        timestamp: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        completed: true,
+        current: true,
+        detail: 'Checkpoint logged live by Dispatch Operations Controller.',
+      }
+      const existing = (editingShipment.checkpoints || []).map((cp) => ({ ...cp, current: false }))
+      updates.checkpoints = [...existing, newCp]
+    }
+
+    updateShipment(editingShipment.waybill, updates)
+
+    addAuditLog(
+      'Live Fleet Telemetry Update',
+      'TELEMETRY',
+      `Manual fleet status update pushed to waybill ${editingShipment.waybill} (Status: ${editForm.status}, Progress: ${editForm.progressPct}%)`,
+      'info',
+      editingShipment.waybill
+    )
+
+    showToast(`✓ Telemetry & consignment updates saved for ${editingShipment.waybill}!`)
+    setEditingShipment(null)
+  }
+
   const handleToggleHold = () => {
     if (!selectedShipment) return
     const nextStopped = !selectedShipment.isMovementStopped
@@ -272,8 +393,8 @@ export function AdminLiveTracking() {
     })
     showToast(
       nextStopped
-        ? `Halted movement telemetry for ${selectedShipment.waybill}`
-        : `Resumed linehaul telemetry for ${selectedShipment.waybill}`
+        ? `🛑 Halted movement telemetry for ${selectedShipment.waybill}`
+        : `▶️ Resumed linehaul telemetry for ${selectedShipment.waybill}`
     )
   }
 
@@ -342,63 +463,81 @@ export function AdminLiveTracking() {
 
             <div className="live-track-hud-actions">
               {/* Map Tile Switcher */}
-              <div style={{ display: 'inline-flex', background: 'rgba(15, 23, 42, 0.75)', padding: '2px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.15)' }}>
+              <div className="live-track-tile-group">
                 {(['voyager', 'satellite', 'dark'] as MapTileKey[]).map((k) => (
                   <button
                     key={k}
                     type="button"
+                    className={`live-track-tile-btn ${activeTileKey === k ? 'active' : ''}`}
                     onClick={() => setActiveTileKey(k)}
-                    style={{
-                      padding: '3px 7px',
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      background: activeTileKey === k ? '#0284c7' : 'transparent',
-                      color: activeTileKey === k ? '#ffffff' : '#94a3b8',
-                    }}
                   >
                     {k === 'voyager' ? '🗺️ Street' : k === 'satellite' ? '🛰️ Satellite' : '🌙 Radar'}
                   </button>
                 ))}
               </div>
 
+              {/* Map Telemetry Group */}
+              <div className="live-track-btn-group">
+                <button
+                  type="button"
+                  className="live-track-hud-btn"
+                  onClick={handleCenterVehicle}
+                  title="Focus map on Vehicle"
+                >
+                  🎯 Vehicle
+                </button>
+                <button
+                  type="button"
+                  className="live-track-hud-btn"
+                  onClick={handleFitCorridor}
+                  title="Fit whole Route Corridor"
+                >
+                  🗺️ Route
+                </button>
+              </div>
+
+              {/* Operations Control Group */}
+              <div className="live-track-btn-group">
+                <button
+                  type="button"
+                  className="live-track-hud-btn primary"
+                  onClick={() => handleOpenEditModal(selectedShipment)}
+                  title="Edit Fleet Status & Telemetry"
+                >
+                  ✏️ Edit Fleet
+                </button>
+                <button
+                  type="button"
+                  className={`live-track-hud-btn ${selectedShipment.isMovementStopped ? 'resume' : 'hold'}`}
+                  onClick={handleToggleHold}
+                  title={selectedShipment.isMovementStopped ? 'Resume Linehaul Movement' : 'Halt Consignment Movement'}
+                >
+                  {selectedShipment.isMovementStopped ? '▶️ Resume' : '⏸️ Stop Movement'}
+                </button>
+                <button
+                  type="button"
+                  className="live-track-hud-btn label-btn"
+                  onClick={() => setLabelModalWaybill(selectedShipment.waybill)}
+                  title="Print Consignment Label"
+                >
+                  🏷️ Label
+                </button>
+              </div>
+
+              {/* Collapsible Fleets Sidebar Toggle Button */}
               <button
                 type="button"
-                className="live-track-hud-btn"
-                onClick={handleCenterVehicle}
-                title="Focus on Vehicle"
+                className={`live-track-hud-btn fleet-toggle-btn ${isFleetSidebarOpen ? 'active' : ''}`}
+                onClick={() => setIsFleetSidebarOpen(!isFleetSidebarOpen)}
+                title={isFleetSidebarOpen ? 'Collapse active fleets panel' : 'Open active fleets panel'}
               >
-                🎯 Vehicle
-              </button>
-              <button
-                type="button"
-                className="live-track-hud-btn"
-                onClick={handleFitCorridor}
-                title="Fit Route Corridor"
-              >
-                🗺️ Route
-              </button>
-              <button
-                type="button"
-                className={`live-track-hud-btn ${selectedShipment.isMovementStopped ? 'resume' : 'hold'}`}
-                onClick={handleToggleHold}
-              >
-                {selectedShipment.isMovementStopped ? '▶️ Resume' : '⏸️ Stop Movement'}
-              </button>
-              <button
-                type="button"
-                className="live-track-hud-btn primary"
-                onClick={() => setLabelModalWaybill(selectedShipment.waybill)}
-              >
-                🏷️ Print Label
+                {isFleetSidebarOpen ? '◀ Hide Fleets' : `▶ Active Fleets (${filteredShipments.length})`}
               </button>
             </div>
           </div>
         )}
 
-        {/* Floating Top-Right Legend Box */}
+        {/* Floating Bottom-Left Legend Box */}
         <div className="live-track-legend">
           <div className="live-track-legend-item">
             <span className="live-track-dot green" />
@@ -413,10 +552,25 @@ export function AdminLiveTracking() {
             <span>Destination</span>
           </div>
         </div>
+
+        {/* Floating Right Handle/Button to Reopen Fleets Sidebar when closed */}
+        {!isFleetSidebarOpen && (
+          <button
+            type="button"
+            className="live-track-floating-open-btn"
+            onClick={() => setIsFleetSidebarOpen(true)}
+            title="Open Live Active Fleets Panel"
+            aria-label="Open Live Active Fleets Panel"
+          >
+            <span className="floating-tab-icon">📋</span>
+            <span className="floating-tab-text">Active Fleets ({filteredShipments.length})</span>
+            <span className="floating-tab-arrow">◀</span>
+          </button>
+        )}
       </div>
 
-      {/* Right Sidebar: Active Shipments */}
-      <div className="live-track-sidebar">
+      {/* Right Sidebar: Active Shipments (Collapsible) */}
+      <div className={`live-track-sidebar ${isFleetSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
         {/* Sidebar Header */}
         <div className="live-track-sidebar-header">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
@@ -424,9 +578,20 @@ export function AdminLiveTracking() {
               <span className="live-track-pulse-beacon" />
               <h2 className="live-track-title">Live Active Fleet</h2>
             </div>
-            <span className="live-track-count-badge">
-              {filteredShipments.length} Active
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="live-track-count-badge">
+                {filteredShipments.length} Active
+              </span>
+              <button
+                type="button"
+                className="live-track-sidebar-collapse-btn"
+                onClick={() => setIsFleetSidebarOpen(false)}
+                title="Collapse Fleets Panel"
+                aria-label="Collapse Fleets Panel"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           {/* Search Box */}
@@ -488,7 +653,7 @@ export function AdminLiveTracking() {
           </div>
         </div>
 
-        {/* Shipment Cards List */}
+        {/* Clickable & Editable Shipment Cards List */}
         <div className="live-track-list">
           {filteredShipments.length === 0 ? (
             <div className="live-track-empty">
@@ -503,9 +668,16 @@ export function AdminLiveTracking() {
                 <div
                   key={s.waybill}
                   className={`live-track-card ${isSelected ? 'selected' : ''}`}
-                  onClick={() => setSelectedWaybill(s.waybill)}
+                  onClick={() => {
+                    setSelectedWaybill(s.waybill)
+                    // Fly to vehicle on map
+                    const lat = s.currentLocation?.lat || s.origin.lat
+                    const lng = s.currentLocation?.lng || s.origin.lng
+                    mapInstanceRef.current?.flyTo([lat, lng], 6, { animate: true, duration: 1.0 })
+                  }}
+                  title="Click to track consignment on map"
                 >
-                  {/* Card Row 1: Waybill, Mode, Carrier, Status */}
+                  {/* Card Row 1: Waybill, Mode, Carrier, Status, and Edit Action Button */}
                   <div className="live-track-card-header">
                     <div className="live-track-card-id-group">
                       <span className="live-track-mode-badge" title={s.mode.toUpperCase()}>
@@ -521,9 +693,22 @@ export function AdminLiveTracking() {
                       </div>
                     </div>
 
-                    <span className={`cmd-status-pill ${s.status}`}>
-                      {s.status.replace('_', ' ').toUpperCase()}
-                    </span>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <span className={`cmd-status-pill ${s.status}`}>
+                        {s.status.replace('_', ' ').toUpperCase()}
+                      </span>
+                      <button
+                        type="button"
+                        className="live-track-card-edit-btn"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleOpenEditModal(s)
+                        }}
+                        title={`Edit Fleet Telemetry & Driver for ${s.waybill}`}
+                      >
+                        ✏️ Edit
+                      </button>
+                    </div>
                   </div>
 
                   {/* Card Row 2: Route Corridor */}
@@ -575,6 +760,268 @@ export function AdminLiveTracking() {
         </div>
       </div>
 
+      {/* Interactive Fleet Quick Edit Modal */}
+      {editingShipment && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+          onClick={() => setEditingShipment(null)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              maxWidth: '620px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+              border: '1px solid #e2e8f0',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '1.25rem 1.5rem',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                color: '#ffffff',
+                borderRadius: '16px 16px 0 0',
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '1.2rem' }}>
+                    {editingShipment.mode === 'air' ? '✈️' : editingShipment.mode === 'sea' ? '🚢' : '🚚'}
+                  </span>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#ffffff', fontWeight: 800 }}>
+                    Live Fleet Controller // {editingShipment.waybill}
+                  </h3>
+                </div>
+                <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                  {editingShipment.carrier} · {editingShipment.origin.code} ➔ {editingShipment.destination.code}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setEditingShipment(null)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: 'none',
+                  color: '#ffffff',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveFleetUpdates} style={{ padding: '1.5rem' }}>
+              {/* Movement Hold Toggle Section */}
+              <div
+                style={{
+                  marginBottom: '1.25rem',
+                  padding: '1rem',
+                  borderRadius: '10px',
+                  background: editForm.isMovementStopped ? '#fff5f5' : '#f0fdf4',
+                  border: `1.5px solid ${editForm.isMovementStopped ? '#fca5a5' : '#bbf7d0'}`,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div>
+                  <strong style={{ fontSize: '0.9rem', color: editForm.isMovementStopped ? '#991b1b' : '#166534', display: 'block' }}>
+                    {editForm.isMovementStopped ? '🛑 Consignment Movement is STOPPED (Hold Active)' : '▶️ Consignment is IN MOTION (Transit Active)'}
+                  </strong>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    Toggle this switch to halt vector progression or release holding order.
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      isMovementStopped: !prev.isMovementStopped,
+                      statusNote: !prev.isMovementStopped
+                        ? 'Consignment held at security checkpoint by Dispatch Operations.'
+                        : 'Movement resumed: transit corridor clear.',
+                    }))
+                  }
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    background: editForm.isMovementStopped ? '#10b981' : '#ea580c',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {editForm.isMovementStopped ? '▶ Resume Movement' : '🛑 Stop Movement'}
+                </button>
+              </div>
+
+              {/* Status & Progress Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label className="cmd-form-label">Consignment Status</label>
+                  <select
+                    className="cmd-select"
+                    value={editForm.status}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, status: e.target.value as ShipmentStatus }))}
+                  >
+                    <option value="in_transit">In Transit</option>
+                    <option value="out_for_delivery">Out For Delivery</option>
+                    <option value="delivered">Delivered (Completed)</option>
+                    <option value="pending">Pending Dispatch</option>
+                    <option value="exception">Transit Advisory / Exception</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="cmd-form-label">
+                    Progress Percentage ({editForm.progressPct}%)
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={editForm.progressPct}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, progressPct: Number(e.target.value) }))}
+                    style={{ width: '100%', marginTop: '8px' }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#94a3b8' }}>
+                    <span>0% (Origin)</span>
+                    <span>50% (Midway)</span>
+                    <span>100% (Delivered)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Driver & Vehicle ID Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label className="cmd-form-label">Assigned Driver / Pilot</label>
+                  <input
+                    type="text"
+                    className="cmd-input"
+                    value={editForm.assignedDriver}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, assignedDriver: e.target.value }))}
+                    placeholder="e.g. Capt. C. Lin"
+                  />
+                </div>
+
+                <div>
+                  <label className="cmd-form-label">Linehaul Vehicle / Flight ID</label>
+                  <input
+                    type="text"
+                    className="cmd-input"
+                    value={editForm.vehicleId}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, vehicleId: e.target.value }))}
+                    placeholder="e.g. DH-709 / VEH-102"
+                  />
+                </div>
+              </div>
+
+              {/* Current Location & Status Note */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label className="cmd-form-label">Current Telemetry Location</label>
+                <input
+                  type="text"
+                  className="cmd-input"
+                  value={editForm.currentLocationName}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, currentLocationName: e.target.value }))}
+                  placeholder="e.g. Transatlantic Flight Track Alpha (FL345)"
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label className="cmd-form-label">Status Advisory / Flight Note</label>
+                <input
+                  type="text"
+                  className="cmd-input"
+                  value={editForm.statusNote}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, statusNote: e.target.value }))}
+                  placeholder="e.g. Cruising at 850 km/h, on schedule for terminal handover."
+                />
+              </div>
+
+              {/* Append Checkpoint Milestone */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px dashed #cbd5e1',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <strong style={{ fontSize: '0.82rem', color: '#0f172a', display: 'block', marginBottom: '6px' }}>
+                  + Push New Checkpoint Milestone (Optional)
+                </strong>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <input
+                    type="text"
+                    className="cmd-input"
+                    placeholder="Milestone title, e.g. Cleared London Customs"
+                    value={editForm.newCheckpointTitle}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, newCheckpointTitle: e.target.value }))}
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                  <input
+                    type="text"
+                    className="cmd-input"
+                    placeholder="Location, e.g. London Heathrow LHR"
+                    value={editForm.newCheckpointLocation}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, newCheckpointLocation: e.target.value }))}
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="cmd-btn cmd-btn-white"
+                  onClick={() => setEditingShipment(null)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="cmd-btn cmd-btn-navy">
+                  💾 Save & Dispatch Live Updates
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Waybill Label Modal */}
       {labelModalWaybill && (
         <WaybillLabelModal
@@ -586,4 +1033,3 @@ export function AdminLiveTracking() {
     </div>
   )
 }
-

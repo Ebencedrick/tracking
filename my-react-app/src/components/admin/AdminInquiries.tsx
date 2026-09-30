@@ -1,63 +1,39 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-
-interface Inquiry {
-  id: string
-  fromName: string
-  fromEmail: string
-  subject: string
-  date: string
-  preview: string
-  status: 'new' | 'replied' | 'pending'
-  waybill?: string
-  message: string
-}
-
-const SAMPLE_INQUIRIES: Inquiry[] = [
-  {
-    id: 'inq-1',
-    fromName: 'Jessica Wong (Apex Bio)',
-    fromEmail: 'jessica.w@apexbiotech.com',
-    subject: 'Cold-chain telemetry report verification for ORD-DXB',
-    date: '10 mins ago',
-    preview: 'Requesting signed continuous temp logger data for PLOT-77812-QA1 prior to audit sign-off.',
-    status: 'new',
-    waybill: 'PLOT-70955-JFD',
-    message:
-      'Hello Dispatch Team,\n\nWe require the full calibrated 4-second GPS telemetry and temperature logger download for our shipment PLOT-70955-JFD before customs clearance handover at London Heathrow (LHR).\n\nPlease provide confirmation of temperature range preservation during the transatlantic airfreight leg.\n\nBest regards,\nJessica Wong\nDirector of Quality Assurance, Apex Biotech',
-  },
-  {
-    id: 'inq-2',
-    fromName: 'David Miller (Maersk Logistics)',
-    fromEmail: 'd.miller@maersk-intermodal.com',
-    subject: 'Port of Rotterdam customs green-lane berth update',
-    date: '1 hour ago',
-    preview: 'Container vessel Madrid Maersk arriving at Maasvlakte gateway. Clearance manifest submitted.',
-    status: 'pending',
-    waybill: 'PLOT-99420-CT4',
-    message:
-      'Hi Operations,\n\nMadrid Maersk has arrived at Rotterdam Maasvlakte terminal. Pre-clearance customs documentation has been synchronized with the Northstar linehaul gateway. We anticipate offload completion within 3 hours.\n\nRegards,\nDavid Miller',
-  },
-  {
-    id: 'inq-3',
-    fromName: 'Arthur Pendelton (Acme Corp)',
-    fromEmail: 'a.pendelton@acme-corp.com',
-    subject: 'High-value air freight priority rate quote for Q4 linehaul',
-    date: '3 hours ago',
-    preview: 'Inquiring about dedicated charter space for 40 pallets transatlantic corridor NYC to LHR.',
-    status: 'replied',
-    message:
-      'Good morning,\n\nAcme Corporation is scheduling 40 high-security cargo pallets for delivery from JFK to London Heathrow next month. Please confirm rate matrix tiers and dedicated airframe options.\n\nThank you,\nArthur Pendelton',
-  },
-]
+import { apiService } from '../../services/api'
+import type { InquiryMessage } from '../../types'
 
 export function AdminInquiries() {
-  const [inquiries, setInquiries] = useState<Inquiry[]>(SAMPLE_INQUIRIES)
-  const [selectedInquiryId, setSelectedInquiryId] = useState<string>(SAMPLE_INQUIRIES[0].id)
+  const [inquiries, setInquiries] = useState<InquiryMessage[]>([])
+  const [selectedInquiryId, setSelectedInquiryId] = useState<string>('')
   const [filterTab, setFilterTab] = useState<'all' | 'new' | 'pending' | 'replied'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [replyText, setReplyText] = useState('')
   const [toastMsg, setToastMsg] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Load inquiries from MongoDB Atlas
+  const fetchInquiries = async () => {
+    try {
+      const data = await apiService.getInquiries()
+      if (data && data.length > 0) {
+        setInquiries(data)
+        if (!selectedInquiryId) {
+          setSelectedInquiryId(data[0].id)
+        }
+      }
+    } catch {
+      // Keep existing data if network hiccup
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchInquiries()
+    const interval = setInterval(fetchInquiries, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   const selectedInquiry = inquiries.find((i) => i.id === selectedInquiryId) || inquiries[0]
 
@@ -67,36 +43,65 @@ export function AdminInquiries() {
   }
 
   const filteredInquiries = inquiries.filter((inq) => {
-    if (filterTab !== 'all' && inq.status !== filterTab) return false
+    if (filterTab !== 'all') {
+      if (filterTab === 'new' && inq.status !== 'new' && inq.status !== 'unread') return false
+      if (filterTab === 'pending' && inq.status !== 'pending') return false
+      if (filterTab === 'replied' && inq.status !== 'replied' && inq.status !== 'resolved' && inq.status !== 'read') return false
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       return (
-        inq.fromName.toLowerCase().includes(q) ||
-        inq.fromEmail.toLowerCase().includes(q) ||
-        inq.subject.toLowerCase().includes(q) ||
-        (inq.waybill && inq.waybill.toLowerCase().includes(q))
+        (inq.senderName && inq.senderName.toLowerCase().includes(q)) ||
+        (inq.senderEmail && inq.senderEmail.toLowerCase().includes(q)) ||
+        (inq.subject && inq.subject.toLowerCase().includes(q)) ||
+        (inq.waybillRef && inq.waybillRef.toLowerCase().includes(q))
       )
     }
     return true
   })
 
-  const handleSendReply = (e: React.FormEvent) => {
+  const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedInquiry || !replyText.trim()) return
 
+    const reply = replyText.trim()
+    const timestamp = new Date().toLocaleString()
+
     setInquiries((prev) =>
-      prev.map((inq) => (inq.id === selectedInquiry.id ? { ...inq, status: 'replied' } : inq))
+      prev.map((inq) =>
+        inq.id === selectedInquiry.id
+          ? { ...inq, status: 'resolved', replyMessage: reply, repliedAt: timestamp }
+          : inq
+      )
     )
-    showToast(`Reply transmitted to ${selectedInquiry.fromEmail}!`)
+
+    try {
+      await apiService.updateInquiry(selectedInquiry.id, {
+        status: 'resolved',
+        replyMessage: reply,
+        repliedAt: timestamp,
+      })
+      showToast(`✓ Official response transmitted to ${selectedInquiry.senderEmail} and saved in MongoDB!`)
+    } catch {
+      showToast(`Response logged locally for ${selectedInquiry.senderEmail}`)
+    }
+
     setReplyText('')
   }
 
-  const handleToggleStatus = (newStatus: 'new' | 'pending' | 'replied') => {
+  const handleToggleStatus = async (newStatus: 'unread' | 'read' | 'resolved') => {
     if (!selectedInquiry) return
+
     setInquiries((prev) =>
       prev.map((inq) => (inq.id === selectedInquiry.id ? { ...inq, status: newStatus } : inq))
     )
-    showToast(`Status marked as ${newStatus.toUpperCase()}`)
+
+    try {
+      await apiService.updateInquiry(selectedInquiry.id, { status: newStatus })
+      showToast(`Status updated to ${newStatus.toUpperCase()}`)
+    } catch {
+      showToast(`Status updated`)
+    }
   }
 
   const applyCannedTemplate = (text: string) => {
@@ -117,7 +122,7 @@ export function AdminInquiries() {
         <div className="cmd-header-left">
           <div className="cmd-node-status">
             <span className="cmd-node-pulse" />
-            <span>CUSTOMER COMMUNICATIONS // OPERATIONAL</span>
+            <span>CUSTOMER COMMUNICATIONS // LIVE MONGODB SYNC</span>
           </div>
           <h1 className="cmd-title">Customer Emails & Inquiries</h1>
           <p className="cmd-subtitle">
@@ -132,7 +137,7 @@ export function AdminInquiries() {
           <div className="cmd-stat-info">
             <span className="cmd-stat-label">Total Communications</span>
             <div className="cmd-stat-number">{inquiries.length}</div>
-            <span className="cmd-stat-subtext">All Channels Active</span>
+            <span className="cmd-stat-subtext">MongoDB Atlas Active</span>
           </div>
           <div className="cmd-stat-icon-box gray">
             📨
@@ -143,7 +148,7 @@ export function AdminInquiries() {
           <div className="cmd-stat-info">
             <span className="cmd-stat-label">New Inquiries</span>
             <div className="cmd-stat-number" style={{ color: '#dc2626' }}>
-              {inquiries.filter((i) => i.status === 'new').length}
+              {inquiries.filter((i) => i.status === 'new' || i.status === 'unread').length}
             </div>
             <span className="cmd-stat-subtext">Requires Agent Attention</span>
           </div>
@@ -210,7 +215,7 @@ export function AdminInquiries() {
               onClick={() => setFilterTab('new')}
               style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem' }}
             >
-              New ({inquiries.filter((i) => i.status === 'new').length})
+              New ({inquiries.filter((i) => i.status === 'new' || i.status === 'unread').length})
             </button>
             <button
               type="button"
@@ -232,13 +237,19 @@ export function AdminInquiries() {
 
           {/* List of Inquiries */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '520px', overflowY: 'auto' }}>
-            {filteredInquiries.length === 0 ? (
+            {isLoading && inquiries.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', fontSize: '0.85rem' }}>
+                Connecting to MongoDB Atlas Inquiries...
+              </div>
+            ) : filteredInquiries.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', fontSize: '0.85rem' }}>
                 No inquiries match "{searchQuery}"
               </div>
             ) : (
               filteredInquiries.map((inq) => {
                 const isSelected = inq.id === selectedInquiry?.id
+                const isNew = inq.status === 'new' || inq.status === 'unread'
+                const isReplied = inq.status === 'replied' || inq.status === 'resolved'
                 return (
                   <div
                     key={inq.id}
@@ -254,8 +265,8 @@ export function AdminInquiries() {
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{inq.fromName}</strong>
-                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{inq.date}</span>
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a' }}>{inq.senderName}</strong>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{inq.createdAtStr || 'Recent'}</span>
                     </div>
 
                     <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
@@ -263,13 +274,13 @@ export function AdminInquiries() {
                     </div>
 
                     <p style={{ margin: 0, fontSize: '0.76rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {inq.preview}
+                      {inq.message}
                     </p>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px' }}>
-                      {inq.waybill ? (
+                      {inq.waybillRef ? (
                         <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', fontWeight: 800, color: '#0284c7' }}>
-                          Ref: {inq.waybill}
+                          Ref: {inq.waybillRef}
                         </span>
                       ) : (
                         <span />
@@ -277,10 +288,10 @@ export function AdminInquiries() {
 
                       <span
                         className={`cmd-status-pill ${
-                          inq.status === 'new' ? 'exception' : inq.status === 'replied' ? 'delivered' : 'in_transit'
+                          isNew ? 'exception' : isReplied ? 'delivered' : 'in_transit'
                         }`}
                       >
-                        {inq.status.toUpperCase()}
+                        {isNew ? 'NEW' : isReplied ? 'REPLIED' : 'PENDING'}
                       </span>
                     </div>
                   </div>
@@ -301,7 +312,7 @@ export function AdminInquiries() {
                     {selectedInquiry.subject}
                   </h3>
                   <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                    From: <strong style={{ color: '#0f172a' }}>{selectedInquiry.fromName}</strong> &lt;{selectedInquiry.fromEmail}&gt;
+                    From: <strong style={{ color: '#0f172a' }}>{selectedInquiry.senderName}</strong> &lt;{selectedInquiry.senderEmail}&gt;
                   </div>
                 </div>
 
@@ -309,18 +320,18 @@ export function AdminInquiries() {
                   <select
                     className="cmd-select"
                     style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem' }}
-                    value={selectedInquiry.status}
-                    onChange={(e) => handleToggleStatus(e.target.value as 'new' | 'pending' | 'replied')}
+                    value={selectedInquiry.status === 'unread' ? 'unread' : selectedInquiry.status === 'resolved' ? 'resolved' : 'read'}
+                    onChange={(e) => handleToggleStatus(e.target.value as 'unread' | 'read' | 'resolved')}
                   >
-                    <option value="new">Mark as New</option>
-                    <option value="pending">Mark as Pending</option>
-                    <option value="replied">Mark as Replied</option>
+                    <option value="unread">Mark as New / Unread</option>
+                    <option value="read">Mark as Under Review</option>
+                    <option value="resolved">Mark as Resolved</option>
                   </select>
                 </div>
               </div>
 
               {/* Waybill Linked Banner */}
-              {selectedInquiry.waybill && (
+              {selectedInquiry.waybillRef && (
                 <div
                   style={{
                     display: 'flex',
@@ -336,12 +347,12 @@ export function AdminInquiries() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                     <span style={{ fontSize: '1.1rem' }}>📦</span>
                     <span style={{ fontSize: '0.82rem', color: '#475569' }}>
-                      Linked Consignment Waybill: <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{selectedInquiry.waybill}</strong>
+                      Linked Consignment Waybill: <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{selectedInquiry.waybillRef}</strong>
                     </span>
                   </div>
 
                   <Link
-                    to={`/track?waybill=${encodeURIComponent(selectedInquiry.waybill)}`}
+                    to={`/track?waybill=${encodeURIComponent(selectedInquiry.waybillRef)}`}
                     className="cmd-action-track"
                     style={{ fontSize: '0.8rem', padding: '0.35rem 0.85rem' }}
                   >

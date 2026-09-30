@@ -17,17 +17,18 @@ export type CheckpointEventType =
 export interface Checkpoint {
   id: string
   title: string
-  detail: string
+  detail?: string
   location: string
-  time: string
+  time?: string
   timestamp: string
   lat?: number
   lng?: number
-  eventType: CheckpointEventType
-  status: ShipmentStatus
+  eventType?: CheckpointEventType
+  status?: ShipmentStatus
   completed: boolean
   current?: boolean
 }
+
 
 export interface ShipmentDocument {
   id: string
@@ -152,4 +153,48 @@ export interface HubNode {
   latencyMs: number
   activeConsignments: number
   region: string
+}
+
+export interface InquiryMessage {
+  id: string
+  senderName: string
+  senderEmail: string
+  subject: string
+  message: string
+  topic?: string
+  waybillRef?: string
+  status: 'unread' | 'read' | 'resolved' | 'new' | 'pending' | 'replied'
+  replyMessage?: string
+  repliedAt?: string
+  createdAtStr?: string
+}
+
+export interface ChatMessage {
+  id: string
+  sender: 'client' | 'agent' | 'system'
+  text: string
+  time: string
+}
+
+export interface ChatSession {
+  id: string
+  clientName: string
+  clientEmail?: string
+  waybillRef?: string
+  status: 'active' | 'waiting' | 'closed'
+  lastMessageTime?: string
+  unreadCount?: number
+  messages: ChatMessage[]
+}
+
+export interface TariffSettings {
+  key?: string
+  airFreightRatePerKg: number
+  oceanFreightRatePerCbm: number
+  groundLinehaulRatePerKm: number
+  customsHandlingFee: number
+  fuelSurchargePercent: number
+  securityInspectionCharge: number
+  priorityExpressMultiplier: number
+  freeStorageDays: number
 }

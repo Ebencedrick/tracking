@@ -1,102 +1,56 @@
-import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { useShipments } from '../../context/ShipmentContext'
 
 export function AdminRates() {
-  const { rateConfig, updateRateConfig, carriers } = useShipments()
-
-  // Form State
-  const [airRate, setAirRate] = useState(rateConfig.airPerKg)
-  const [seaRate, setSeaRate] = useState(rateConfig.seaPerKg)
-  const [landRate, setLandRate] = useState(rateConfig.landPerKg)
-  const [fuelPct, setFuelPct] = useState(rateConfig.fuelSurchargePct)
-  const [customsFee, setCustomsFee] = useState(rateConfig.customsClearanceFee)
-  const [peakMultiplier, setPeakMultiplier] = useState(rateConfig.peakSeasonMultiplier)
-
-  // Surcharges & Customs Fee Schedules
-  const [securityScanFee, setSecurityScanFee] = useState(25.0)
-  const [dangerousGoodsFee, setDangerousGoodsFee] = useState(150.0)
-  const [tempControlledFee, setTempControlledFee] = useState(85.0)
-
-  const [toastMessage, setToastMessage] = useState('')
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(''), 3500)
-  }
-
-  const handleSaveRates = (e: FormEvent) => {
-    e.preventDefault()
-    updateRateConfig({
-      airPerKg: airRate,
-      seaPerKg: seaRate,
-      landPerKg: landRate,
-      fuelSurchargePct: fuelPct,
-      customsClearanceFee: customsFee,
-      peakSeasonMultiplier: peakMultiplier,
-    })
-    showToast('Updated global freight tariff guidelines successfully!')
-  }
-
-  const handleResetDefaults = () => {
-    setAirRate(4.8)
-    setSeaRate(1.4)
-    setLandRate(2.2)
-    setFuelPct(8.5)
-    setCustomsFee(45.0)
-    setPeakMultiplier(1.15)
-    setSecurityScanFee(25.0)
-    setDangerousGoodsFee(150.0)
-    setTempControlledFee(85.0)
-    updateRateConfig({
-      airPerKg: 4.8,
-      seaPerKg: 1.4,
-      landPerKg: 2.2,
-      fuelSurchargePct: 8.5,
-      customsClearanceFee: 45.0,
-      peakSeasonMultiplier: 1.15,
-    })
-    showToast('Reset rate guidelines to global baseline standards')
-  }
+  const { carriers } = useShipments()
 
   return (
     <div className="cmd-canvas">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="shipment-toast">
-          ✓ {toastMessage}
-        </div>
-      )}
 
       {/* Header */}
       <div className="cmd-header">
         <div className="cmd-header-left">
           <div className="cmd-node-status">
             <span className="cmd-node-pulse" />
-            <span>GLOBAL TARIFF & CHARGES POLICY // ACTIVE</span>
+            <span>CARRIER CORRIDORS & SLA POLICY // DIRECT BILLING ACTIVE</span>
           </div>
-          <h1 className="cmd-title">Pricing & Tariff Guidelines</h1>
+          <h1 className="cmd-title">Carrier Corridors & Operations Guidelines</h1>
           <p className="cmd-subtitle">
-            Configure reference per-KG rate benchmarks, customs fee schedules, and surcharge policies. Tariffs are manually confirmed per consignment.
+            Operations management for authorized carrier networks, corridor SLA benchmarks, and direct client quotation protocols.
           </p>
         </div>
 
         <div className="cmd-header-actions">
-          <button type="button" onClick={handleResetDefaults} className="cmd-btn cmd-btn-white">
-            ↺ Reset Defaults
-          </button>
-          <button type="submit" form="rate-matrix-form" className="cmd-btn cmd-btn-red">
-            💾 Save Tariff Matrix
-          </button>
+          <Link to="/admin/inquiries" className="cmd-btn cmd-btn-white">
+            ✉ Client Quotations
+          </Link>
+          <Link to="/admin/chats" className="cmd-btn cmd-btn-navy">
+            💬 Live Support Desk
+          </Link>
         </div>
       </div>
 
-      {/* Manual Pricing Policy Alert Banner */}
-      <div style={{ background: '#fef3c7', border: '1px solid #fde68a', padding: '1rem 1.25rem', borderRadius: '14px', marginBottom: '1.75rem', display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-        <span style={{ fontSize: '1.4rem' }}>ℹ️</span>
+      {/* Manual Direct Quotation Policy Banner */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%)',
+          border: '1.5px solid #0284c7',
+          padding: '1.25rem 1.5rem',
+          borderRadius: '14px',
+          marginBottom: '1.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          boxShadow: '0 4px 16px rgba(2, 132, 199, 0.08)',
+        }}
+      >
+        <span style={{ fontSize: '2rem' }}>📧</span>
         <div>
-          <strong style={{ color: '#92400e', fontSize: '0.88rem' }}>Manual Pricing Assignment Model:</strong>
-          <span style={{ color: '#78350f', fontSize: '0.82rem', display: 'block', marginTop: '2px' }}>
-            The system does not generate automated binding customer quotations. All rates, surcharges, and invoices are manually quoted and set during consignment intake and booking approval.
+          <strong style={{ color: '#0369a1', fontSize: '0.95rem', display: 'block' }}>
+            Direct Manual Tariff & Consignment Billing Protocol:
+          </strong>
+          <span style={{ color: '#334155', fontSize: '0.85rem', display: 'block', marginTop: '3px', lineHeight: 1.5 }}>
+            Automated public pricing tables are disabled. All consignment tariffs, custom linehaul rates, and clearance invoices are communicated directly to clients via official dispatch email or 24/7 Live Support Chat.
           </span>
         </div>
       </div>
@@ -105,206 +59,87 @@ export function AdminRates() {
       <div className="cmd-stats-row">
         <div className="cmd-stat-card">
           <div className="cmd-stat-info">
-            <span className="cmd-stat-label">Air Freight Baseline</span>
-            <div className="cmd-stat-number">${airRate.toFixed(2)} / kg</div>
-            <span className="cmd-stat-subtext">Priority Global Linehaul</span>
+            <span className="cmd-stat-label">Authorized Carrier Partners</span>
+            <div className="cmd-stat-number">{carriers.length} Networks</div>
+            <span className="cmd-stat-subtext">Global Multi-Modal</span>
           </div>
           <div className="cmd-stat-icon-box gray">
+            🌐
+          </div>
+        </div>
+
+        <div className="cmd-stat-card">
+          <div className="cmd-stat-info">
+            <span className="cmd-stat-label">Air Express Network</span>
+            <div className="cmd-stat-number" style={{ color: '#0284c7' }}>99.4% SLA</div>
+            <span className="cmd-stat-subtext">DHL & FedEx Airframes</span>
+          </div>
+          <div className="cmd-stat-icon-box blue">
             ✈️
           </div>
         </div>
 
         <div className="cmd-stat-card">
           <div className="cmd-stat-info">
-            <span className="cmd-stat-label">Ocean Container FCL/LCL</span>
-            <div className="cmd-stat-number">${seaRate.toFixed(2)} / kg</div>
-            <span className="cmd-stat-subtext">Intermodal Deep-Sea</span>
+            <span className="cmd-stat-label">Ocean & Intermodal</span>
+            <div className="cmd-stat-number" style={{ color: '#10b981' }}>97.2% SLA</div>
+            <span className="cmd-stat-subtext">Maersk Line Fleet</span>
           </div>
-          <div className="cmd-stat-icon-box gray">
+          <div className="cmd-stat-icon-box green">
             🚢
           </div>
         </div>
 
         <div className="cmd-stat-card">
           <div className="cmd-stat-info">
-            <span className="cmd-stat-label">Overland Express</span>
-            <div className="cmd-stat-number">${landRate.toFixed(2)} / kg</div>
-            <span className="cmd-stat-subtext">Regional Cold-Chain</span>
+            <span className="cmd-stat-label">Customs Protocol</span>
+            <div className="cmd-stat-number" style={{ color: '#7c3aed' }}>Green-Lane</div>
+            <span className="cmd-stat-subtext">Pre-Clearance Standard</span>
           </div>
-          <div className="cmd-stat-icon-box gray">
-            🚚
-          </div>
-        </div>
-
-        <div className="cmd-stat-card">
-          <div className="cmd-stat-info">
-            <span className="cmd-stat-label">Fuel Surcharge Index</span>
-            <div className="cmd-stat-number">{fuelPct.toFixed(1)}%</div>
-            <span className="cmd-stat-subtext">Monthly Benchmark</span>
-          </div>
-          <div className="cmd-stat-icon-box gray">
-            ⛽
+          <div className="cmd-stat-icon-box red">
+            🛂
           </div>
         </div>
       </div>
 
-      {/* 2-Column Layout: Modality Reference Form + Surcharges & Carrier Multipliers Table */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.75rem', alignItems: 'start' }}>
-        {/* Left Column: Form Card */}
-        <div className="cmd-card">
-          <div className="cmd-card-header">
-            <h2 className="cmd-card-title">
-              <span className="cmd-card-title-icon">⚙️</span>
-              Base Modality Rate Reference ($ USD / KG)
-            </h2>
-          </div>
-
-          <form id="rate-matrix-form" onSubmit={handleSaveRates}>
-            <div className="cmd-form-row">
-              <div className="cmd-form-group">
-                <label className="cmd-form-label">✈️ Priority Air Freight ($/KG)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  className="cmd-input"
-                  value={airRate}
-                  onChange={(e) => setAirRate(Number(e.target.value))}
-                  required
-                />
-              </div>
-
-              <div className="cmd-form-group">
-                <label className="cmd-form-label">🚢 Ocean Container FCL/LCL ($/KG)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  className="cmd-input"
-                  value={seaRate}
-                  onChange={(e) => setSeaRate(Number(e.target.value))}
-                  required
-                />
-              </div>
-
-              <div className="cmd-form-group">
-                <label className="cmd-form-label">🚚 Overland Express ($/KG)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  className="cmd-input"
-                  value={landRate}
-                  onChange={(e) => setLandRate(Number(e.target.value))}
-                  required
-                />
-              </div>
-            </div>
-
-            <div style={{ marginTop: '1.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 0.25rem 0', color: '#0f172a' }}>
-                Customs Intake & Special Handling Fee Schedule
-              </h3>
-              <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 1.25rem 0' }}>
-                Standard clearance and intake charges applied during consignment booking.
-              </p>
-
-              <div className="cmd-form-row">
-                <div className="cmd-form-group">
-                  <label className="cmd-form-label">Port Clearance Intake ($ USD)</label>
-                  <input
-                    type="number"
-                    step="1"
-                    className="cmd-input"
-                    value={customsFee}
-                    onChange={(e) => setCustomsFee(Number(e.target.value))}
-                    required
-                  />
-                </div>
-
-                <div className="cmd-form-group">
-                  <label className="cmd-form-label">Security Screening Fee ($ USD)</label>
-                  <input
-                    type="number"
-                    step="1"
-                    className="cmd-input"
-                    value={securityScanFee}
-                    onChange={(e) => setSecurityScanFee(Number(e.target.value))}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="cmd-form-row" style={{ marginTop: '0.5rem' }}>
-                <div className="cmd-form-group">
-                  <label className="cmd-form-label">Dangerous Goods (HAZMAT) Fee ($ USD)</label>
-                  <input
-                    type="number"
-                    step="1"
-                    className="cmd-input"
-                    value={dangerousGoodsFee}
-                    onChange={(e) => setDangerousGoodsFee(Number(e.target.value))}
-                    required
-                  />
-                </div>
-
-                <div className="cmd-form-group">
-                  <label className="cmd-form-label">Cold-Chain Temp Control Fee ($ USD)</label>
-                  <input
-                    type="number"
-                    step="1"
-                    className="cmd-input"
-                    value={tempControlledFee}
-                    onChange={(e) => setTempControlledFee(Number(e.target.value))}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #f1f5f9' }}>
-              <button type="button" onClick={handleResetDefaults} className="cmd-btn cmd-btn-white">
-                Cancel
-              </button>
-              <button type="submit" className="cmd-btn cmd-btn-red">
-                Save Changes
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Right Column: Carrier Partner Rate Multipliers & Policy Matrix */}
+      {/* 2-Column Layout: Carrier Partner Grid + Operations Guidelines */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(300px, 1fr)', gap: '1.75rem', alignItems: 'start' }}>
+        {/* Left Column: Authorized Carriers & Corridor SLAs */}
         <div className="cmd-card">
           <div className="cmd-card-header">
             <h2 className="cmd-card-title">
               <span className="cmd-card-title-icon">📋</span>
-              Carrier Multipliers & Corridor Schedule
+              Authorized Carrier Partners & Coverage Corridors
             </h2>
           </div>
 
-          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '14px', border: '1px solid #e2e8f0', marginBottom: '1.25rem' }}>
-            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#0f172a' }}>Standard Multiplier Index by Carrier Network</h4>
-            <p style={{ margin: '0 0 1rem 0', fontSize: '0.78rem', color: '#64748b' }}>
-              Approved baseline adjustment factors based on partner SLAs and airframe capacity allocations.
-            </p>
-
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+          <div style={{ padding: '0.5rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: '#64748b' }}>
-                  <th style={{ padding: '0.4rem 0.6rem' }}>Carrier Partner</th>
-                  <th style={{ padding: '0.4rem 0.6rem' }}>Coverage Corridor</th>
-                  <th style={{ padding: '0.4rem 0.6rem' }}>Base Multiplier</th>
-                  <th style={{ padding: '0.4rem 0.6rem' }}>Status</th>
+                  <th style={{ padding: '0.75rem 0.6rem' }}>Carrier Partner</th>
+                  <th style={{ padding: '0.75rem 0.6rem' }}>Coverage Corridor</th>
+                  <th style={{ padding: '0.75rem 0.6rem' }}>SLA Reliability</th>
+                  <th style={{ padding: '0.75rem 0.6rem' }}>Dispatch Status</th>
                 </tr>
               </thead>
               <tbody>
                 {carriers.map((c) => (
                   <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '0.6rem', fontWeight: 800, color: '#0f172a' }}>
-                      {c.name} ({c.code})
+                    <td style={{ padding: '0.85rem 0.6rem', fontWeight: 800, color: '#0f172a' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>🏢</span>
+                        <div>
+                          <div>{c.name}</div>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Code: {c.code}</span>
+                        </div>
+                      </div>
                     </td>
-                    <td style={{ padding: '0.6rem', color: '#64748b' }}>{c.coverage}</td>
-                    <td style={{ padding: '0.6rem', fontWeight: 800, color: '#0284c7' }}>{c.baseRateMultiplier}x</td>
-                    <td style={{ padding: '0.6rem' }}>
-                      <span className={`cmd-status-pill ${c.status === 'active' ? 'delivered' : 'exception'}`} style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
-                        {c.status.toUpperCase()}
+                    <td style={{ padding: '0.85rem 0.6rem', color: '#475569' }}>{c.coverage || 'Global Air & Maritime'}</td>
+                    <td style={{ padding: '0.85rem 0.6rem', fontWeight: 800, color: '#10b981' }}>{c.slaScore ? `${c.slaScore}%` : '98.8%'}</td>
+                    <td style={{ padding: '0.85rem 0.6rem' }}>
+                      <span className={`cmd-status-pill ${c.status === 'active' ? 'delivered' : 'exception'}`} style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
+                        {c.status ? c.status.toUpperCase() : 'ACTIVE'}
                       </span>
                     </td>
                   </tr>
@@ -312,14 +147,44 @@ export function AdminRates() {
               </tbody>
             </table>
           </div>
+        </div>
 
-          <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.88rem', color: '#0f172a' }}>Tariff Protocol Notes</h4>
-            <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.78rem', color: '#475569', lineHeight: '1.6' }}>
-              <li>Declared cargo value above $1,000 USD is subject to optional cargo insurance assessment.</li>
-              <li>Peak demand season factor applies dynamically during designated fourth-quarter holiday linehauls.</li>
-              <li>Consignments booked by shippers remain in <strong>Pending</strong> state until quoted tariffs are approved by Operations.</li>
-            </ul>
+        {/* Right Column: Dispatch Direct Communication Guidelines */}
+        <div className="cmd-card">
+          <div className="cmd-card-header">
+            <h2 className="cmd-card-title">
+              <span className="cmd-card-title-icon">🛡️</span>
+              Consignment Intake Protocols
+            </h2>
+          </div>
+
+          <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', display: 'block', marginBottom: '4px' }}>
+                1. Manual Tariff Confirmation
+              </strong>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5 }}>
+                Operations controllers provide commercial cargo quotations directly through email invoices or customer chat sessions based on volumetric weight and transit speed.
+              </p>
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', display: 'block', marginBottom: '4px' }}>
+                2. Real-Time Telemetry Tracking
+              </strong>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5 }}>
+                Once a consignment is registered, clients track live coordinates, elapsed/remaining hours, and milestones using their unique waybill number on the public portal.
+              </p>
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <strong style={{ fontSize: '0.88rem', color: '#0f172a', display: 'block', marginBottom: '4px' }}>
+                3. Customs Pre-Clearance
+              </strong>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.5 }}>
+                Electronic manifests and commercial invoices are transmitted to port authorities before wheels touch down to minimize dwell times at major hubs.
+              </p>
+            </div>
           </div>
         </div>
       </div>
