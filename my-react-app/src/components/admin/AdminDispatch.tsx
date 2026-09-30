@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useShipments } from '../../context/ShipmentContext'
 import type { CheckpointEventType, ShipmentStatus } from '../../types'
+import { getShipmentProgressMetrics } from '../../utils/mapApis'
 
 export function AdminDispatch() {
   const {
@@ -149,20 +150,27 @@ export function AdminDispatch() {
             ))}
           </select>
 
-          {currentShipment && (
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto' }}>
-              <span className={`admin-status-pill ${currentShipment.status}`}>
-                {currentShipment.status.replace('_', ' ')}
-              </span>
-              <Link
-                to={`/track?waybill=${encodeURIComponent(currentShipment.waybill)}`}
-                className="admin-quick-btn"
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
-              >
-                Open in Public Tracker ↗
-              </Link>
-            </div>
-          )}
+          {currentShipment && (() => {
+            const metrics = getShipmentProgressMetrics(currentShipment)
+            return (
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginLeft: 'auto', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: currentShipment.isMovementStopped ? '#ef4444' : '#38bdf8' }}>
+                  {metrics.pct}% ({metrics.coveredKm.toLocaleString()} / {metrics.totalKm.toLocaleString()} KM)
+                </span>
+                <span className={`admin-status-pill ${currentShipment.status}`}>
+                  {currentShipment.isMovementStopped ? 'STOPPED' : currentShipment.status.replace('_', ' ')}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>• {metrics.speedDisplay}</span>
+                <Link
+                  to={`/track?waybill=${encodeURIComponent(currentShipment.waybill)}`}
+                  className="admin-quick-btn"
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
+                >
+                  Open in Public Tracker ↗
+                </Link>
+              </div>
+            )
+          })()}
         </div>
       </div>
 
@@ -340,12 +348,22 @@ export function AdminDispatch() {
           {/* Right Column: Live Timeline of Selected Waybill */}
           <div className="admin-card">
             <div className="admin-card-header">
-              <div>
-                <h3>Active Milestone Sequence ({currentShipment.checkpoints.length})</h3>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>
-                  {currentShipment.waybill} • {currentShipment.carrier} • {currentShipment.origin.code} → {currentShipment.destination.code}
-                </p>
-              </div>
+              {(() => {
+                const metrics = getShipmentProgressMetrics(currentShipment)
+                return (
+                  <div style={{ width: '100%' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3>Active Milestone Sequence ({currentShipment.checkpoints.length})</h3>
+                      <strong style={{ color: currentShipment.isMovementStopped ? '#ef4444' : '#38bdf8', fontSize: '0.85rem' }}>
+                        {metrics.pct}% ({metrics.coveredKm.toLocaleString()} / {metrics.totalKm.toLocaleString()} KM)
+                      </strong>
+                    </div>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#94a3b8' }}>
+                      {currentShipment.waybill} • {currentShipment.carrier} • {currentShipment.origin.code} → {currentShipment.destination.code} • {metrics.speedDisplay}
+                    </p>
+                  </div>
+                )
+              })()}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative' }}>

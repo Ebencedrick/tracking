@@ -3,9 +3,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useShipments } from '../../context/ShipmentContext'
-import type { ShipmentStatus, ShippingMode } from '../../types'
+import type { Shipment, ShipmentStatus, ShippingMode } from '../../types'
+import { WaybillLabelModal } from './WaybillLabelModal'
 import {
   searchLiveGeocode,
+  lookupKnownHub,
   fetchLiveRouteGeometry,
   calculateHaversineDistance,
   MAP_TILE_PROVIDERS,
@@ -26,6 +28,12 @@ export function AdminCreateShipment() {
   }, [editWaybill, getShipment, shipments])
 
   const isEditMode = Boolean(editWaybill && existingShipment)
+
+  // Creation Popup Modal State
+  const [createdShipmentModal, setCreatedShipmentModal] = useState<Shipment | null>(null)
+  const [isCopiedTracking, setIsCopiedTracking] = useState(false)
+  const [shareReceiptStatus, setShareReceiptStatus] = useState('')
+  const [printModalWaybill, setPrintModalWaybill] = useState<string | null>(null)
 
   // Sender Details
   const [senderName, setSenderName] = useState(existingShipment?.senderName || 'Apex International Logistics')
@@ -51,6 +59,58 @@ export function AdminCreateShipment() {
   const [isGeocodingOrigin, setIsGeocodingOrigin] = useState(false)
   const [isGeocodingDest, setIsGeocodingDest] = useState(false)
   const [geocodeFeedback, setGeocodeFeedback] = useState<string | null>(null)
+
+  // Auto-geocode origin with debounce when text changes
+  useEffect(() => {
+    if (!originName.trim()) return
+    // Instant check in encyclopedia first
+    const instant = lookupKnownHub(originName)
+    if (instant) {
+      setOriginLat(instant.lat)
+      setOriginLng(instant.lng)
+      setGeocodeFeedback(`✓ Origin verified: [${instant.lat.toFixed(4)}, ${instant.lng.toFixed(4)}] (${instant.displayName})`)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchLiveGeocode(originName)
+        if (results.length > 0) {
+          const top = results[0]
+          setOriginLat(top.lat)
+          setOriginLng(top.lng)
+          setGeocodeFeedback(`✓ Origin verified: [${top.lat.toFixed(4)}, ${top.lng.toFixed(4)}] (${top.displayName.slice(0, 45)}...)`)
+        }
+      } catch {}
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [originName])
+
+  // Auto-geocode destination with debounce when text changes
+  useEffect(() => {
+    if (!destName.trim()) return
+    // Instant check in encyclopedia first
+    const instant = lookupKnownHub(destName)
+    if (instant) {
+      setDestLat(instant.lat)
+      setDestLng(instant.lng)
+      setGeocodeFeedback(`✓ Destination verified: [${instant.lat.toFixed(4)}, ${instant.lng.toFixed(4)}] (${instant.displayName})`)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchLiveGeocode(destName)
+        if (results.length > 0) {
+          const top = results[0]
+          setDestLat(top.lat)
+          setDestLng(top.lng)
+          setGeocodeFeedback(`✓ Destination verified: [${top.lat.toFixed(4)}, ${top.lng.toFixed(4)}] (${top.displayName.slice(0, 45)}...)`)
+        }
+      } catch {}
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [destName])
 
   // Map Tile Layer state
   const [activeTileKey, setActiveTileKey] = useState<MapTileKey>('voyager')
@@ -357,10 +417,40 @@ export function AdminCreateShipment() {
     setDestLng(dLng)
   }
 
+  const handleResetFormForNew = () => {
+    setCreatedShipmentModal(null)
+    setOriginName('New York Worldport Gateway (JFK)')
+    setOriginLat(40.6413)
+    setOriginLng(-73.7781)
+    setDestName('London Heathrow Cargo Center (LHR)')
+    setDestLat(51.47)
+    setDestLng(-0.4543)
+    setReceiverName('')
+    setReceiverEmail('')
+    setReceiverPhone('')
+  }
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
 
     const selectedCarrierObj = carriers.find((c) => c.name === carrierName)
+
+    let finalOriginLat = originLat
+    let finalOriginLng = originLng
+    let finalDestLat = destLat
+    let finalDestLng = destLng
+
+    // Fallback checks from encyclopedia
+    const geoOrig = lookupKnownHub(originName)
+    if (geoOrig && (originLat === 40.6413 || originLat === 0)) {
+      finalOriginLat = geoOrig.lat
+      finalOriginLng = geoOrig.lng
+    }
+    const geoDest = lookupKnownHub(destName)
+    if (geoDest && (destLat === 51.47 || destLat === 0)) {
+      finalDestLat = geoDest.lat
+      finalDestLng = geoDest.lng
+    }
 
     if (isEditMode && editWaybill) {
       // UPDATE EXISTING SHIPMENT
@@ -371,19 +461,19 @@ export function AdminCreateShipment() {
         origin: {
           name: originName,
           code: originName.slice(0, 3).toUpperCase(),
-          lat: originLat,
-          lng: originLng,
+          lat: finalOriginLat,
+          lng: finalOriginLng,
         },
         destination: {
           name: destName,
           code: destName.slice(0, 3).toUpperCase(),
-          lat: destLat,
-          lng: destLng,
+          lat: finalDestLat,
+          lng: finalDestLng,
         },
         currentLocation: {
-          name: shipmentStatus === 'delivered' ? 'Delivered' : originName,
-          lat: originLat,
-          lng: originLng,
+          name: shipmentStatus === 'delivered' ? destName : originName,
+          lat: finalOriginLat,
+          lng: finalOriginLng,
         },
         status: shipmentStatus,
         statusNote: `Updated via dispatch studio. Status: ${shipmentStatus}`,
@@ -413,10 +503,10 @@ export function AdminCreateShipment() {
 
       navigate('/admin/shipments')
     } else {
-      // CREATE NEW SHIPMENT (Default starts in 'pending' until approved)
+      // CREATE NEW SHIPMENT & SYNC TO MONGODB
       const code = generateWaybillCode()
 
-      createShipment({
+      const newShipment = createShipment({
         waybill: code,
         carrier: carrierName,
         carrierCode: selectedCarrierObj?.code || 'EXP',
@@ -424,23 +514,23 @@ export function AdminCreateShipment() {
         origin: {
           name: originName,
           code: originName.slice(0, 3).toUpperCase(),
-          lat: originLat,
-          lng: originLng,
+          lat: finalOriginLat,
+          lng: finalOriginLng,
         },
         destination: {
           name: destName,
           code: destName.slice(0, 3).toUpperCase(),
-          lat: destLat,
-          lng: destLng,
+          lat: finalDestLat,
+          lng: finalDestLng,
         },
         currentLocation: {
-          name: shipmentStatus === 'delivered' ? 'Delivered' : originName,
-          lat: originLat,
-          lng: originLng,
+          name: shipmentStatus === 'delivered' ? destName : originName,
+          lat: finalOriginLat,
+          lng: finalOriginLng,
         },
-        status: shipmentStatus, // defaults to 'pending'
+        status: shipmentStatus,
         statusNote: shipmentStatus === 'pending'
-          ? 'Pending dispatch approval. Manifest logged.'
+          ? 'Pending dispatch approval. Manifest logged into MongoDB Atlas database.'
           : `Consignment active. Scope: ${transportScope}`,
         weightKg,
         packageCount,
@@ -468,7 +558,8 @@ export function AdminCreateShipment() {
         progressPct: shipmentStatus === 'delivered' ? 100 : shipmentStatus === 'in_transit' ? 35 : 10,
       })
 
-      navigate('/admin/shipments')
+      // Pop up the confirmation modal with tracking number!
+      setCreatedShipmentModal(newShipment)
     }
   }
 
@@ -1131,6 +1222,419 @@ export function AdminCreateShipment() {
           </div>
         </div>
       </form>
+
+      {/* SUCCESS CONFIRMATION POPUP MODAL (MODERATE PROPORTIONS + SHARE RECEIPT) */}
+      {createdShipmentModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem',
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              maxWidth: '540px',
+              width: '100%',
+              maxHeight: '88vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.35)',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                padding: '1.25rem 1.5rem',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.85rem',
+              }}
+            >
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.4rem',
+                  flexShrink: 0,
+                }}
+              >
+                ✓
+              </div>
+              <div style={{ flex: 1 }}>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    fontWeight: 800,
+                    opacity: 0.9,
+                    display: 'block',
+                  }}
+                >
+                  Manifest Dispatched & Logged
+                </span>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '2px 0 0 0', color: '#ffffff' }}>
+                  Shipment Created Successfully!
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCreatedShipmentModal(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  border: 'none',
+                  color: '#ffffff',
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '50%',
+                  fontSize: '1.1rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div style={{ padding: '1.35rem 1.5rem' }}>
+              {/* Waybill Tracking Number Box */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1.5px dashed #cbd5e1',
+                  borderRadius: '12px',
+                  padding: '1rem 1.25rem',
+                  textAlign: 'center',
+                  marginBottom: '1rem',
+                }}
+              >
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Waybill Identification Number
+                </div>
+                <div
+                  style={{
+                    fontSize: '1.65rem',
+                    fontWeight: 900,
+                    color: '#0f172a',
+                    letterSpacing: '0.04em',
+                    margin: '0.3rem 0 0.65rem',
+                    fontFamily: 'monospace',
+                  }}
+                >
+                  {createdShipmentModal.waybill}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdShipmentModal.waybill)
+                      setIsCopiedTracking(true)
+                      setTimeout(() => setIsCopiedTracking(false), 3000)
+                    }}
+                    style={{
+                      background: isCopiedTracking ? '#10b981' : '#0f172a',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '7px',
+                      padding: '0.45rem 1rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {isCopiedTracking ? '✓ Copied ID' : '📋 Copy Tracking Code'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const url = `${window.location.origin}/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}`
+                      navigator.clipboard.writeText(url)
+                      setShareReceiptStatus('Receipt & Tracking Link copied!')
+                      setTimeout(() => setShareReceiptStatus(''), 3000)
+                    }}
+                    style={{
+                      background: '#ffffff',
+                      color: '#0284c7',
+                      border: '1.5px solid #0284c7',
+                      borderRadius: '7px',
+                      padding: '0.45rem 1rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                    }}
+                  >
+                    🔗 Copy Link
+                  </button>
+                </div>
+
+                {shareReceiptStatus && (
+                  <div style={{ marginTop: '6px', fontSize: '0.78rem', color: '#10b981', fontWeight: 700 }}>
+                    ✓ {shareReceiptStatus}
+                  </div>
+                )}
+              </div>
+
+              {/* Details Summary Grid */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '0.75rem',
+                  background: '#f1f5f9',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  marginBottom: '1.15rem',
+                  fontSize: '0.82rem',
+                }}
+              >
+                <div>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>
+                    ORIGIN (START)
+                  </span>
+                  <strong style={{ color: '#0f172a', display: 'block', marginTop: '1px' }}>
+                    🟢 {createdShipmentModal.origin.name}
+                  </strong>
+                </div>
+
+                <div>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>
+                    DESTINATION (END)
+                  </span>
+                  <strong style={{ color: '#0f172a', display: 'block', marginTop: '1px' }}>
+                    🔴 {createdShipmentModal.destination.name}
+                  </strong>
+                </div>
+
+                <div>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>
+                    CARRIER & MODALITY
+                  </span>
+                  <strong style={{ color: '#0f172a', display: 'block', marginTop: '1px' }}>
+                    {createdShipmentModal.carrier} • {createdShipmentModal.mode === 'land' ? '🚚 LAND' : createdShipmentModal.mode === 'sea' ? '🚢 SEA' : '✈️ AIR'}
+                  </strong>
+                </div>
+
+                <div>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>
+                    CONSIGNEE / RECIPIENT
+                  </span>
+                  <strong style={{ color: '#0f172a', display: 'block', marginTop: '1px' }}>
+                    {createdShipmentModal.receiverName || createdShipmentModal.clientName || 'N/A'}
+                  </strong>
+                </div>
+
+                <div>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>
+                    CARGO / WEIGHT
+                  </span>
+                  <strong style={{ color: '#0f172a', display: 'block', marginTop: '1px' }}>
+                    {createdShipmentModal.cargoType || 'Freight'} • {createdShipmentModal.weightKg} kg
+                  </strong>
+                </div>
+
+                <div>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>
+                    INITIAL STATUS
+                  </span>
+                  <strong style={{ color: createdShipmentModal.status === 'in_transit' ? '#0284c7' : '#d97706', display: 'block', marginTop: '1px' }}>
+                    {createdShipmentModal.status === 'in_transit' ? '▶️ IN TRANSIT' : '⏳ PENDING APPROVAL'}
+                  </strong>
+                </div>
+              </div>
+
+              {/* Share Receipt Suite */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '0.85rem 1rem',
+                  marginBottom: '1.25rem',
+                }}
+              >
+                <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  📤 Share Digital Receipt & Tracking Link
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {/* WhatsApp Share */}
+                  <a
+                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                      `📦 *Freight Consignment Receipt*\nWaybill: ${createdShipmentModal.waybill}\nOrigin: ${createdShipmentModal.origin.name}\nDestination: ${createdShipmentModal.destination.name}\nCarrier: ${createdShipmentModal.carrier} (${createdShipmentModal.mode.toUpperCase()})\nConsignee: ${createdShipmentModal.receiverName || createdShipmentModal.clientName}\n\nTrack Live Consignment:\n${window.location.origin}/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '0.55rem',
+                      background: '#25D366',
+                      color: '#ffffff',
+                      borderRadius: '8px',
+                      textDecoration: 'none',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span>💬</span> WhatsApp Receipt
+                  </a>
+
+                  {/* Email Share */}
+                  <a
+                    href={`mailto:${encodeURIComponent(createdShipmentModal.receiverEmail || '')}?subject=${encodeURIComponent(
+                      `Freight Consignment Waybill & Tracking Receipt - ${createdShipmentModal.waybill}`
+                    )}&body=${encodeURIComponent(
+                      `Dear ${createdShipmentModal.receiverName || 'Client'},\n\nYour freight shipment has been registered with ${createdShipmentModal.carrier}.\n\nWaybill Tracking Number: ${createdShipmentModal.waybill}\nOrigin: ${createdShipmentModal.origin.name}\nDestination: ${createdShipmentModal.destination.name}\nModality: ${createdShipmentModal.mode.toUpperCase()} FREIGHT\nWeight: ${createdShipmentModal.weightKg} kg\n\nYou can track the consignment live at:\n${window.location.origin}/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}\n\nThank you for choosing Northstar Logistics Network.`
+                    )}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '0.55rem',
+                      background: '#0284c7',
+                      color: '#ffffff',
+                      borderRadius: '8px',
+                      textDecoration: 'none',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span>✉️</span> Email Receipt
+                  </a>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate(`/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}`)
+                  }}
+                  style={{
+                    padding: '0.75rem 1rem',
+                    background: '#0f172a',
+                    color: '#ffffff',
+                    borderRadius: '9px',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem',
+                  }}
+                >
+                  <span>🌐</span> Track Consignment Live
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPrintModalWaybill(createdShipmentModal.waybill)
+                  }}
+                  style={{
+                    padding: '0.75rem 1rem',
+                    background: '#ffffff',
+                    color: '#0f172a',
+                    borderRadius: '9px',
+                    border: '1.5px solid #cbd5e1',
+                    fontWeight: 700,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem',
+                  }}
+                >
+                  <span>🖨️</span> Print Waybill / Label
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate('/admin/shipments')
+                  }}
+                  style={{
+                    padding: '0.65rem 1rem',
+                    background: '#ffffff',
+                    color: '#475569',
+                    borderRadius: '9px',
+                    border: '1.5px solid #cbd5e1',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  📋 View All Shipments
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetFormForNew}
+                  style={{
+                    padding: '0.65rem 1rem',
+                    background: '#ffffff',
+                    color: '#0284c7',
+                    borderRadius: '9px',
+                    border: '1.5px solid #bae6fd',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ➕ Create Another
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PRINT WAYBILL MODAL */}
+      {printModalWaybill && (
+        <WaybillLabelModal
+          shipment={createdShipmentModal || (editWaybill ? existingShipment || null : null)}
+          isOpen={Boolean(printModalWaybill)}
+          onClose={() => setPrintModalWaybill(null)}
+        />
+      )}
     </div>
   )
 }

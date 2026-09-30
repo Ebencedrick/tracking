@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import siteLogo from '../../../img/10dfe2bf-120c-41cf-9b7d-3da49f7928bc.jfif'
 import { useShipments } from '../../context/ShipmentContext'
 import type { Shipment, ShippingMode, ShipmentStatus } from '../../types'
+import { getShipmentProgressMetrics, getShipmentDistanceKm } from '../../utils/mapApis'
 
 interface AdminOutletContext {
   openBroadcastModal: () => void
@@ -442,116 +443,156 @@ export function AdminDashboard() {
                 <th>TRACKING WAYBILL</th>
                 <th>ORIGIN TERMINAL</th>
                 <th>DESTINATION HUB</th>
+                <th>PROGRESS & HOW FAR GONE</th>
                 <th>STATUS & MOVEMENT</th>
                 <th>ETA SCHEDULE</th>
                 <th style={{ textAlign: 'right' }}>OPERATIONS ACTIONS</th>
               </tr>
             </thead>
             <tbody>
-              {shipments.map((s) => (
-                <tr key={s.waybill}>
-                  {/* Waybill + Carrier Badge */}
-                  <td>
-                    <div className="cmd-waybill-cell">
-                      <Link to={`/dashboard/shipments/${s.waybill}`} className="cmd-waybill-code">
-                        {s.waybill}
-                      </Link>
-                      <span
-                        className={`cmd-carrier-badge ${
-                          s.carrier.toLowerCase().includes('fedex')
-                            ? 'fedex'
-                            : s.carrier.toLowerCase().includes('ups')
-                            ? 'ups'
-                            : s.carrier.toLowerCase().includes('maersk')
-                            ? 'maersk'
-                            : ''
-                        }`}
-                      >
-                        {s.carrier}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* Origin Terminal */}
-                  <td>
-                    <div className="cmd-origin-cell">
-                      <span className="cmd-origin-pin" aria-hidden="true">📍</span>
-                      <span>{s.origin.name}</span>
-                    </div>
-                  </td>
-
-                  {/* Destination Hub */}
-                  <td>
-                    <div className="cmd-dest-cell">
-                      <span className="cmd-dest-hub-icon" aria-hidden="true">🏢</span>
-                      <span>{s.destination.name}</span>
-                    </div>
-                  </td>
-
-                  {/* Status & Movement */}
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                      <span className={`cmd-status-pill ${s.status}`}>
-                        {s.status === 'in_transit' ? 'In Transit' : s.status.replace('_', ' ')}
-                      </span>
-                      {s.isMovementStopped ? (
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: '#fee2e2', color: '#b91c1c' }}>
-                          🛑 HOLD
+              {shipments.map((s) => {
+                const metrics = getShipmentProgressMetrics(s)
+                return (
+                  <tr key={s.waybill}>
+                    {/* Waybill + Carrier Badge */}
+                    <td>
+                      <div className="cmd-waybill-cell">
+                        <Link to={`/dashboard/shipments/${s.waybill}`} className="cmd-waybill-code">
+                          {s.waybill}
+                        </Link>
+                        <span
+                          className={`cmd-carrier-badge ${
+                            s.carrier.toLowerCase().includes('fedex')
+                              ? 'fedex'
+                              : s.carrier.toLowerCase().includes('ups')
+                              ? 'ups'
+                              : s.carrier.toLowerCase().includes('maersk')
+                              ? 'maersk'
+                              : ''
+                          }`}
+                        >
+                          {s.carrier}
                         </span>
-                      ) : (
-                        <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#dcfce7', color: '#15803d' }}>
-                          ▶ ACTIVE
+                      </div>
+                    </td>
+
+                    {/* Origin Terminal */}
+                    <td>
+                      <div className="cmd-origin-cell">
+                        <span className="cmd-origin-pin" aria-hidden="true">📍</span>
+                        <span>{s.origin.name}</span>
+                      </div>
+                    </td>
+
+                    {/* Destination Hub */}
+                    <td>
+                      <div className="cmd-dest-cell">
+                        <span className="cmd-dest-hub-icon" aria-hidden="true">🏢</span>
+                        <span>{s.destination.name}</span>
+                      </div>
+                    </td>
+
+                    {/* Progress & How Far Gone */}
+                    <td>
+                      <div style={{ minWidth: '150px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                          <strong style={{ fontSize: '0.85rem', color: s.isMovementStopped ? '#ef4444' : s.status === 'delivered' ? '#10b981' : '#0284c7', fontWeight: 800 }}>
+                            {metrics.pct}%
+                          </strong>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                            {metrics.coveredKm.toLocaleString()} / {metrics.totalKm.toLocaleString()} km
+                          </span>
+                        </div>
+                        <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              width: `${metrics.pct}%`,
+                              height: '100%',
+                              background: s.isMovementStopped
+                                ? '#ef4444'
+                                : s.status === 'delivered'
+                                ? '#10b981'
+                                : 'linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)',
+                              borderRadius: '3px',
+                              transition: 'width 0.4s ease',
+                            }}
+                          />
+                        </div>
+                        <span style={{ fontSize: '0.7rem', color: '#475569', display: 'block', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '170px' }}>
+                          📍 {s.currentLocation?.name || 'In Corridor'}
                         </span>
-                      )}
-                    </div>
-                  </td>
+                      </div>
+                    </td>
 
-                  {/* ETA Schedule */}
-                  <td>
-                    <span style={{ fontSize: '0.8rem', fontFamily: 'ui-monospace, monospace', color: '#64748b' }}>
-                      {s.eta}
-                    </span>
-                  </td>
+                    {/* Status & Movement */}
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span className={`cmd-status-pill ${s.status}`}>
+                          {s.status === 'in_transit' ? 'In Transit' : s.status.replace('_', ' ')}
+                        </span>
+                        {s.isMovementStopped ? (
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: '#fee2e2', color: '#b91c1c' }}>
+                            🛑 HOLD
+                          </span>
+                        ) : s.status === 'pending' ? (
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: '#fef3c7', color: '#92400e' }}>
+                            ⏳ STAGED
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#dcfce7', color: '#15803d' }}>
+                            ▶ {metrics.speedDisplay}
+                          </span>
+                        )}
+                      </div>
+                    </td>
 
-                  {/* Actions */}
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '6px' }}>
-                      {/* Movement Toggle Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleMovement(s)}
-                        className="cmd-action-track"
-                        style={{
-                          background: s.isMovementStopped ? '#dcfce7' : '#fee2e2',
-                          color: s.isMovementStopped ? '#15803d' : '#b91c1c',
-                          border: 'none',
-                          cursor: 'pointer',
-                        }}
-                        title={s.isMovementStopped ? 'Resume Movement' : 'Stop Movement (Hold)'}
-                      >
-                        {s.isMovementStopped ? '▶ Resume' : '🛑 Stop'}
-                      </button>
+                    {/* ETA Schedule */}
+                    <td>
+                      <span style={{ fontSize: '0.8rem', fontFamily: 'ui-monospace, monospace', color: '#64748b' }}>
+                        {s.eta}
+                      </span>
+                    </td>
 
-                      {/* Quick Update Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleOpenFleetModal(s)}
-                        className="cmd-action-track"
-                        style={{ background: '#0284c7', color: '#ffffff', border: 'none', cursor: 'pointer' }}
-                        title="Live Fleet Updates & Telemetry"
-                      >
-                        ⚡ Fleet Update
-                      </button>
+                    {/* Actions */}
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '6px' }}>
+                        {/* Movement Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleMovement(s)}
+                          className="cmd-action-track"
+                          style={{
+                            background: s.isMovementStopped ? '#dcfce7' : '#fee2e2',
+                            color: s.isMovementStopped ? '#15803d' : '#b91c1c',
+                            border: 'none',
+                            cursor: 'pointer',
+                          }}
+                          title={s.isMovementStopped ? 'Resume Movement' : 'Stop Movement (Hold)'}
+                        >
+                          {s.isMovementStopped ? '▶ Resume' : '🛑 Stop'}
+                        </button>
 
-                      {/* Track Vector Link */}
-                      <Link to={`/track?waybill=${encodeURIComponent(s.waybill)}`} className="cmd-action-track">
-                        <span>Track</span>
-                        <span aria-hidden="true">→</span>
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {/* Quick Update Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenFleetModal(s)}
+                          className="cmd-action-track"
+                          style={{ background: '#0284c7', color: '#ffffff', border: 'none', cursor: 'pointer' }}
+                          title="Live Fleet Updates & Telemetry"
+                        >
+                          ⚡ Fleet Update
+                        </button>
+
+                        {/* Track Vector Link */}
+                        <Link to={`/track?waybill=${encodeURIComponent(s.waybill)}`} className="cmd-action-track">
+                          <span>Track</span>
+                          <span aria-hidden="true">→</span>
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -674,6 +715,7 @@ export function AdminDashboard() {
 
             {mapShipments.map((s) => {
               const isSelected = s.waybill === selectedAssetWaybill
+              const metrics = getShipmentProgressMetrics(s)
               return (
                 <div
                   key={s.waybill}
@@ -728,9 +770,28 @@ export function AdminDashboard() {
                     {s.origin.code} ➔ {s.destination.code} · <span style={{ color: '#64748b' }}>{s.carrier}</span>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#64748b', marginTop: '6px' }}>
+                  {/* Progress Bar & Distance */}
+                  <div style={{ margin: '6px 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', marginBottom: '2px' }}>
+                      <strong style={{ color: s.isMovementStopped ? '#ef4444' : '#0284c7' }}>{metrics.pct}% Complete</strong>
+                      <span>{metrics.coveredKm.toLocaleString()} / {metrics.totalKm.toLocaleString()} km</span>
+                    </div>
+                    <div style={{ height: '5px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${metrics.pct}%`,
+                          height: '100%',
+                          background: s.isMovementStopped ? '#ef4444' : s.status === 'delivered' ? '#10b981' : 'linear-gradient(90deg, #0284c7, #38bdf8)',
+                          borderRadius: '3px',
+                          transition: 'width 0.4s ease',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
                     <span>Driver: <strong>{s.assignedDriver || 'Linehaul Operator'}</strong></span>
-                    <strong style={{ color: '#0284c7' }}>{s.progressPct || 45}% · Click to Edit ✏️</strong>
+                    <span style={{ color: s.isMovementStopped ? '#ef4444' : '#10b981', fontWeight: 700 }}>{metrics.speedDisplay}</span>
                   </div>
                 </div>
               )
@@ -1210,9 +1271,14 @@ export function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="cmd-form-label">
-                    Progress Percentage ({quickForm.progressPct}%)
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="cmd-form-label" style={{ margin: 0 }}>
+                      Progress Percentage ({quickForm.progressPct}%)
+                    </label>
+                    <span style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700 }}>
+                      {Math.round((getShipmentDistanceKm(editingShipment) * quickForm.progressPct) / 100).toLocaleString()} / {getShipmentDistanceKm(editingShipment).toLocaleString()} KM
+                    </span>
+                  </div>
                   <input
                     type="range"
                     min="0"
@@ -1223,7 +1289,7 @@ export function AdminDashboard() {
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#94a3b8' }}>
                     <span>0% (Origin)</span>
-                    <span>50% (Midway)</span>
+                    <span>50% (Midway · {Math.round(getShipmentDistanceKm(editingShipment) / 2).toLocaleString()} km)</span>
                     <span>100% (Delivered)</span>
                   </div>
                 </div>

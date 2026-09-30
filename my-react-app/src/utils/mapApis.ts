@@ -55,20 +55,268 @@ const SERP_API_KEY =
   '474aada0e5b378fe41c877b76edbc04c918fcfa1be45670fee71d90840950882'
 
 /**
- * Known Major Logistics Hubs Fallback Dictionary
+ * Comprehensive Global Logistics Hubs & Cities Encyclopedia
+ * Covers 100+ major international gateways, capitals, seaports, and cargo hubs
  */
-const KNOWN_HUBS: Record<string, [number, number, string]> = {
+export const KNOWN_HUBS: Record<string, [number, number, string]> = {
+  // Americas
   jfk: [40.6413, -73.7781, 'New York John F. Kennedy International Airport (JFK)'],
-  lhr: [51.47, -0.4543, 'London Heathrow Airport World Cargo Center (LHR)'],
-  fra: [50.0379, 8.5622, 'Frankfurt Airport Global Logistics Hub (FRA)'],
+  'new york': [40.7128, -74.006, 'New York City, NY, USA'],
+  nyc: [40.7128, -74.006, 'New York City, NY, USA'],
   ord: [41.9742, -87.9073, "Chicago O'Hare International Airport (ORD)"],
+  chicago: [41.8781, -87.6298, 'Chicago, IL, USA'],
   lax: [33.9416, -118.4085, 'Los Angeles International Airport (LAX)'],
-  dxb: [25.2532, 55.3657, 'Dubai International Airport Cargo Mega Terminal (DXB)'],
-  sin: [1.3644, 103.9915, 'Singapore Changi Airport Airfreight Centre (SIN)'],
-  hnd: [35.5494, 139.7798, 'Tokyo Haneda International Airport (HND)'],
+  'los angeles': [34.0522, -118.2437, 'Los Angeles, CA, USA'],
   hou: [29.7604, -95.3698, 'Port of Houston Intermodal Terminal (HOU)'],
-  rtm: [51.9244, 4.4777, 'Port of Rotterdam World Gateway (RTM)'],
+  houston: [29.7604, -95.3698, 'Houston, TX, USA'],
+  atl: [33.6407, -84.4277, 'Atlanta Hartsfield-Jackson International (ATL)'],
+  atlanta: [33.749, -84.388, 'Atlanta, GA, USA'],
+  mia: [25.7959, -80.287, 'Miami International Cargo Gateway (MIA)'],
+  miami: [25.7617, -80.1918, 'Miami, FL, USA'],
+  dfw: [32.8998, -97.0403, 'Dallas/Fort Worth International Airport (DFW)'],
+  dallas: [32.7767, -96.797, 'Dallas, TX, USA'],
+  sfo: [37.6213, -122.379, 'San Francisco International Airport (SFO)'],
+  'san francisco': [37.7749, -122.4194, 'San Francisco, CA, USA'],
+  sea: [47.4502, -122.3088, 'Seattle-Tacoma International (SEA)'],
+  seattle: [47.6062, -122.3321, 'Seattle, WA, USA'],
+  bos: [42.3656, -71.0096, 'Boston Logan International (BOS)'],
+  boston: [42.3601, -71.0589, 'Boston, MA, USA'],
   yyz: [43.6777, -79.6248, 'Toronto Pearson International Cargo Hub (YYZ)'],
+  toronto: [43.6532, -79.3832, 'Toronto, ON, Canada'],
+  yvr: [49.1967, -123.1815, 'Vancouver International Airport (YVR)'],
+  vancouver: [49.2827, -123.1207, 'Vancouver, BC, Canada'],
+  yul: [45.4657, -73.7455, 'Montreal-Trudeau International (YUL)'],
+  montreal: [45.5017, -73.5673, 'Montreal, QC, Canada'],
+  mex: [19.4361, -99.0719, 'Mexico City International Airport (MEX)'],
+  'mexico city': [19.4326, -99.1332, 'Mexico City, Mexico'],
+  mexico: [19.4326, -99.1332, 'Mexico City, Mexico'],
+  gru: [-23.4356, -46.4731, 'São Paulo-Guarulhos International (GRU)'],
+  'sao paulo': [-23.5505, -46.6333, 'São Paulo, Brazil'],
+  'são paulo': [-23.5505, -46.6333, 'São Paulo, Brazil'],
+  brazil: [-15.7975, -47.8919, 'Brasília, Brazil'],
+  eze: [-34.8222, -58.5358, 'Buenos Aires Ezeiza International (EZE)'],
+  'buenos aires': [-34.6037, -58.3816, 'Buenos Aires, Argentina'],
+  argentina: [-34.6037, -58.3816, 'Buenos Aires, Argentina'],
+  bog: [4.7016, -74.1469, 'Bogotá El Dorado International (BOG)'],
+  bogota: [4.711, -74.0721, 'Bogotá, Colombia'],
+  scl: [-33.3928, -70.7856, 'Santiago Arturo Merino Benítez (SCL)'],
+  santiago: [-33.4489, -70.6693, 'Santiago, Chile'],
+  lim: [-12.0219, -77.1143, 'Lima Jorge Chávez International (LIM)'],
+  lima: [-12.0464, -77.0428, 'Lima, Peru'],
+
+  // Europe & UK
+  lhr: [51.47, -0.4543, 'London Heathrow Airport World Cargo Center (LHR)'],
+  london: [51.5074, -0.1278, 'London, United Kingdom'],
+  uk: [51.5074, -0.1278, 'London, United Kingdom'],
+  'united kingdom': [51.5074, -0.1278, 'London, United Kingdom'],
+  england: [51.5074, -0.1278, 'London, United Kingdom'],
+  man: [53.3537, -2.275, 'Manchester Airport Cargo Gateway (MAN)'],
+  manchester: [53.4808, -2.2426, 'Manchester, United Kingdom'],
+  fra: [50.0379, 8.5622, 'Frankfurt Airport Global Logistics Hub (FRA)'],
+  frankfurt: [50.1109, 8.6821, 'Frankfurt am Main, Germany'],
+  germany: [52.52, 13.405, 'Berlin, Germany'],
+  berlin: [52.52, 13.405, 'Berlin, Germany'],
+  muc: [48.3537, 11.775, 'Munich Airport World Cargo Center (MUC)'],
+  munich: [48.1351, 11.582, 'Munich, Germany'],
+  cdg: [49.0097, 2.5479, 'Paris Charles de Gaulle International (CDG)'],
+  paris: [48.8566, 2.3522, 'Paris, France'],
+  france: [48.8566, 2.3522, 'Paris, France'],
+  ams: [52.3105, 4.7683, 'Amsterdam Airport Schiphol Cargo (AMS)'],
+  amsterdam: [52.3676, 4.9041, 'Amsterdam, Netherlands'],
+  netherlands: [52.3676, 4.9041, 'Amsterdam, Netherlands'],
+  holland: [52.3676, 4.9041, 'Amsterdam, Netherlands'],
+  rtm: [51.9244, 4.4777, 'Port of Rotterdam World Gateway (RTM)'],
+  rotterdam: [51.9244, 4.4777, 'Rotterdam, Netherlands'],
+  bru: [50.901, 4.4856, 'Brussels Airport Air Cargo Center (BRU)'],
+  brussels: [50.8503, 4.3517, 'Brussels, Belgium'],
+  belgium: [50.8503, 4.3517, 'Brussels, Belgium'],
+  mad: [40.4839, -3.568, 'Madrid-Barajas Airport Cargo Hub (MAD)'],
+  madrid: [40.4168, -3.7038, 'Madrid, Spain'],
+  spain: [40.4168, -3.7038, 'Madrid, Spain'],
+  bcn: [41.2974, 2.0833, 'Barcelona-El Prat Cargo Center (BCN)'],
+  barcelona: [41.3879, 2.1699, 'Barcelona, Spain'],
+  fco: [41.8003, 12.2389, 'Rome Leonardo da Vinci Fiumicino (FCO)'],
+  rome: [41.9028, 12.4964, 'Rome, Italy'],
+  italy: [41.9028, 12.4964, 'Rome, Italy'],
+  mxp: [45.6301, 8.7255, 'Milan Malpensa Cargo City (MXP)'],
+  milan: [45.4642, 9.19, 'Milan, Italy'],
+  zrh: [47.4582, 8.5555, 'Zurich Airport Freight Hub (ZRH)'],
+  zurich: [47.3769, 8.5417, 'Zurich, Switzerland'],
+  switzerland: [46.8182, 8.2275, 'Bern, Switzerland'],
+  vie: [48.1103, 16.5697, 'Vienna International Airport Cargo (VIE)'],
+  vienna: [48.2082, 16.3738, 'Vienna, Austria'],
+  austria: [48.2082, 16.3738, 'Vienna, Austria'],
+  waw: [52.1672, 20.9679, 'Warsaw Chopin Airport Gateway (WAW)'],
+  warsaw: [52.2297, 21.0122, 'Warsaw, Poland'],
+  poland: [52.2297, 21.0122, 'Warsaw, Poland'],
+  ist: [41.2753, 28.7519, 'Istanbul Airport Global Cargo Hub (IST)'],
+  istanbul: [41.0082, 28.9784, 'Istanbul, Turkey'],
+  turkey: [39.9334, 32.8597, 'Ankara, Turkey'],
+
+  // Africa
+  los: [6.5774, 3.3212, 'Murtala Muhammed International Airport (LOS)'],
+  lagos: [6.5244, 3.3792, 'Lagos, Nigeria'],
+  nigeria: [9.0765, 7.3986, 'Abuja, Nigeria'],
+  abv: [9.0065, 7.2631, 'Nnamdi Azikiwe International Airport (ABV)'],
+  abuja: [9.0765, 7.3986, 'Abuja, Nigeria'],
+  acc: [5.6052, -0.1668, 'Kotoka International Airport (ACC)'],
+  accra: [5.6037, -0.187, 'Accra, Ghana'],
+  ghana: [5.6037, -0.187, 'Accra, Ghana'],
+  jnb: [-26.1367, 28.2411, 'O.R. Tambo International Airport (JNB)'],
+  johannesburg: [-26.2041, 28.0473, 'Johannesburg, South Africa'],
+  cpt: [-33.9715, 18.6021, 'Cape Town International Airport (CPT)'],
+  'cape town': [-33.9249, 18.4241, 'Cape Town, South Africa'],
+  'south africa': [-25.7479, 28.2293, 'Pretoria, South Africa'],
+  nbo: [-1.3192, 36.9278, 'Jomo Kenyatta International Airport (NBO)'],
+  nairobi: [-1.2921, 36.8219, 'Nairobi, Kenya'],
+  kenya: [-1.2921, 36.8219, 'Nairobi, Kenya'],
+  cai: [30.1219, 31.4056, 'Cairo International Airport Cargo (CAI)'],
+  cairo: [30.0444, 31.2357, 'Cairo, Egypt'],
+  egypt: [30.0444, 31.2357, 'Cairo, Egypt'],
+  add: [8.9779, 38.7993, 'Addis Ababa Bole International (ADD)'],
+  'addis ababa': [9.032, 38.7469, 'Addis Ababa, Ethiopia'],
+  ethiopia: [9.032, 38.7469, 'Addis Ababa, Ethiopia'],
+  dkr: [14.671, -17.0733, 'Blaise Diagne International (DSS/DKR)'],
+  dakar: [14.7167, -17.4677, 'Dakar, Senegal'],
+  senegal: [14.7167, -17.4677, 'Dakar, Senegal'],
+  cmr: [4.0061, 9.7195, 'Douala International Airport (DLA)'],
+  douala: [4.0511, 9.7679, 'Douala, Cameroon'],
+  cameroon: [3.848, 11.5021, 'Yaoundé, Cameroon'],
+  cmn: [33.3675, -7.5899, 'Mohammed V International Airport (CMN)'],
+  casablanca: [33.5731, -7.5898, 'Casablanca, Morocco'],
+  morocco: [34.0209, -6.8416, 'Rabat, Morocco'],
+
+  // Middle East & Asia
+  dxb: [25.2532, 55.3657, 'Dubai International Airport Cargo Mega Terminal (DXB)'],
+  dubai: [25.2048, 55.2708, 'Dubai, United Arab Emirates'],
+  uae: [24.4539, 54.3773, 'Abu Dhabi, United Arab Emirates'],
+  'abu dhabi': [24.4539, 54.3773, 'Abu Dhabi, United Arab Emirates'],
+  auh: [24.433, 54.6511, 'Abu Dhabi International Airport (AUH)'],
+  doh: [25.2731, 51.6081, 'Hamad International Airport Cargo (DOH)'],
+  doha: [25.2854, 51.531, 'Doha, Qatar'],
+  qatar: [25.2854, 51.531, 'Doha, Qatar'],
+  ruh: [24.9576, 46.6988, 'King Khalid International Airport (RUH)'],
+  riyadh: [24.7136, 46.6753, 'Riyadh, Saudi Arabia'],
+  jed: [21.6796, 39.1565, 'King Abdulaziz International Airport (JED)'],
+  jeddah: [21.4858, 39.1925, 'Jeddah, Saudi Arabia'],
+  'saudi arabia': [24.7136, 46.6753, 'Riyadh, Saudi Arabia'],
+  sin: [1.3644, 103.9915, 'Singapore Changi Airport Airfreight Centre (SIN)'],
+  singapore: [1.3521, 103.8198, 'Singapore'],
+  hkg: [22.308, 113.9185, 'Hong Kong International Airport Cargo (HKG)'],
+  'hong kong': [22.3193, 114.1694, 'Hong Kong SAR'],
+  pvg: [31.1443, 121.8083, 'Shanghai Pudong International Cargo (PVG)'],
+  shanghai: [31.2304, 121.4737, 'Shanghai, China'],
+  pek: [40.0799, 116.6031, 'Beijing Capital International Airport (PEK)'],
+  beijing: [39.9042, 116.4074, 'Beijing, China'],
+  can: [23.3924, 113.2988, 'Guangzhou Baiyun International (CAN)'],
+  guangzhou: [23.1291, 113.2644, 'Guangzhou, China'],
+  szx: [22.6393, 113.8107, 'Shenzhen Baoan International (SZX)'],
+  shenzhen: [22.5431, 114.0579, 'Shenzhen, China'],
+  china: [39.9042, 116.4074, 'Beijing, China'],
+  hnd: [35.5494, 139.7798, 'Tokyo Haneda International Airport (HND)'],
+  nrt: [35.772, 140.3929, 'Tokyo Narita International Airport (NRT)'],
+  tokyo: [35.6762, 139.6503, 'Tokyo, Japan'],
+  japan: [35.6762, 139.6503, 'Tokyo, Japan'],
+  kix: [34.432, 135.2304, 'Kansai International Airport (KIX)'],
+  osaka: [34.6937, 135.5023, 'Osaka, Japan'],
+  icn: [37.4602, 126.4407, 'Seoul Incheon International Airport (ICN)'],
+  seoul: [37.5665, 126.978, 'Seoul, South Korea'],
+  korea: [37.5665, 126.978, 'Seoul, South Korea'],
+  tpe: [25.0797, 121.2342, 'Taiwan Taoyuan International (TPE)'],
+  taipei: [25.033, 121.5654, 'Taipei, Taiwan'],
+  taiwan: [25.033, 121.5654, 'Taipei, Taiwan'],
+  bom: [19.0896, 72.8656, 'Mumbai Chhatrapati Shivaji Maharaj (BOM)'],
+  mumbai: [19.076, 72.8777, 'Mumbai, Maharashtra, India'],
+  del: [28.5562, 77.1, 'Delhi Indira Gandhi International (DEL)'],
+  delhi: [28.6139, 77.209, 'New Delhi, India'],
+  india: [28.6139, 77.209, 'New Delhi, India'],
+  blr: [13.1986, 77.7066, 'Bengaluru Kempegowda International (BLR)'],
+  bangalore: [12.9716, 77.5946, 'Bengaluru, India'],
+  bkk: [13.69, 100.7501, 'Bangkok Suvarnabhumi Airport Cargo (BKK)'],
+  bangkok: [13.7563, 100.5018, 'Bangkok, Thailand'],
+  thailand: [13.7563, 100.5018, 'Bangkok, Thailand'],
+  kul: [2.7456, 101.7099, 'Kuala Lumpur International Airport (KUL)'],
+  'kuala lumpur': [3.139, 101.6869, 'Kuala Lumpur, Malaysia'],
+  malaysia: [3.139, 101.6869, 'Kuala Lumpur, Malaysia'],
+  mnl: [14.5086, 121.0194, 'Manila Ninoy Aquino International (MNL)'],
+  manila: [14.5995, 120.9842, 'Manila, Philippines'],
+  philippines: [14.5995, 120.9842, 'Manila, Philippines'],
+  cgk: [-6.1275, 106.6537, 'Jakarta Soekarno-Hatta International (CGK)'],
+  jakarta: [-6.2088, 106.8456, 'Jakarta, Indonesia'],
+  indonesia: [-6.2088, 106.8456, 'Jakarta, Indonesia'],
+  sgn: [10.8185, 106.6518, 'Ho Chi Minh City Tan Son Nhat (SGN)'],
+  'ho chi minh': [10.8231, 106.6297, 'Ho Chi Minh City, Vietnam'],
+  vietnam: [21.0285, 105.8542, 'Hanoi, Vietnam'],
+
+  // Oceania
+  syd: [-33.9399, 151.1753, 'Sydney Kingsford Smith Airport (SYD)'],
+  sydney: [-33.8688, 151.2093, 'Sydney, NSW, Australia'],
+  australia: [-35.2809, 149.13, 'Canberra, Australia'],
+  mel: [-37.669, 144.841, 'Melbourne Airport Cargo Terminal (MEL)'],
+  melbourne: [-37.8136, 144.9631, 'Melbourne, VIC, Australia'],
+  bne: [-27.3842, 153.1175, 'Brisbane Airport (BNE)'],
+  brisbane: [-27.4698, 153.0251, 'Brisbane, QLD, Australia'],
+  akl: [-37.0082, 174.785, 'Auckland Airport Cargo Hub (AKL)'],
+  auckland: [-36.8485, 174.7633, 'Auckland, New Zealand'],
+  'new zealand': [-41.2865, 174.7762, 'Wellington, New Zealand'],
+}
+
+/**
+ * Fuzzy check known locations
+ */
+export function lookupKnownHub(query: string): GeocodeResult | null {
+  const clean = query.trim().toLowerCase()
+  if (!clean) return null
+
+  // 1. Direct key match
+  if (KNOWN_HUBS[clean]) {
+    const [lat, lng, name] = KNOWN_HUBS[clean]
+    return {
+      displayName: name,
+      shortName: name.split(',')[0],
+      lat,
+      lng,
+      country: 'Verified Logistics Gateway',
+      source: 'Internal Fast Gateway DB',
+    }
+  }
+
+  // 2. Keyword/Sub-string match
+  // e.g. "Lagos, Nigeria" matches "lagos" or "los"
+  const tokens = clean
+    .replace(/[,\(\)\/-]/g, ' ')
+    .split(/\s+/)
+    .filter((t) => t.length >= 3)
+
+  for (const token of tokens) {
+    if (KNOWN_HUBS[token]) {
+      const [lat, lng, name] = KNOWN_HUBS[token]
+      return {
+        displayName: `${query} (${name})`,
+        shortName: name.split(',')[0],
+        lat,
+        lng,
+        country: 'Verified Logistics Gateway',
+        source: 'Internal Fast Gateway DB',
+      }
+    }
+  }
+
+  // 3. Reverse search keys in query string
+  for (const [key, [lat, lng, name]] of Object.entries(KNOWN_HUBS)) {
+    if (key.length >= 4 && clean.includes(key)) {
+      return {
+        displayName: `${query} (${name})`,
+        shortName: name.split(',')[0],
+        lat,
+        lng,
+        country: 'Verified Logistics Gateway',
+        source: 'Internal Fast Gateway DB',
+      }
+    }
+  }
+
+  return null
 }
 
 /**
@@ -141,22 +389,13 @@ export async function searchSerpApiGoogleMaps(query: string): Promise<GeocodeRes
  * Live Geocoding via SerpApi Google Maps Engine with OpenStreetMap Nominatim Fallback
  */
 export async function searchLiveGeocode(query: string): Promise<GeocodeResult[]> {
-  const clean = query.trim().toLowerCase()
+  const clean = query.trim()
   if (!clean) return []
 
-  // 1. Fast check known hub codes (e.g. "JFK", "LHR", "LAX")
-  if (KNOWN_HUBS[clean]) {
-    const [lat, lng, name] = KNOWN_HUBS[clean]
-    return [
-      {
-        displayName: name,
-        shortName: clean.toUpperCase(),
-        lat,
-        lng,
-        country: 'Global Gateway',
-        source: 'Verified Aviation Gateway',
-      },
-    ]
+  // 1. Fast check known hub codes and city/country names
+  const known = lookupKnownHub(clean)
+  if (known) {
+    return [known]
   }
 
   // 2. Query Google Maps Engine via SerpApi
@@ -343,4 +582,94 @@ export function calculateHaversineDistance(
       Math.sin(dLon / 2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return R * c
+}
+
+export interface ShipmentProgressMetrics {
+  totalKm: number
+  pct: number
+  coveredKm: number
+  remainingKm: number
+  speedDisplay: string
+  statusDisplay: string
+  isStopped: boolean
+}
+
+export function getShipmentDistanceKm(shipment: {
+  estimatedDistanceKm?: number
+  origin?: { lat?: number; lng?: number }
+  destination?: { lat?: number; lng?: number }
+}): number {
+  if (shipment.estimatedDistanceKm && shipment.estimatedDistanceKm > 0) {
+    return shipment.estimatedDistanceKm
+  }
+  const lat1 = shipment.origin?.lat ?? 40.6413
+  const lng1 = shipment.origin?.lng ?? -73.7781
+  const lat2 = shipment.destination?.lat ?? 51.4700
+  const lng2 = shipment.destination?.lng ?? -0.4543
+  const dist = Math.round(calculateHaversineDistance(lat1, lng1, lat2, lng2))
+  return Math.max(50, dist || 1200)
+}
+
+export function getShipmentProgressMetrics(shipment: {
+  status: string
+  progressPct?: number
+  isMovementStopped?: boolean
+  mode?: string
+  estimatedDistanceKm?: number
+  origin?: { lat?: number; lng?: number }
+  destination?: { lat?: number; lng?: number }
+}): ShipmentProgressMetrics {
+  const totalKm = getShipmentDistanceKm(shipment)
+  const isDelivered = shipment.status === 'delivered'
+  const isPending = shipment.status === 'pending'
+  const isStopped = !!shipment.isMovementStopped
+
+  const pct = isDelivered
+    ? 100
+    : isPending
+    ? 0
+    : Math.min(100, Math.max(0, Math.round((shipment.progressPct ?? 45) * 10) / 10))
+
+  const coveredKm = Math.round((totalKm * pct) / 100)
+  const remainingKm = Math.max(0, totalKm - coveredKm)
+
+  let speedDisplay = '80 km/h'
+  if (isDelivered) {
+    speedDisplay = '0 km/h · Arrived'
+  } else if (isPending) {
+    speedDisplay = '0 km/h · Staged'
+  } else if (isStopped) {
+    speedDisplay = '0 km/h · Hold'
+  } else if (shipment.mode === 'air') {
+    speedDisplay = '850 km/h · FL345'
+  } else if (shipment.mode === 'sea') {
+    speedDisplay = '22 kts · Maritime'
+  } else {
+    speedDisplay = '80 km/h · Highway'
+  }
+
+  let statusDisplay = 'In Transit'
+  if (isStopped) {
+    statusDisplay = 'Movement Hold'
+  } else if (shipment.status === 'in_transit') {
+    statusDisplay = 'In Transit'
+  } else if (shipment.status === 'delivered') {
+    statusDisplay = 'Delivered'
+  } else if (shipment.status === 'pending') {
+    statusDisplay = 'Pending'
+  } else if (shipment.status === 'customs') {
+    statusDisplay = 'Customs'
+  } else if (shipment.status === 'exception') {
+    statusDisplay = 'Exception'
+  }
+
+  return {
+    totalKm,
+    pct,
+    coveredKm,
+    remainingKm,
+    speedDisplay,
+    statusDisplay,
+    isStopped,
+  }
 }

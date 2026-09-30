@@ -302,21 +302,47 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
 
   // 5. Real-Time Telemetry Simulation Loop (Smooth Micro-Movement)
   useEffect(() => {
-    if (shipment.status === 'delivered' || shipment.isMovementStopped) return
+    if (shipment.status === 'delivered') {
+      setLiveSpeed('0 km/h (Arrived & Cleared)')
+      setHeadingBearing('Terminal Final Arrival')
+      return
+    }
+
+    if (shipment.status === 'pending') {
+      setLiveSpeed('0 km/h (Awaiting Dispatch Approval)')
+      setHeadingBearing('Staged at Origin Terminal')
+      return
+    }
+
+    if (shipment.isMovementStopped) {
+      setLiveSpeed('0 km/h (Movement Halted by Dispatch)')
+      setHeadingBearing('Stationary Security Hold')
+      return
+    }
 
     const intervalId = setInterval(() => {
-      // Simulate live speed micro-fluctuations
+      // Simulate live speed micro-fluctuations under normal operating speeds
       if (shipment.mode === 'air') {
         const spd = 840 + Math.floor(Math.random() * 25)
         setLiveSpeed(`${spd} km/h`)
         setLiveAltitude(`${34000 + Math.floor(Math.random() * 600)} FT`)
         setHeadingBearing(`07${Math.floor(2 + Math.random() * 6)}° ENE`)
       } else if (shipment.mode === 'sea') {
-        const spd = (21.5 + Math.random() * 1.5).toFixed(1)
+        const spd = (19.5 + Math.random() * 2.0).toFixed(1)
         setLiveSpeed(`${spd} knots`)
+        setHeadingBearing('Maritime Vector Navigation')
       } else {
-        const spd = 65 + Math.floor(Math.random() * 12)
-        setLiveSpeed(`${spd} km/h`)
+        // Land / Road mode: normal driving speed 75-90 km/h with occasional traffic pause
+        const isPause = Math.random() < 0.15
+        if (isPause) {
+          const pauseSpd = Math.floor(15 + Math.random() * 20)
+          setLiveSpeed(`${pauseSpd} km/h (Waypoint / Traffic Flow)`)
+          setHeadingBearing('Transit Waypoint Deceleration')
+        } else {
+          const spd = 75 + Math.floor(Math.random() * 15)
+          setLiveSpeed(`${spd} km/h (Overland Driving Speed)`)
+          setHeadingBearing('Overland Highway Corridor')
+        }
       }
 
       // Micro-interpolate live coordinates along route if available

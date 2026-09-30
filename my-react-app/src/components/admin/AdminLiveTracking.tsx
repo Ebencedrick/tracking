@@ -8,6 +8,7 @@ import {
   MAP_TILE_PROVIDERS,
   type MapTileKey,
   fetchLiveRouteGeometry,
+  getShipmentProgressMetrics,
 } from '../../utils/mapApis'
 
 export function AdminLiveTracking() {
@@ -449,16 +450,39 @@ export function AdminLiveTracking() {
                 )}
               </div>
 
-              <div className="live-track-hud-route-row">
-                <span className="live-track-hud-corridor">
-                  <strong>{selectedShipment.origin.name.split(',')[0]}</strong> ({selectedShipment.origin.code})
-                  <span style={{ color: '#94a3b8', margin: '0 6px' }}>➔</span>
-                  <strong>{selectedShipment.destination.name.split(',')[0]}</strong> ({selectedShipment.destination.code})
-                </span>
-                <span className="live-track-hud-driver">
-                  👤 {selectedShipment.assignedDriver || 'Amina Bello'} • {selectedShipment.vehicleId || 'VEH-101'}
-                </span>
-              </div>
+              {(() => {
+                const hudMetrics = getShipmentProgressMetrics(selectedShipment)
+                return (
+                  <div>
+                    <div className="live-track-hud-route-row">
+                      <span className="live-track-hud-corridor">
+                        <strong>{selectedShipment.origin.name.split(',')[0]}</strong> ({selectedShipment.origin.code})
+                        <span style={{ color: '#94a3b8', margin: '0 6px' }}>➔</span>
+                        <strong>{selectedShipment.destination.name.split(',')[0]}</strong> ({selectedShipment.destination.code})
+                      </span>
+                      <span className="live-track-hud-driver">
+                        👤 {selectedShipment.assignedDriver || 'Amina Bello'} • {selectedShipment.vehicleId || 'VEH-101'}
+                      </span>
+                      <span style={{ color: selectedShipment.isMovementStopped ? '#fca5a5' : '#38bdf8', fontWeight: 700, fontSize: '0.78rem' }}>
+                        📍 {hudMetrics.pct}% ({hudMetrics.coveredKm.toLocaleString()} / {hudMetrics.totalKm.toLocaleString()} KM)
+                      </span>
+                    </div>
+
+                    {/* Progress Bar in HUD */}
+                    <div style={{ marginTop: '4px', width: '100%', height: '4px', background: 'rgba(255, 255, 255, 0.15)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${hudMetrics.pct}%`,
+                          height: '100%',
+                          background: selectedShipment.isMovementStopped ? '#ef4444' : selectedShipment.status === 'delivered' ? '#10b981' : '#38bdf8',
+                          borderRadius: '2px',
+                          transition: 'width 0.4s ease',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
 
             <div className="live-track-hud-actions">
@@ -662,7 +686,6 @@ export function AdminLiveTracking() {
           ) : (
             filteredShipments.map((s) => {
               const isSelected = s.waybill === selectedShipment?.waybill
-              const speedText = s.mode === 'air' ? '850 km/h' : s.mode === 'sea' ? '22 kts' : '65 km/h'
 
               return (
                 <div
@@ -732,6 +755,36 @@ export function AdminLiveTracking() {
                     </div>
                   </div>
 
+                  {/* Card Row 2.5: Progress Bar & Distance */}
+                  {(() => {
+                    const cardMetrics = getShipmentProgressMetrics(s)
+                    return (
+                      <div style={{ margin: '6px 0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', marginBottom: '2px' }}>
+                          <strong style={{ color: s.isMovementStopped ? '#ef4444' : '#0284c7' }}>
+                            {cardMetrics.pct}% Complete
+                          </strong>
+                          <span>{cardMetrics.coveredKm.toLocaleString()} / {cardMetrics.totalKm.toLocaleString()} KM</span>
+                        </div>
+                        <div style={{ height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              width: `${cardMetrics.pct}%`,
+                              height: '100%',
+                              background: s.isMovementStopped
+                                ? '#ef4444'
+                                : s.status === 'delivered'
+                                ? '#10b981'
+                                : 'linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)',
+                              borderRadius: '2px',
+                              transition: 'width 0.4s ease',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })()}
+
                   {/* Card Row 3: Driver & Cargo */}
                   <div className="live-track-driver-row">
                     <span className="live-track-driver-tag">
@@ -745,14 +798,19 @@ export function AdminLiveTracking() {
                   </div>
 
                   {/* Card Row 4: ETA & Speed Metric */}
-                  <div className="live-track-card-footer">
-                    <span className="live-track-eta">
-                      ⏱️ ETA: <strong>{s.eta}</strong>
-                    </span>
-                    <span className="live-track-speed">
-                      ⚡ {s.isMovementStopped ? '0 km/h' : speedText}
-                    </span>
-                  </div>
+                  {(() => {
+                    const cardMetrics = getShipmentProgressMetrics(s)
+                    return (
+                      <div className="live-track-card-footer">
+                        <span className="live-track-eta">
+                          ⏱️ ETA: <strong>{s.eta}</strong>
+                        </span>
+                        <span className="live-track-speed">
+                          ⚡ {cardMetrics.speedDisplay}
+                        </span>
+                      </div>
+                    )
+                  })()}
                 </div>
               )
             })

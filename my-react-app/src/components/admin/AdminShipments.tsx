@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useShipments } from '../../context/ShipmentContext'
 import type { Shipment, ShipmentStatus } from '../../types'
+import { getShipmentProgressMetrics } from '../../utils/mapApis'
 
 export function AdminShipments() {
   const {
@@ -249,34 +250,78 @@ export function AdminShipments() {
                   <span className="shipment-route-dest">{s.destination.name}</span>
                 </div>
 
+                {/* Progress & Distance Covered Bar */}
+                {(() => {
+                  const metrics = getShipmentProgressMetrics(s)
+                  return (
+                    <div style={{ margin: '0.85rem 0 1rem', padding: '0.75rem 1rem', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: s.isMovementStopped ? '#b91c1c' : '#0284c7', textTransform: 'uppercase' }}>
+                            {s.isMovementStopped ? '🛑 MOVEMENT STOPPED (HOLD)' : s.status === 'delivered' ? '✅ DELIVERED' : s.status === 'pending' ? '⏳ PENDING DISPATCH' : '▶ IN TRANSIT'}
+                          </span>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>• {metrics.speedDisplay}</span>
+                        </div>
+                        <strong style={{ fontSize: '0.88rem', color: s.isMovementStopped ? '#b91c1c' : '#0284c7' }}>
+                          {metrics.pct}% ({metrics.coveredKm.toLocaleString()} / {metrics.totalKm.toLocaleString()} KM)
+                        </strong>
+                      </div>
+                      <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            width: `${metrics.pct}%`,
+                            height: '100%',
+                            background: s.isMovementStopped
+                              ? '#ef4444'
+                              : s.status === 'delivered'
+                              ? '#10b981'
+                              : 'linear-gradient(90deg, #0284c7 0%, #38bdf8 100%)',
+                            borderRadius: '4px',
+                            transition: 'width 0.4s ease',
+                          }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
+                        <span>Origin: {s.origin.code} (0 km)</span>
+                        <span>{metrics.remainingKm.toLocaleString()} KM to destination ({s.destination.code})</span>
+                      </div>
+                    </div>
+                  )
+                })()}
+
                 {/* Metrics Grid */}
-                <div className="shipment-card-metrics-grid">
-                  <div className="shipment-metric-col">
-                    <span className="shipment-metric-label">DRIVER / VEHICLE</span>
-                    <strong className="shipment-metric-val">
-                      {s.assignedDriver || 'Amina Bello'} · {s.vehicleId || 'VEH-101'}
-                    </strong>
-                  </div>
+                {(() => {
+                  const metrics = getShipmentProgressMetrics(s)
+                  return (
+                    <div className="shipment-card-metrics-grid">
+                      <div className="shipment-metric-col">
+                        <span className="shipment-metric-label">DRIVER / VEHICLE</span>
+                        <strong className="shipment-metric-val">
+                          {s.assignedDriver || 'Amina Bello'} · {s.vehicleId || 'VEH-101'}
+                        </strong>
+                      </div>
 
-                  <div className="shipment-metric-col">
-                    <span className="shipment-metric-label">CURRENT LOCATION</span>
-                    <strong className="shipment-metric-val">
-                      {s.currentLocation?.name || 'In Transit'}
-                    </strong>
-                  </div>
+                      <div className="shipment-metric-col">
+                        <span className="shipment-metric-label">CURRENT LOCATION</span>
+                        <strong className="shipment-metric-val">
+                          {s.currentLocation?.name || 'In Transit'}
+                        </strong>
+                      </div>
 
-                  <div className="shipment-metric-col">
-                    <span className="shipment-metric-label">ETA</span>
-                    <strong className="shipment-metric-val">{s.eta}</strong>
-                  </div>
+                      <div className="shipment-metric-col">
+                        <span className="shipment-metric-label">ETA</span>
+                        <strong className="shipment-metric-val">{s.eta}</strong>
+                      </div>
 
-                  <div className="shipment-metric-col">
-                    <span className="shipment-metric-label">PROGRESS</span>
-                    <strong className="shipment-metric-val progress">
-                      {s.progressPct || (s.status === 'pending' ? 0 : 100)}%
-                    </strong>
-                  </div>
-                </div>
+                      <div className="shipment-metric-col">
+                        <span className="shipment-metric-label">PROGRESS & DISTANCE</span>
+                        <strong className="shipment-metric-val progress">
+                          {metrics.pct}% ({metrics.coveredKm.toLocaleString()} km)
+                        </strong>
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 {/* Action Buttons Bar */}
                 <div className="shipment-card-actions-bar">
