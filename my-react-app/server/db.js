@@ -5,14 +5,23 @@ import { Inquiry } from './models/Inquiry.js'
 import { ChatSession } from './models/Chat.js'
 import { Settings } from './models/Settings.js'
 
+let isConnected = false
+
 export async function connectDB() {
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/northstar_tracking'
+  if (isConnected || mongoose.connection.readyState === 1) {
+    return
+  }
+
+  const uri =
+    process.env.MONGODB_URI ||
+    'mongodb+srv://ebencedrick29_db_user:675Amiri%24%24%24@cluster0.unvy8tj.mongodb.net/tracking2?retryWrites=true&w=majority&appName=Cluster0'
 
   try {
     mongoose.set('strictQuery', false)
     await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 8000,
     })
+    isConnected = true
     console.log(`[MongoDB] Connected successfully to: ${uri.replace(/\/\/.*@/, '//<hidden_credentials>@')}`)
 
     // Auto-seed initial data if empty

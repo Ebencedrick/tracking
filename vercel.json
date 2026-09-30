@@ -3,6 +3,10 @@
   "outputDirectory": "my-react-app/dist",
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

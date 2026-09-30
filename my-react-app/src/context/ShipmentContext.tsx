@@ -746,22 +746,44 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
   const [telemetryActive, setTelemetryActive] = useState<boolean>(true)
   const [telemetryPackets, setTelemetryPackets] = useState<Array<{ id: string; time: string; waybill: string; lat: number; lng: number; speed: string; altitude?: string }>>([])
 
-  // Sync with MongoDB backend on mount
+  // Real-time synchronization with MongoDB Atlas backend across all devices
   useEffect(() => {
     let isCancelled = false
-    apiService
-      .getShipments()
-      .then((data) => {
-        if (!isCancelled && Array.isArray(data) && data.length > 0) {
-          setShipments(data)
+
+    const syncWithCloudDatabase = async () => {
+      try {
+        const cloudShipments = await apiService.getShipments()
+        if (!isCancelled && Array.isArray(cloudShipments) && cloudShipments.length > 0) {
+          setShipments((prev) => {
+            const map = new Map<string, Shipment>()
+            prev.forEach((s) => {
+              if (s.waybill) map.set(s.waybill.toUpperCase(), s)
+            })
+            cloudShipments.forEach((cloudS) => {
+              if (cloudS.waybill) {
+                const key = cloudS.waybill.toUpperCase()
+                const local = map.get(key)
+                if (!local) {
+                  map.set(key, cloudS)
+                } else {
+                  map.set(key, { ...local, ...cloudS })
+                }
+              }
+            })
+            return Array.from(map.values())
+          })
         }
-      })
-      .catch(() => {
-        // Backend not yet running or network delay; state falls back to local storage
-      })
+      } catch {
+        // Silent fallback to local storage
+      }
+    }
+
+    syncWithCloudDatabase()
+    const pollInterval = setInterval(syncWithCloudDatabase, 6000)
 
     return () => {
       isCancelled = true
+      clearInterval(pollInterval)
     }
   }, [])
 
