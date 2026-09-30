@@ -14,6 +14,7 @@ export interface GeocodeResult {
   lng: number
   type?: string
   country?: string
+  source?: string
 }
 
 export interface RouteGeometryResult {
@@ -26,10 +27,10 @@ export interface RouteGeometryResult {
 export const MAP_TILE_PROVIDERS = {
   voyager: {
     name: 'Street Vector (English)',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    subdomains: 'abcd',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    subdomains: ['server', 'services'],
     maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom',
   },
   satellite: {
     name: 'Live HD Satellite',
@@ -40,14 +41,18 @@ export const MAP_TILE_PROVIDERS = {
   },
   dark: {
     name: 'Tactical Radar (Dark)',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    subdomains: 'abcd',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    subdomains: ['server', 'services'],
     maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
   },
 } as const
 
 export type MapTileKey = keyof typeof MAP_TILE_PROVIDERS
+
+const SERP_API_KEY =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SERP_API_KEY) ||
+  '474aada0e5b378fe41c877b76edbc04c918fcfa1be45670fee71d90840950882'
 
 /**
  * Known Major Logistics Hubs Fallback Dictionary
@@ -67,13 +72,79 @@ const KNOWN_HUBS: Record<string, [number, number, string]> = {
 }
 
 /**
- * Live Geocoding via OpenStreetMap Nominatim API
+ * Query SerpApi Google Maps Engine for live place search and GPS coordinates
+ */
+export async function searchSerpApiGoogleMaps(query: string): Promise<GeocodeResult[]> {
+  if (!query.trim() || !SERP_API_KEY) return []
+
+  const tryEndpoints = [
+    `/api/serpapi/search.json?engine=google_maps&q=${encodeURIComponent(query)}&api_key=${SERP_API_KEY}`,
+    `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(query)}&api_key=${SERP_API_KEY}`,
+  ]
+
+  for (const url of tryEndpoints) {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 4000)
+
+      const res = await fetch(url, { signal: controller.signal })
+      clearTimeout(timeoutId)
+
+      if (res.ok) {
+        const data = await res.json()
+        const results: GeocodeResult[] = []
+
+        // 1. Single Place Result
+        if (data.place_results && data.place_results.gps_coordinates) {
+          const p = data.place_results
+          results.push({
+            displayName: p.title || p.address || query,
+            shortName: p.title || query,
+            lat: p.gps_coordinates.latitude,
+            lng: p.gps_coordinates.longitude,
+            type: p.type || 'Google Maps Place',
+            country: p.address || 'Global Location',
+            source: 'Google Maps (SerpApi)',
+          })
+        }
+
+        // 2. Local Results list
+        if (Array.isArray(data.local_results) && data.local_results.length > 0) {
+          for (const item of data.local_results) {
+            if (item.gps_coordinates?.latitude && item.gps_coordinates?.longitude) {
+              results.push({
+                displayName: `${item.title}${item.address ? ` - ${item.address}` : ''}`,
+                shortName: item.title || query,
+                lat: item.gps_coordinates.latitude,
+                lng: item.gps_coordinates.longitude,
+                type: item.type || 'Google Maps Result',
+                country: item.address,
+                source: 'Google Maps (SerpApi)',
+              })
+            }
+          }
+        }
+
+        if (results.length > 0) {
+          return results
+        }
+      }
+    } catch {
+      // Continue to next endpoint or fallback
+    }
+  }
+
+  return []
+}
+
+/**
+ * Live Geocoding via SerpApi Google Maps Engine with OpenStreetMap Nominatim Fallback
  */
 export async function searchLiveGeocode(query: string): Promise<GeocodeResult[]> {
   const clean = query.trim().toLowerCase()
   if (!clean) return []
 
-  // Check known hub codes (e.g. "JFK", "LHR")
+  // 1. Fast check known hub codes (e.g. "JFK", "LHR", "LAX")
   if (KNOWN_HUBS[clean]) {
     const [lat, lng, name] = KNOWN_HUBS[clean]
     return [
@@ -83,10 +154,22 @@ export async function searchLiveGeocode(query: string): Promise<GeocodeResult[]>
         lat,
         lng,
         country: 'Global Gateway',
+        source: 'Verified Aviation Gateway',
       },
     ]
   }
 
+  // 2. Query Google Maps Engine via SerpApi
+  try {
+    const serpResults = await searchSerpApiGoogleMaps(query)
+    if (serpResults.length > 0) {
+      return serpResults
+    }
+  } catch {
+    // Fallthrough to Nominatim
+  }
+
+  // 3. Fallback: OpenStreetMap Nominatim Live Geocoding API
   try {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 3500)
@@ -106,21 +189,22 @@ export async function searchLiveGeocode(query: string): Promise<GeocodeResult[]>
 
     clearTimeout(timeoutId)
 
-    if (!response.ok) throw new Error('Nominatim geocode service returned error')
-
-    const data = await response.json()
-    if (Array.isArray(data) && data.length > 0) {
-      return data.map((item: any) => ({
-        displayName: item.display_name,
-        shortName: item.name || item.display_name.split(',')[0],
-        lat: parseFloat(item.lat),
-        lng: parseFloat(item.lon),
-        type: item.type,
-        country: item.address?.country,
-      }))
+    if (response.ok) {
+      const data = await response.json()
+      if (Array.isArray(data) && data.length > 0) {
+        return data.map((item: any) => ({
+          displayName: item.display_name,
+          shortName: item.name || item.display_name.split(',')[0],
+          lat: parseFloat(item.lat),
+          lng: parseFloat(item.lon),
+          type: item.type,
+          country: item.address?.country,
+          source: 'Nominatim Live API',
+        }))
+      }
     }
   } catch {
-    // Graceful fallback to fuzzy match
+    // Graceful fallback
   }
 
   return []

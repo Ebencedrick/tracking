@@ -59,12 +59,14 @@ export function AdminDashboard() {
       attributionControl: false,
     }).setView([42.0, -25.0], 3)
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    }).addTo(map)
+    L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      {
+        subdomains: ['server', 'services'],
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri &mdash; Global Logistics Telemetry',
+      }
+    ).addTo(map)
 
     const markersGroup = L.layerGroup().addTo(map)
     markersLayerRef.current = markersGroup
@@ -515,7 +517,7 @@ export function AdminDashboard() {
                   boxShadow: '0 0 8px #10b981',
                 }}
               />
-              <span>ENGLISH CARTODB GLOBAL TELEMETRY // 4s REFRESH</span>
+              <span>LIVE ESRI & GOOGLE LOGISTICS TELEMETRY // 4s REFRESH</span>
             </div>
           </div>
 

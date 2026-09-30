@@ -190,14 +190,15 @@ export function AdminCreateShipment() {
   const handleGeocodeOrigin = async () => {
     if (!originName.trim()) return
     setIsGeocodingOrigin(true)
-    setGeocodeFeedback('Querying Nominatim Live Geocoding API for Origin...')
+    setGeocodeFeedback('Querying Google Maps & Live Geocoding APIs for Origin...')
     try {
       const results = await searchLiveGeocode(originName)
       if (results.length > 0) {
         const top = results[0]
         setOriginLat(top.lat)
         setOriginLng(top.lng)
-        setGeocodeFeedback(`✓ Origin Geocoded: [${top.lat.toFixed(4)}, ${top.lng.toFixed(4)}] (${top.displayName.slice(0, 45)}...)`)
+        const srcTag = top.source ? ` [${top.source}]` : ''
+        setGeocodeFeedback(`✓ Origin Geocoded${srcTag}: [${top.lat.toFixed(4)}, ${top.lng.toFixed(4)}] (${top.displayName.slice(0, 45)}...)`)
       } else {
         setGeocodeFeedback(`⚠️ Could not geocode "${originName}". Please verify spelling or adjust coordinates manually.`)
       }
@@ -212,14 +213,15 @@ export function AdminCreateShipment() {
   const handleGeocodeDest = async () => {
     if (!destName.trim()) return
     setIsGeocodingDest(true)
-    setGeocodeFeedback('Querying Nominatim Live Geocoding API for Destination...')
+    setGeocodeFeedback('Querying Google Maps & Live Geocoding APIs for Destination...')
     try {
       const results = await searchLiveGeocode(destName)
       if (results.length > 0) {
         const top = results[0]
         setDestLat(top.lat)
         setDestLng(top.lng)
-        setGeocodeFeedback(`✓ Destination Geocoded: [${top.lat.toFixed(4)}, ${top.lng.toFixed(4)}] (${top.displayName.slice(0, 45)}...)`)
+        const srcTag = top.source ? ` [${top.source}]` : ''
+        setGeocodeFeedback(`✓ Destination Geocoded${srcTag}: [${top.lat.toFixed(4)}, ${top.lng.toFixed(4)}] (${top.displayName.slice(0, 45)}...)`)
       } else {
         setGeocodeFeedback(`⚠️ Could not geocode "${destName}". Please verify spelling or adjust coordinates manually.`)
       }
