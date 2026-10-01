@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
-import siteLogo from '../../../img/10dfe2bf-120c-41cf-9b7d-3da49f7928bc.jfif'
 import { useShipments } from '../../context/ShipmentContext'
-import '../../styles/admin.css'
+
+const siteLogo = '/brand-logo.jfif'
 
 export function AdminLayout() {
   const navigate = useNavigate()

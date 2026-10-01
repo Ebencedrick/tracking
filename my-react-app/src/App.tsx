@@ -11,7 +11,6 @@ import {
   useParams,
 } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
-import siteLogo from '../img/10dfe2bf-120c-41cf-9b7d-3da49f7928bc.jfif'
 import { ShipmentProvider, useShipments } from './context/ShipmentContext'
 import type { ShippingMode, Shipment } from './types'
 import { ClientLiveMap } from './components/ClientLiveMap'
@@ -31,7 +30,8 @@ import { AdminInquiries } from './components/admin/AdminInquiries'
 import { AdminChats } from './components/admin/AdminChats'
 import { AdminLiveTracking } from './components/admin/AdminLiveTracking'
 import { AdminCreateShipment } from './components/admin/AdminCreateShipment'
-import './App.css'
+
+const siteLogo = '/brand-logo.jfif'
 
 const publicLinks = [
   { to: '/', label: 'Home' },
@@ -215,19 +215,6 @@ function PublicLayout() {
               <svg className="header-action-icon" aria-hidden="true"><use href="/icons.svg#header-ship-icon" /></svg>
               Ship Now
             </Link>
-            <Link
-              to="/admin"
-              className="button header-action-button"
-              style={{
-                background: 'rgba(2, 132, 199, 0.15)',
-                color: '#38bdf8',
-                border: '1px solid rgba(56, 189, 248, 0.4)',
-                fontWeight: 700,
-              }}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              ⚙️ Admin
-            </Link>
           </div>
         </div>
       </header>
@@ -254,7 +241,6 @@ function PublicLayout() {
               <li><Link to="/track">Track Consignment</Link></li>
               <li><Link to="/services">Air Express</Link></li>
               <li><Link to="/services">Ocean Freight</Link></li>
-              <li><Link to="/admin" style={{ color: '#38bdf8', fontWeight: 600 }}>⚙️ Admin Command Portal</Link></li>
             </ul>
           </div>
 

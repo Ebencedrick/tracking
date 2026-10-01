@@ -26,7 +26,7 @@ interface ShipmentContextType {
   getShipment: (waybill: string) => Shipment | undefined
   createShipment: (data: Partial<Shipment>) => Shipment
   updateShipment: (waybill: string, data: Partial<Shipment>) => void
-  deleteShipment: (waybill: string) => void
+  deleteShipment: (waybill: string) => Promise<void>
   pushCheckpoint: (waybill: string, checkpoint: Omit<Checkpoint, 'id' | 'timestamp'>) => void
   updateShipmentStatus: (waybill: string, status: ShipmentStatus, note?: string) => void
   generateWaybillCode: () => string
@@ -990,13 +990,12 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
     addAuditLog('SHIPMENT_UPDATED', 'SHIPMENT', `Updated shipment ${waybill}`, 'info', waybill)
   }
 
-  const deleteShipment = (waybill: string) => {
+  const deleteShipment = async (waybill: string) => {
+    await apiService.deleteShipment(waybill)
+
     startTransition(() => {
       setShipments((prev) => prev.filter((s) => s.waybill.toUpperCase() !== waybill.toUpperCase()))
     })
-
-    // Persist to MongoDB backend
-    apiService.deleteShipment(waybill).catch(() => {})
 
     addAuditLog('SHIPMENT_DELETED', 'SHIPMENT', `Deleted shipment record ${waybill}`, 'warning', waybill)
   }

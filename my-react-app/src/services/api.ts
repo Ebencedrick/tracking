@@ -1,6 +1,6 @@
 import type { Shipment, Carrier, InquiryMessage, ChatSession, TariffSettings } from '../types'
 
-const RAW_API_URL = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL
 const API_BASE = RAW_API_URL ? `${RAW_API_URL.replace(/\/$/, '')}/api` : '/api'
 
 export const apiService = {
@@ -41,6 +41,9 @@ export const apiService = {
     const res = await fetch(`${API_BASE}/shipments/${encodeURIComponent(waybill)}`, {
       method: 'DELETE',
     })
+    if (res.status === 404) {
+      return { message: 'Shipment was not present in the database', waybill }
+    }
     if (!res.ok) throw new Error('Failed to delete shipment')
     return res.json()
   },

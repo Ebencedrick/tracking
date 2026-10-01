@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-import siteLogo from '../../../img/10dfe2bf-120c-41cf-9b7d-3da49f7928bc.jfif'
 import { useShipments } from '../../context/ShipmentContext'
 import type { Shipment, ShippingMode, ShipmentStatus } from '../../types'
 import { getShipmentProgressMetrics, getShipmentDistanceKm } from '../../utils/mapApis'
+
+const siteLogo = '/brand-logo.jfif'
 
 interface AdminOutletContext {
   openBroadcastModal: () => void

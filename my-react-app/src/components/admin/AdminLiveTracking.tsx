@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 import { useShipments } from '../../context/ShipmentContext'
 import type { Shipment, ShippingMode, ShipmentStatus } from '../../types'
 import { WaybillLabelModal } from './WaybillLabelModal'

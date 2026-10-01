@@ -97,10 +97,14 @@ export function AdminShipments() {
     showToast(`Copied ${s.waybill} to clipboard!`)
   }
 
-  const handleDelete = (s: Shipment) => {
-    if (window.confirm(`Are you sure you want to delete shipment ${s.waybill}?`)) {
-      deleteShipment(s.waybill)
+  const handleDelete = async (s: Shipment) => {
+    if (!window.confirm(`Are you sure you want to delete shipment ${s.waybill}?`)) return
+
+    try {
+      await deleteShipment(s.waybill)
       showToast(`Deleted ${s.waybill}`)
+    } catch {
+      showToast(`Could not delete ${s.waybill}. The shipment is still listed.`)
     }
   }
 

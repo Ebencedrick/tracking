@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ChangeEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 import { useShipments } from '../../context/ShipmentContext'
 import type { Shipment, ShipmentStatus, ShippingMode } from '../../types'
 import { WaybillLabelModal } from './WaybillLabelModal'

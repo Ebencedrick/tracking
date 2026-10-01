@@ -51,7 +51,7 @@ export const MAP_TILE_PROVIDERS = {
 export type MapTileKey = keyof typeof MAP_TILE_PROVIDERS
 
 const SERP_API_KEY =
-  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SERP_API_KEY) ||
+  process.env.NEXT_PUBLIC_SERP_API_KEY ||
   '474aada0e5b378fe41c877b76edbc04c918fcfa1be45670fee71d90840950882'
 
 /**

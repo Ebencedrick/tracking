@@ -1,75 +1,46 @@
-# React + TypeScript + Vite
+# Package Pilot Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React app hosted by Next.js 16. The existing React Router routes are retained inside a Next.js catch-all page for compatibility. The Express API remains a separate process and continues to own the Mongoose connection and MongoDB data.
 
-Currently, two official plugins are available:
+## Requirements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 20.9 or newer
+- npm
 
-## React Compiler
+## Local development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Install dependencies:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```powershell
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Run the API and web app in separate terminals:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```powershell
+npm run server:dev
 ```
+
+```powershell
+npm run dev
+```
+
+The Next.js app runs at `http://localhost:3000`; the Express API defaults to `http://localhost:5000`.
+
+## Environment
+
+- `MONGODB_URI`: MongoDB connection string read by the Express server. Keep the existing value to continue using the same database.
+- `API_PROXY_TARGET`: optional Express API origin for Next.js rewrites; defaults to `http://localhost:5000`.
+- `NEXT_PUBLIC_API_URL`: optional direct API base URL, used instead of the `/api` rewrite.
+- `NEXT_PUBLIC_SERP_API_KEY`: optional SerpApi key used by the map search integration.
+
+For deployment, configure `API_PROXY_TARGET` to a reachable Express API service. The database remains connected from that backend, not from the browser.
+
+## Production
+
+```powershell
+npm run build
+npm start
+```
+
+Start the Express backend separately with `npm run server`.
