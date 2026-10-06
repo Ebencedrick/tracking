@@ -673,3 +673,184 @@ export function getShipmentProgressMetrics(shipment: {
     isStopped,
   }
 }
+
+/**
+ * Calculate realistic transit duration in hours based on distance and shipping mode
+ */
+export function calculateEstimatedTransitHours(distanceKm: number, mode: string = 'air'): number {
+  const d = Math.max(50, distanceKm)
+  if (mode === 'air') {
+    // Air freight: ~800 km/h cruising + 2 hrs handling/intake
+    return Math.max(2, Math.round((d / 800) + 2))
+  } else if (mode === 'sea') {
+    // Ocean freight: ~36 km/h (19.5 knots) + 24 hrs port customs/berthing
+    return Math.max(24, Math.round((d / 36) + 24))
+  } else {
+    // Land freight: ~72 km/h + 3 hrs depot/sorting
+    return Math.max(3, Math.round((d / 72) + 3))
+  }
+}
+
+/**
+ * Calculate dynamic ETA formatted string based on distance, mode, and start time
+ */
+export function calculateDynamicETA(
+  distanceKm: number,
+  mode: string = 'air',
+  startDateInput?: Date | string
+): { etaString: string; durationHours: number; arrivalDate: Date; humanSummary: string } {
+  const durationHours = calculateEstimatedTransitHours(distanceKm, mode)
+  const baseTime = startDateInput ? new Date(startDateInput).getTime() : Date.now()
+  const arrivalTimeMs = (isNaN(baseTime) ? Date.now() : baseTime) + durationHours * 3600 * 1000
+  const arrivalDate = new Date(arrivalTimeMs)
+
+  const now = new Date()
+  const isToday = arrivalDate.toDateString() === now.toDateString()
+  
+  const tomorrow = new Date(now)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const isTomorrow = arrivalDate.toDateString() === tomorrow.toDateString()
+
+  const timeStr = arrivalDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  
+  let etaString = ''
+  if (isToday) {
+    etaString = `Today, ${timeStr}`
+  } else if (isTomorrow) {
+    etaString = `Tomorrow, ${timeStr}`
+  } else {
+    const month = arrivalDate.toLocaleString('default', { month: 'short' })
+    const day = arrivalDate.getDate()
+    const year = arrivalDate.getFullYear()
+    etaString = `${month} ${day}, ${year} · ${timeStr}`
+  }
+
+  let humanSummary = ''
+  if (durationHours < 24) {
+    humanSummary = `Est. ~${durationHours} hrs transit (${Math.round(distanceKm).toLocaleString()} km)`
+  } else {
+    const days = (durationHours / 24).toFixed(1).replace('.0', '')
+    humanSummary = `Est. ~${days} days transit (${Math.round(distanceKm).toLocaleString()} km)`
+  }
+
+  return {
+    etaString,
+    durationHours,
+    arrivalDate,
+    humanSummary,
+  }
+}
+
+/**
+ * Calculate Compass Bearing in degrees and cardinal direction between two points
+ */
+export function calculateBearing(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): { degrees: number; cardinal: string } {
+  const φ1 = (lat1 * Math.PI) / 180
+  const φ2 = (lat2 * Math.PI) / 180
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180
+
+  const y = Math.sin(Δλ) * Math.cos(φ2)
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)
+  const θ = Math.atan2(y, x)
+  const degrees = Math.round(((θ * 180) / Math.PI + 360) % 360)
+
+  const cardinals = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+  const index = Math.round(degrees / 22.5) % 16
+  const cardinal = `${String(degrees).padStart(3, '0')}° ${cardinals[index]}`
+
+  return { degrees, cardinal }
+}
+
+/**
+ * Calculate Real-Time Journey Telemetry and Progress Percentage
+ */
+export function calculateRealtimeJourneyTelemetry(shipment: {
+  createdAt?: string
+  bookingDate?: string
+  status: string
+  mode?: string
+  progressPct?: number
+  isMovementStopped?: boolean
+  estimatedDistanceKm?: number
+  origin?: { lat?: number; lng?: number }
+  destination?: { lat?: number; lng?: number }
+}) {
+  const totalKm = getShipmentDistanceKm(shipment)
+  const mode = shipment.mode || 'air'
+  const isDelivered = shipment.status === 'delivered'
+  const isPending = shipment.status === 'pending'
+  const isStopped = !!shipment.isMovementStopped
+
+  if (isDelivered) {
+    return {
+      progressPct: 100,
+      coveredKm: totalKm,
+      remainingKm: 0,
+      speedDisplay: '0 km/h (Delivered)',
+      statusDisplay: 'Delivered',
+      isMoving: false,
+    }
+  }
+
+  if (isPending) {
+    return {
+      progressPct: 5,
+      coveredKm: Math.round(totalKm * 0.05),
+      remainingKm: totalKm,
+      speedDisplay: '0 km/h (Awaiting Dispatch)',
+      statusDisplay: 'Staged at Origin',
+      isMoving: false,
+    }
+  }
+
+  if (isStopped) {
+    const p = Math.min(95, Math.max(5, shipment.progressPct ?? 45))
+    const coveredKm = Math.round((totalKm * p) / 100)
+    return {
+      progressPct: p,
+      coveredKm,
+      remainingKm: Math.max(0, totalKm - coveredKm),
+      speedDisplay: '0 km/h (Movement Hold)',
+      statusDisplay: 'Hold / Inspection',
+      isMoving: false,
+    }
+  }
+
+  // Calculate elapsed transit time
+  const createdTime = shipment.createdAt || shipment.bookingDate
+  let elapsedHours = 1.2
+  if (createdTime) {
+    const elapsedMs = Math.max(0, Date.now() - new Date(createdTime).getTime())
+    if (!isNaN(elapsedMs) && elapsedMs > 0) {
+      elapsedHours = elapsedMs / (3600 * 1000)
+    }
+  }
+
+  const totalTransitHours = calculateEstimatedTransitHours(totalKm, mode)
+  const timeProgressFraction = Math.min(0.96, Math.max(0.08, elapsedHours / totalTransitHours))
+  const calculatedPct = Math.round(timeProgressFraction * 100 * 10) / 10
+
+  // Combine with explicit progressPct if given by admin
+  const finalPct = shipment.progressPct != null && shipment.progressPct > calculatedPct
+    ? shipment.progressPct
+    : calculatedPct
+
+  const clampedPct = Math.min(98, Math.max(5, finalPct))
+  const coveredKm = Math.round((totalKm * clampedPct) / 100)
+  const remainingKm = Math.max(0, totalKm - coveredKm)
+
+  return {
+    progressPct: clampedPct,
+    coveredKm,
+    remainingKm,
+    speedDisplay: mode === 'air' ? '850 km/h' : mode === 'sea' ? '22 knots' : '80 km/h',
+    statusDisplay: 'In Transit',
+    isMoving: true,
+  }
+}
+

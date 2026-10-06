@@ -6,11 +6,16 @@ const CheckpointSchema = new mongoose.Schema(
     title: { type: String, required: true },
     location: { type: String, required: true },
     timestamp: { type: String, required: true },
+    time: { type: String, default: '' },
     completed: { type: Boolean, default: false },
     current: { type: Boolean, default: false },
     detail: { type: String, default: '' },
+    lat: { type: Number },
+    lng: { type: Number },
+    eventType: { type: String, default: 'in_transit' },
+    status: { type: String, default: 'in_transit' },
   },
-  { _id: false }
+  { _id: false, strict: false }
 )
 
 const LocationSchema = new mongoose.Schema(
@@ -20,7 +25,18 @@ const LocationSchema = new mongoose.Schema(
     lat: { type: Number, default: 0 },
     lng: { type: Number, default: 0 },
   },
-  { _id: false }
+  { _id: false, strict: false }
+)
+
+const DocumentSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    name: { type: String, required: true },
+    type: { type: String, default: 'label' },
+    size: { type: String, default: '220 KB' },
+    date: { type: String, default: 'Just now' },
+  },
+  { _id: false, strict: false }
 )
 
 const ShipmentSchema = new mongoose.Schema(
@@ -29,6 +45,7 @@ const ShipmentSchema = new mongoose.Schema(
     clientName: { type: String, default: '' },
     clientEmail: { type: String, default: '' },
     clientReference: { type: String, default: '' },
+    clientId: { type: String, default: 'u2' },
     senderName: { type: String, default: '' },
     senderEmail: { type: String, default: '' },
     senderPhone: { type: String, default: '' },
@@ -54,6 +71,8 @@ const ShipmentSchema = new mongoose.Schema(
     carrierCode: { type: String, default: 'DHL' },
     transportScope: { type: String, default: 'International' },
     cargoType: { type: String, default: 'Commercial Goods' },
+    serviceTier: { type: String, default: 'STANDARD' },
+    isCustomerBooking: { type: Boolean, default: true },
     weightKg: { type: Number, default: 1 },
     packageCount: { type: Number, default: 1 },
     declaredValue: { type: Number, default: 1000 },
@@ -63,11 +82,17 @@ const ShipmentSchema = new mongoose.Schema(
     bookingDate: { type: String, default: '' },
     assignedDriver: { type: String, default: '' },
     vehicleId: { type: String, default: '' },
+    progressPct: { type: Number, default: 5 },
+    telemetryActive: { type: Boolean, default: true },
     isMovementStopped: { type: Boolean, default: false },
+    movementStopReason: { type: String, default: '' },
+    movementStoppedAt: { type: String, default: '' },
     packageImageUrl: { type: String, default: '' },
     checkpoints: [CheckpointSchema],
+    documents: [DocumentSchema],
   },
-  { timestamps: true }
+  { timestamps: true, strict: false }
 )
 
 export const Shipment = mongoose.models.Shipment || mongoose.model('Shipment', ShipmentSchema)
+

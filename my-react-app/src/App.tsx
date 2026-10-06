@@ -977,15 +977,18 @@ function TrackPage() {
       }
     }
 
-    // 10-Second Live Auto-Refresh Polling: ensures that when the client enters the tracking number
-    // to see progress, the accurate state, driver, coordinates, and stopped/resumed status are refreshed
-    const pollTimer = setInterval(fetchLiveDatabaseRecord, 10000)
+    // Call immediately on mount/waybill change
+    fetchLiveDatabaseRecord()
+
+    // 8-Second Live Auto-Refresh Polling
+    const pollTimer = setInterval(fetchLiveDatabaseRecord, 8000)
 
     return () => {
       isCancelled = true
       clearInterval(pollTimer)
     }
   }, [requestedWaybill])
+
 
   useEffect(() => {
     if (requestedWaybill) {

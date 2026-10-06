@@ -82,6 +82,8 @@ export interface Shipment {
   serviceTier?: string
   isCustomerBooking?: boolean
   isMovementStopped?: boolean
+  movementStopReason?: string
+  movementStoppedAt?: string
   senderName?: string
   senderEmail?: string
   senderPhone?: string
@@ -94,6 +96,7 @@ export interface Shipment {
   bookingDate?: string
   estimatedDistanceKm?: number
 }
+
 
 export interface Carrier {
   id: string

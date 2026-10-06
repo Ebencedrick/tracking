@@ -9,9 +9,11 @@ import {
   lookupKnownHub,
   fetchLiveRouteGeometry,
   calculateHaversineDistance,
+  calculateDynamicETA,
   MAP_TILE_PROVIDERS,
   type MapTileKey,
 } from '../../utils/mapApis'
+
 
 export function AdminCreateShipment() {
   const navigate = useNavigate()
@@ -137,22 +139,30 @@ export function AdminCreateShipment() {
   const [weightKg, setWeightKg] = useState(existingShipment?.weightKg ?? 14.5)
   const [packageCount, setPackageCount] = useState(existingShipment?.packageCount ?? 1)
   const [declaredValue, setDeclaredValue] = useState(existingShipment?.declaredValue ?? 3200)
-  const [etaSchedule, setEtaSchedule] = useState(existingShipment?.eta || 'Sep 29, 04:28 PM')
   const [serviceTier, setServiceTier] = useState(existingShipment?.serviceTier || 'STANDARD')
   const [customRate, setCustomRate] = useState<number>(existingShipment?.rate ?? 120.0)
 
   // Computed distance based on coordinates
   const calculatedDistance = useMemo(() => {
-    return calculateHaversineDistance(originLat, originLng, destLat, destLng)
+    return Math.round(calculateHaversineDistance(originLat, originLng, destLat, destLng))
   }, [originLat, originLng, destLat, destLng])
 
-  const [customDistance, setCustomDistance] = useState<number>(existingShipment?.estimatedDistanceKm ?? calculatedDistance)
+  const [customDistance, setCustomDistance] = useState<number>(existingShipment?.estimatedDistanceKm ?? (calculatedDistance || 5560))
+
+  const autoCalculatedEta = useMemo(() => {
+    return calculateDynamicETA(customDistance || calculatedDistance || 5000, shippingMode, bookingDate)
+  }, [customDistance, calculatedDistance, shippingMode, bookingDate])
+
+  const [etaSchedule, setEtaSchedule] = useState(existingShipment?.eta || autoCalculatedEta.etaString)
+
 
   useEffect(() => {
     if (!existingShipment) {
       setCustomDistance(calculatedDistance)
+      setEtaSchedule(autoCalculatedEta.etaString)
     }
-  }, [calculatedDistance, existingShipment])
+  }, [calculatedDistance, autoCalculatedEta.etaString, existingShipment])
+
 
   // Sync state if existingShipment loads or changes
   useEffect(() => {
@@ -1158,7 +1168,25 @@ export function AdminCreateShipment() {
             </div>
 
             <div className="cmd-form-group">
-              <label className="cmd-form-label">Estimated Delivery Date (ETA)</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="cmd-form-label">Estimated Delivery Date (ETA)</label>
+                <button
+                  type="button"
+                  onClick={() => setEtaSchedule(autoCalculatedEta.etaString)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#0284c7',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: '0 0 2px 0',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  ⚡ Auto-Calculate
+                </button>
+              </div>
               <input
                 type="text"
                 className="cmd-input"
@@ -1167,6 +1195,9 @@ export function AdminCreateShipment() {
                 placeholder="e.g. Sep 29, 04:28 PM"
                 required
               />
+              <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600, display: 'block', marginTop: '2px' }}>
+                ✨ {autoCalculatedEta.humanSummary} → {autoCalculatedEta.etaString}
+              </span>
             </div>
           </div>
 
@@ -1186,7 +1217,12 @@ export function AdminCreateShipment() {
             </div>
 
             <div className="cmd-form-group">
-              <label className="cmd-form-label">Estimated Route Distance (KM)</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="cmd-form-label">Estimated Route Distance (KM)</label>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  Auto: {calculatedDistance.toLocaleString()} km
+                </span>
+              </div>
               <input
                 type="number"
                 className="cmd-input"
@@ -1196,6 +1232,7 @@ export function AdminCreateShipment() {
             </div>
           </div>
         </div>
+
 
         {/* Section 6: Consignment Manifest Summary */}
         <div className="create-shipment-summary-card">

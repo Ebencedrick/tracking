@@ -1,8 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import L from 'leaflet'
 import type { Shipment } from '../types'
 import {
   fetchLiveRouteGeometry,
+  calculateBearing,
+  calculateDynamicETA,
+  calculateRealtimeJourneyTelemetry,
+  getShipmentDistanceKm,
   MAP_TILE_PROVIDERS,
   type MapTileKey,
 } from '../utils/mapApis'
@@ -12,33 +16,50 @@ interface ClientLiveMapProps {
   height?: string
 }
 
-export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps) {
+export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const tileLayerRef = useRef<L.TileLayer | null>(null)
   const markersLayerRef = useRef<L.LayerGroup | null>(null)
   const routePolylineRef = useRef<L.Polyline | null>(null)
+  const coveredPolylineRef = useRef<L.Polyline | null>(null)
   const vehicleMarkerRef = useRef<L.Marker | null>(null)
 
   const [activeTileKey, setActiveTileKey] = useState<MapTileKey>('voyager')
+  const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([])
+  
+  // Calculate initial metrics
+  const totalDistanceKm = useMemo(() => getShipmentDistanceKm(shipment), [shipment])
+  
+  const initialTelemetry = useMemo(() => {
+    return calculateRealtimeJourneyTelemetry(shipment)
+  }, [shipment])
+
+  const [currentProgressPct, setCurrentProgressPct] = useState<number>(initialTelemetry.progressPct)
   const [liveCoords, setLiveCoords] = useState<{ lat: number; lng: number }>(() => ({
     lat: shipment.currentLocation?.lat || shipment.origin.lat || 40.6413,
     lng: shipment.currentLocation?.lng || shipment.origin.lng || -73.7781,
   }))
-  const [liveSpeed, setLiveSpeed] = useState<string>(() => {
-    if (shipment.mode === 'air') return '848 km/h'
-    if (shipment.mode === 'sea') return '22.4 knots'
-    return '72 km/h'
-  })
+
+  const [liveSpeed, setLiveSpeed] = useState<string>(initialTelemetry.speedDisplay)
   const [liveAltitude, setLiveAltitude] = useState<string>(() => {
     if (shipment.mode === 'air') return '34,500 FT (FL345)'
     if (shipment.mode === 'sea') return '0 FT (SEA LEVEL)'
     return '640 FT (HIGHWAY)'
   })
   const [headingBearing, setHeadingBearing] = useState<string>('072° ENE')
-  const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([])
+  const [bearingAngle, setBearingAngle] = useState<number>(0)
 
-  // 1. Initialize Map
+  // Dynamic ETA calculation
+  const etaInfo = useMemo(() => {
+    return calculateDynamicETA(
+      totalDistanceKm,
+      shipment.mode,
+      shipment.createdAt || shipment.bookingDate
+    )
+  }, [totalDistanceKm, shipment.mode, shipment.createdAt, shipment.bookingDate])
+
+  // 1. Initialize Map Container
   useEffect(() => {
     if (!mapContainerRef.current) return
     if (mapInstanceRef.current) return
@@ -70,11 +91,12 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
       tileLayerRef.current = null
       markersLayerRef.current = null
       routePolylineRef.current = null
+      coveredPolylineRef.current = null
       vehicleMarkerRef.current = null
     }
   }, [])
 
-  // 2. Switch Tile Layers Dynamically (Satellite vs Street vs Dark)
+  // 2. Switch Tile Layers Dynamically
   useEffect(() => {
     const map = mapInstanceRef.current
     if (!map) return
@@ -93,7 +115,7 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
     tileLayerRef.current = nextLayer
   }, [activeTileKey])
 
-  // 3. Fetch Real Route Geometry (OSRM for Road, Geodesic Arc for Air/Sea)
+  // 3. Fetch Full Corridor Route Geometry (OSRM / Great-Circle Arc)
   useEffect(() => {
     let isCancelled = false
 
@@ -116,7 +138,7 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
     }
   }, [shipment])
 
-  // 4. Render Route Polyline & Markers
+  // 4. Render Route Polylines and Waypoint Markers
   useEffect(() => {
     const map = mapInstanceRef.current
     const markersGroup = markersLayerRef.current
@@ -126,6 +148,10 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
     if (routePolylineRef.current) {
       map.removeLayer(routePolylineRef.current)
       routePolylineRef.current = null
+    }
+    if (coveredPolylineRef.current) {
+      map.removeLayer(coveredPolylineRef.current)
+      coveredPolylineRef.current = null
     }
 
     const startLat = shipment.origin.lat || 40.6413
@@ -141,8 +167,8 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
       className: 'leaflet-custom-marker-start',
       html: `
         <div style="
-          width: 18px;
-          height: 18px;
+          width: 20px;
+          height: 20px;
           background-color: #10b981;
           border: 3px solid #ffffff;
           border-radius: 50%;
@@ -163,11 +189,11 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
             white-space: nowrap;
             border: 1px solid rgba(52, 211, 153, 0.4);
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-          ">ORIGIN: ${shipment.origin.code || 'HUB'}</div>
+          ">ORIGIN: ${shipment.origin.code || 'DEP'}</div>
         </div>
       `,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9],
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
     })
 
     // Destination Marker (Destination Pin)
@@ -175,8 +201,8 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
       className: 'leaflet-custom-marker-dest',
       html: `
         <div style="
-          width: 18px;
-          height: 18px;
+          width: 20px;
+          height: 20px;
           background-color: #ef4444;
           border: 3px solid #ffffff;
           border-radius: 50%;
@@ -197,46 +223,46 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
             white-space: nowrap;
             border: 1px solid rgba(248, 113, 113, 0.4);
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-          ">DEST: ${shipment.destination.code || 'HUB'}</div>
+          ">DEST: ${shipment.destination.code || 'ARR'}</div>
         </div>
       `,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9],
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
     })
 
     L.marker(startCoord, { icon: startIcon })
       .addTo(markersGroup)
-      .bindPopup(`<b>Origin Gateway:</b> ${shipment.origin.name}<br>Lat: ${startLat.toFixed(4)}, Lng: ${startLng.toFixed(4)}`)
+      .bindPopup(`<b>Origin Hub:</b> ${shipment.origin.name}<br>Lat: ${startLat.toFixed(4)}, Lng: ${startLng.toFixed(4)}`)
 
     L.marker(destCoord, { icon: destIcon })
       .addTo(markersGroup)
-      .bindPopup(`<b>Destination Gateway:</b> ${shipment.destination.name}<br>Lat: ${destLat.toFixed(4)}, Lng: ${destLng.toFixed(4)}`)
+      .bindPopup(`<b>Destination Hub:</b> ${shipment.destination.name}<br>Lat: ${destLat.toFixed(4)}, Lng: ${destLng.toFixed(4)}`)
 
-    // Draw Polyline Corridor
-    const displayCoords: L.LatLngTuple[] =
+    // Draw Entire Corridor Polyline (Dashed Path ahead)
+    const fullRouteCoords: L.LatLngTuple[] =
       routeCoordinates.length > 0
         ? (routeCoordinates as L.LatLngTuple[])
         : [startCoord, [liveCoords.lat, liveCoords.lng], destCoord]
 
-    const polyline = L.polyline(displayCoords, {
+    const remainingPolyline = L.polyline(fullRouteCoords, {
       color: shipment.isMovementStopped ? '#ea580c' : '#0284c7',
       weight: 4,
-      opacity: 0.9,
+      opacity: 0.6,
       dashArray: '8, 8',
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(map)
 
-    routePolylineRef.current = polyline
+    routePolylineRef.current = remainingPolyline
 
-    // Create Vehicle Marker
+    // Vehicle Icon
     const modeEmoji = shipment.mode === 'air' ? '✈️' : shipment.mode === 'sea' ? '🚢' : '🚚'
     const vehicleIcon = L.divIcon({
       className: 'leaflet-custom-marker-vehicle',
       html: `
-        <div style="
-          width: 34px;
-          height: 34px;
+        <div id="vehicle-marker-wrapper" style="
+          width: 38px;
+          height: 38px;
           background-color: ${shipment.isMovementStopped ? '#ea580c' : '#0284c7'};
           border: 3px solid #ffffff;
           border-radius: 50%;
@@ -245,9 +271,10 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 16px;
+          font-size: 18px;
+          transition: transform 0.8s ease-in-out;
         ">
-          ${modeEmoji}
+          <span style="display:inline-block; transform: rotate(${bearingAngle}deg); transition: transform 0.6s ease;">${modeEmoji}</span>
           <div style="
             position: absolute;
             inset: -6px;
@@ -269,11 +296,11 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
             white-space: nowrap;
             border: 1px solid rgba(56, 189, 248, 0.4);
             box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-          ">LIVE: ${shipment.currentLocation?.name || 'In Corridor'}</div>
+          ">LIVE: ${shipment.currentLocation?.name || (shipment.status === 'delivered' ? shipment.destination.name : 'In Corridor')}</div>
         </div>
       `,
-      iconSize: [34, 34],
-      iconAnchor: [17, 17],
+      iconSize: [38, 38],
+      iconAnchor: [19, 19],
     })
 
     const vMarker = L.marker([liveCoords.lat, liveCoords.lng], { icon: vehicleIcon })
@@ -281,10 +308,11 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
       .bindPopup(`
         <div style="font-family: inherit; font-size: 12px;">
           <strong style="color: #0284c7; font-size: 13px;">${shipment.carrier} (${shipment.waybill})</strong><br>
-          <b>Current Position:</b> ${shipment.currentLocation?.name || 'In Transit'}<br>
+          <b>Current Position:</b> ${shipment.currentLocation?.name || 'In Corridor Vector'}<br>
           <b>Live Coordinates:</b> ${liveCoords.lat.toFixed(4)}°N, ${liveCoords.lng.toFixed(4)}°E<br>
           <b>Operator / Linehaul:</b> ${shipment.assignedDriver || 'Linehaul Team'}<br>
-          <b>Status:</b> ${shipment.status.toUpperCase()} (${shipment.progressPct || 45}%)
+          <b>Status:</b> ${shipment.status.toUpperCase()} (${Math.round(currentProgressPct)}%)<br>
+          <b>ETA:</b> ${shipment.eta || etaInfo.etaString}
         </div>
       `)
 
@@ -293,73 +321,86 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
     // Fit map bounds
     try {
       const bounds = L.latLngBounds([startCoord, [liveCoords.lat, liveCoords.lng], destCoord])
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 })
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 11 })
     } catch {
       map.setView([liveCoords.lat, liveCoords.lng], 5)
     }
   }, [shipment, routeCoordinates])
 
-  // 5. Real-Time Telemetry Simulation Loop (Smooth Micro-Movement)
+  // 5. Active Movement & Real-time Live Telemetry Animation Engine
   useEffect(() => {
     if (shipment.status === 'delivered') {
-      setLiveSpeed('0 km/h (Arrived & Cleared)')
+      setLiveSpeed('0 km/h (Delivered & Cleared)')
       setHeadingBearing('Terminal Final Arrival')
-      return
-    }
-
-    if (shipment.status === 'pending') {
-      setLiveSpeed('0 km/h (Awaiting Dispatch Approval)')
-      setHeadingBearing('Staged at Origin Terminal')
+      setCurrentProgressPct(100)
+      if (shipment.destination) {
+        setLiveCoords({ lat: shipment.destination.lat, lng: shipment.destination.lng })
+        vehicleMarkerRef.current?.setLatLng([shipment.destination.lat, shipment.destination.lng])
+      }
       return
     }
 
     if (shipment.isMovementStopped) {
       setLiveSpeed('0 km/h (Movement Halted by Dispatch)')
-      setHeadingBearing('Stationary Security Hold')
+      setHeadingBearing(shipment.movementStopReason ? `Hold: ${shipment.movementStopReason}` : 'Stationary Security Hold')
       return
     }
 
-    const intervalId = setInterval(() => {
-      // Simulate live speed micro-fluctuations under normal operating speeds
-      if (shipment.mode === 'air') {
-        const spd = 840 + Math.floor(Math.random() * 25)
-        setLiveSpeed(`${spd} km/h`)
-        setLiveAltitude(`${34000 + Math.floor(Math.random() * 600)} FT`)
-        setHeadingBearing(`07${Math.floor(2 + Math.random() * 6)}° ENE`)
-      } else if (shipment.mode === 'sea') {
-        const spd = (19.5 + Math.random() * 2.0).toFixed(1)
-        setLiveSpeed(`${spd} knots`)
-        setHeadingBearing('Maritime Vector Navigation')
-      } else {
-        // Land / Road mode: normal driving speed 75-90 km/h with occasional traffic pause
-        const isPause = Math.random() < 0.15
-        if (isPause) {
-          const pauseSpd = Math.floor(15 + Math.random() * 20)
-          setLiveSpeed(`${pauseSpd} km/h (Waypoint / Traffic Flow)`)
-          setHeadingBearing('Transit Waypoint Deceleration')
-        } else {
-          const spd = 75 + Math.floor(Math.random() * 15)
-          setLiveSpeed(`${spd} km/h (Overland Driving Speed)`)
-          setHeadingBearing('Overland Highway Corridor')
-        }
-      }
+    if (shipment.status === 'pending') {
+      setLiveSpeed('0 km/h (Awaiting Intake Dispatch)')
+      setHeadingBearing('Staged at Origin Terminal')
+      setCurrentProgressPct(5)
+      return
+    }
 
-      // Micro-interpolate live coordinates along route if available
-      if (routeCoordinates.length > 5) {
-        const progressFraction = ((shipment.progressPct || 45) + (Date.now() % 10000) / 10000) / 100
-        const index = Math.min(
-          routeCoordinates.length - 1,
-          Math.max(0, Math.floor(progressFraction * routeCoordinates.length))
+    // High-precision smooth animation interval
+    const intervalId = setInterval(() => {
+      // 1. Calculate live progress based on real-time elapsed duration
+      const telemetry = calculateRealtimeJourneyTelemetry(shipment)
+      
+      // Add subtle real-time forward micro-drift while viewing the page
+      const livePct = Math.min(98, telemetry.progressPct + ((Date.now() / 2000) % 2) * 0.15)
+      setCurrentProgressPct(livePct)
+
+      // 2. Interpolate coordinates along route geometry
+      if (routeCoordinates && routeCoordinates.length >= 2) {
+        const totalPoints = routeCoordinates.length
+        const targetIndex = Math.min(
+          totalPoints - 1,
+          Math.max(0, Math.floor((livePct / 100) * totalPoints))
         )
-        const nextCoord = routeCoordinates[index]
-        if (nextCoord) {
-          setLiveCoords({ lat: nextCoord[0], lng: nextCoord[1] })
+        const currentCoord = routeCoordinates[targetIndex]
+        const nextCoord = routeCoordinates[Math.min(totalPoints - 1, targetIndex + 1)]
+
+        if (currentCoord) {
+          setLiveCoords({ lat: currentCoord[0], lng: currentCoord[1] })
+          
           if (vehicleMarkerRef.current) {
-            vehicleMarkerRef.current.setLatLng([nextCoord[0], nextCoord[1]])
+            vehicleMarkerRef.current.setLatLng([currentCoord[0], currentCoord[1]])
+          }
+
+          if (nextCoord) {
+            const bearing = calculateBearing(currentCoord[0], currentCoord[1], nextCoord[0], nextCoord[1])
+            setHeadingBearing(bearing.cardinal)
+            setBearingAngle(bearing.degrees)
           }
         }
       }
-    }, 3000)
+
+      // 3. Simulate realistic speed and telemetry fluctuations
+      if (shipment.mode === 'air') {
+        const spd = 840 + Math.floor(Math.random() * 25)
+        setLiveSpeed(`${spd} km/h (Air Corridor FL345)`)
+        setLiveAltitude(`${34200 + Math.floor(Math.random() * 500)} FT`)
+      } else if (shipment.mode === 'sea') {
+        const spd = (20.5 + Math.random() * 2.0).toFixed(1)
+        setLiveSpeed(`${spd} knots (Ocean Linehaul)`)
+      } else {
+        const spd = 76 + Math.floor(Math.random() * 14)
+        setLiveSpeed(`${spd} km/h (Highway Linehaul)`)
+        setLiveAltitude(`${580 + Math.floor(Math.random() * 80)} FT`)
+      }
+    }, 2000)
 
     return () => clearInterval(intervalId)
   }, [shipment, routeCoordinates])
@@ -381,8 +422,11 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
       [liveCoords.lat, liveCoords.lng],
       [destLat, destLng],
     ])
-    mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 })
+    mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 11 })
   }
+
+  const coveredDistanceKm = Math.round((totalDistanceKm * currentProgressPct) / 100)
+  const remainingDistanceKm = Math.max(0, totalDistanceKm - coveredDistanceKm)
 
   return (
     <div
@@ -390,14 +434,14 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
         position: 'relative',
         width: '100%',
         height,
-        borderRadius: '12px',
+        borderRadius: '14px',
         overflow: 'hidden',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
+        border: '1px solid rgba(255, 255, 255, 0.15)',
+        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
         background: '#0f172a',
       }}
     >
-      {/* Map Container */}
+      {/* Leaflet Map Canvas */}
       <div
         ref={mapContainerRef}
         style={{
@@ -407,7 +451,7 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
         }}
       />
 
-      {/* Floating Glassmorphism Telemetry HUD */}
+      {/* Floating Top Telemetry HUD */}
       <div
         style={{
           position: 'absolute',
@@ -423,19 +467,19 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
           pointerEvents: 'none',
         }}
       >
-        {/* Left Telemetry Box */}
+        {/* Left Telemetry Card */}
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.92)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
+            background: 'rgba(15, 23, 42, 0.94)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
             border: '1px solid rgba(255, 255, 255, 0.15)',
             borderRadius: '8px',
-            padding: '6px 12px',
+            padding: '7px 12px',
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
             pointerEvents: 'auto',
           }}
         >
@@ -446,9 +490,7 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
                 height: '8px',
                 borderRadius: '50%',
                 backgroundColor: shipment.isMovementStopped ? '#ea580c' : '#10b981',
-                boxShadow: shipment.isMovementStopped
-                  ? '0 0 8px #ea580c'
-                  : '0 0 8px #10b981',
+                boxShadow: shipment.isMovementStopped ? '0 0 10px #ea580c' : '0 0 10px #10b981',
               }}
             />
             <span
@@ -460,7 +502,7 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
                 textTransform: 'uppercase',
               }}
             >
-              {shipment.isMovementStopped ? 'HOLD ACTIVE' : 'LIVE GPS TELEMETRY'}
+              {shipment.isMovementStopped ? 'HOLD ACTIVE' : 'LIVE GPS ACTIVE'}
             </span>
           </div>
 
@@ -468,7 +510,7 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
 
           <div style={{ fontSize: '11px', color: '#e2e8f0' }}>
             <span style={{ color: '#94a3b8' }}>Speed:</span>{' '}
-            <strong style={{ color: '#38bdf8' }}>{shipment.isMovementStopped ? '0 km/h' : liveSpeed}</strong>
+            <strong style={{ color: '#38bdf8' }}>{shipment.isMovementStopped ? '0 km/h (Hold)' : liveSpeed}</strong>
           </div>
 
           <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
@@ -507,12 +549,11 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
             pointerEvents: 'auto',
           }}
         >
-          {/* Tile Layer Switcher */}
           <div
             style={{
-              background: 'rgba(15, 23, 42, 0.92)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
+              background: 'rgba(15, 23, 42, 0.94)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '6px',
               padding: '2px',
@@ -574,9 +615,8 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
             type="button"
             onClick={handleCenterVehicle}
             style={{
-              background: 'rgba(15, 23, 42, 0.92)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
+              background: 'rgba(15, 23, 42, 0.94)',
+              backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '6px',
               padding: '6px 10px',
@@ -587,7 +627,6 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             }}
           >
             <span>🎯</span> Center
@@ -597,9 +636,8 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
             type="button"
             onClick={handleFitCorridor}
             style={{
-              background: 'rgba(15, 23, 42, 0.92)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
+              background: 'rgba(15, 23, 42, 0.94)',
+              backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '6px',
               padding: '6px 10px',
@@ -610,11 +648,70 @@ export function ClientLiveMap({ shipment, height = '440px' }: ClientLiveMapProps
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             }}
           >
             <span>🗺️</span> Corridor
           </button>
+        </div>
+      </div>
+
+      {/* Floating Bottom Progress & ETA Bar */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '12px',
+          left: '12px',
+          right: '12px',
+          background: 'rgba(15, 23, 42, 0.94)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          borderRadius: '10px',
+          padding: '8px 14px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          zIndex: 1000,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '240px' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+              <span style={{ color: '#94a3b8' }}>
+                Progress: <strong style={{ color: '#38bdf8' }}>{Math.round(currentProgressPct)}%</strong>
+              </span>
+              <span style={{ color: '#cbd5e1' }}>
+                {coveredDistanceKm.toLocaleString()} km / {totalDistanceKm.toLocaleString()} km
+              </span>
+            </div>
+            <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '999px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  width: `${currentProgressPct}%`,
+                  background: shipment.isMovementStopped
+                    ? '#ea580c'
+                    : 'linear-gradient(90deg, #0284c7, #38bdf8)',
+                  transition: 'width 0.8s ease-in-out',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '11px' }}>
+          <div>
+            <span style={{ color: '#94a3b8' }}>Remaining:</span>{' '}
+            <strong style={{ color: '#f8fafc' }}>{remainingDistanceKm.toLocaleString()} km</strong>
+          </div>
+          <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+          <div>
+            <span style={{ color: '#94a3b8' }}>Calculated ETA:</span>{' '}
+            <strong style={{ color: '#34d399' }}>{shipment.eta || etaInfo.etaString}</strong>
+          </div>
         </div>
       </div>
 
