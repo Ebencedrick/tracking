@@ -45,7 +45,9 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
       // Run seed logic if first time
       try {
         await serverConnectDB()
-      } catch {}
+      } catch (err) {
+        console.warn('[Database Initial Seed]:', err)
+      }
       return m
     })
   }
