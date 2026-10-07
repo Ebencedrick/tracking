@@ -12,14 +12,21 @@ export async function GET(request: Request, context: Params) {
   try {
     await connectToDatabase()
     const { waybill } = await context.params
-    const cleanWaybill = decodeURIComponent(waybill || '').trim()
-    const bareWaybill = cleanWaybill.replace(/^PLOT-/, '').replace(/^NTS-/, '')
+    const rawWaybill = decodeURIComponent(waybill || '').trim()
+    const cleanWaybill = rawWaybill.replace(/\s+/g, '')
+    const bareWaybill = cleanWaybill.replace(/^[A-Za-z]{3,4}-/, '')
+
+    const escapedClean = cleanWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const escapedBare = bareWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
     const shipment = await (Shipment as any).findOne({
       $or: [
-        { waybill: { $regex: new RegExp(`^${cleanWaybill}$`, 'i') } },
-        { waybill: { $regex: new RegExp(`^PLOT-${bareWaybill}$`, 'i') } },
-        { waybill: { $regex: new RegExp(`^NTS-${bareWaybill}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`^PLOT-${escapedBare}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`^NTS-${escapedBare}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`${escapedBare}`, 'i') } },
+        { clientReference: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+        { id: cleanWaybill },
       ],
     }).lean()
 
@@ -37,20 +44,28 @@ export async function GET(request: Request, context: Params) {
   }
 }
 
+
 export async function PUT(request: Request, context: Params) {
   try {
     await connectToDatabase()
     const { waybill } = await context.params
-    const cleanWaybill = decodeURIComponent(waybill || '').trim()
-    const bareWaybill = cleanWaybill.replace(/^PLOT-/, '').replace(/^NTS-/, '')
+    const rawWaybill = decodeURIComponent(waybill || '').trim()
+    const cleanWaybill = rawWaybill.replace(/\s+/g, '')
+    const bareWaybill = cleanWaybill.replace(/^[A-Za-z]{3,4}-/, '')
+
+    const escapedClean = cleanWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const escapedBare = bareWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const data = await request.json()
 
     const updated = await (Shipment as any).findOneAndUpdate(
       {
         $or: [
-          { waybill: { $regex: new RegExp(`^${cleanWaybill}$`, 'i') } },
-          { waybill: { $regex: new RegExp(`^PLOT-${bareWaybill}$`, 'i') } },
-          { waybill: { $regex: new RegExp(`^NTS-${bareWaybill}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`^PLOT-${escapedBare}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`^NTS-${escapedBare}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`${escapedBare}`, 'i') } },
+          { clientReference: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+          { id: cleanWaybill },
         ],
       },
       { $set: data },
@@ -71,14 +86,21 @@ export async function DELETE(request: Request, context: Params) {
   try {
     await connectToDatabase()
     const { waybill } = await context.params
-    const cleanWaybill = decodeURIComponent(waybill || '').trim()
-    const bareWaybill = cleanWaybill.replace(/^PLOT-/, '').replace(/^NTS-/, '')
+    const rawWaybill = decodeURIComponent(waybill || '').trim()
+    const cleanWaybill = rawWaybill.replace(/\s+/g, '')
+    const bareWaybill = cleanWaybill.replace(/^[A-Za-z]{3,4}-/, '')
+
+    const escapedClean = cleanWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const escapedBare = bareWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
     const deleted = await (Shipment as any).findOneAndDelete({
       $or: [
-        { waybill: { $regex: new RegExp(`^${cleanWaybill}$`, 'i') } },
-        { waybill: { $regex: new RegExp(`^PLOT-${bareWaybill}$`, 'i') } },
-        { waybill: { $regex: new RegExp(`^NTS-${bareWaybill}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`^PLOT-${escapedBare}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`^NTS-${escapedBare}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`${escapedBare}`, 'i') } },
+        { clientReference: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+        { id: cleanWaybill },
       ],
     })
 

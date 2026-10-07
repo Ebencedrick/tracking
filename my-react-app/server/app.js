@@ -78,13 +78,21 @@ router.get('/shipments', async (req, res) => {
 // GET single shipment by waybill
 router.get('/shipments/:waybill', async (req, res) => {
   try {
-    const waybill = req.params.waybill.trim()
-    const cleanWaybill = waybill.replace(/^PLOT-/, '').replace(/^NTS-/, '')
+    const rawWaybill = decodeURIComponent(req.params.waybill || '').trim()
+    const cleanWaybill = rawWaybill.replace(/\s+/g, '')
+    const bareWaybill = cleanWaybill.replace(/^[A-Za-z]{3,4}-/, '')
+
+    const escapedClean = cleanWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const escapedBare = bareWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
     const shipment = await Shipment.findOne({
       $or: [
-        { waybill: { $regex: new RegExp(`^${waybill}$`, 'i') } },
-        { waybill: { $regex: new RegExp(`^PLOT-${cleanWaybill}$`, 'i') } },
-        { waybill: { $regex: new RegExp(`^NTS-${cleanWaybill}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`^PLOT-${escapedBare}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`^NTS-${escapedBare}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`${escapedBare}`, 'i') } },
+        { clientReference: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+        { id: cleanWaybill },
       ],
     })
 
@@ -97,6 +105,7 @@ router.get('/shipments/:waybill', async (req, res) => {
     res.status(500).json({ error: 'Error querying shipment', details: err.message })
   }
 })
+
 
 // POST create new shipment
 router.post('/shipments', async (req, res) => {
@@ -111,8 +120,24 @@ router.post('/shipments', async (req, res) => {
       data.waybill = `${prefix}-${randomNum}-${suffix}`
     }
 
+    const rawWaybill = (data.waybill || '').trim()
+    const cleanWaybill = rawWaybill.replace(/\s+/g, '')
+    const bareWaybill = cleanWaybill.replace(/^[A-Za-z]{3,4}-/, '')
+
+    const escapedClean = cleanWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const escapedBare = bareWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
     const created = await Shipment.findOneAndUpdate(
-      { waybill: { $regex: new RegExp(`^${data.waybill}$`, 'i') } },
+      {
+        $or: [
+          { waybill: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`^PLOT-${escapedBare}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`^NTS-${escapedBare}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`${escapedBare}`, 'i') } },
+          { clientReference: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+          { id: cleanWaybill },
+        ],
+      },
       { $set: data },
       { upsert: true, new: true, runValidators: false }
     )
@@ -125,14 +150,22 @@ router.post('/shipments', async (req, res) => {
 // PUT update shipment by waybill
 router.put('/shipments/:waybill', async (req, res) => {
   try {
-    const waybill = req.params.waybill.trim()
-    const cleanWaybill = waybill.replace(/^PLOT-/, '').replace(/^NTS-/, '')
+    const rawWaybill = decodeURIComponent(req.params.waybill || '').trim()
+    const cleanWaybill = rawWaybill.replace(/\s+/g, '')
+    const bareWaybill = cleanWaybill.replace(/^[A-Za-z]{3,4}-/, '')
+
+    const escapedClean = cleanWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const escapedBare = bareWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
     const updated = await Shipment.findOneAndUpdate(
       {
         $or: [
-          { waybill: { $regex: new RegExp(`^${waybill}$`, 'i') } },
-          { waybill: { $regex: new RegExp(`^PLOT-${cleanWaybill}$`, 'i') } },
-          { waybill: { $regex: new RegExp(`^NTS-${cleanWaybill}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`^PLOT-${escapedBare}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`^NTS-${escapedBare}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`${escapedBare}`, 'i') } },
+          { clientReference: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+          { id: cleanWaybill },
         ],
       },
       { $set: req.body },
@@ -152,13 +185,21 @@ router.put('/shipments/:waybill', async (req, res) => {
 // DELETE shipment by waybill
 router.delete('/shipments/:waybill', async (req, res) => {
   try {
-    const waybill = req.params.waybill.trim()
-    const cleanWaybill = waybill.replace(/^PLOT-/, '').replace(/^NTS-/, '')
+    const rawWaybill = decodeURIComponent(req.params.waybill || '').trim()
+    const cleanWaybill = rawWaybill.replace(/\s+/g, '')
+    const bareWaybill = cleanWaybill.replace(/^[A-Za-z]{3,4}-/, '')
+
+    const escapedClean = cleanWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const escapedBare = bareWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
     const deleted = await Shipment.findOneAndDelete({
       $or: [
-        { waybill: { $regex: new RegExp(`^${waybill}$`, 'i') } },
-        { waybill: { $regex: new RegExp(`^PLOT-${cleanWaybill}$`, 'i') } },
-        { waybill: { $regex: new RegExp(`^NTS-${cleanWaybill}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`^PLOT-${escapedBare}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`^NTS-${escapedBare}$`, 'i') } },
+        { waybill: { $regex: new RegExp(`${escapedBare}`, 'i') } },
+        { clientReference: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+        { id: cleanWaybill },
       ],
     })
 
@@ -166,7 +207,7 @@ router.delete('/shipments/:waybill', async (req, res) => {
       return res.status(404).json({ error: 'Shipment not found to delete' })
     }
 
-    res.json({ message: 'Shipment deleted successfully', waybill })
+    res.json({ message: 'Shipment deleted successfully', waybill: cleanWaybill })
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete shipment', details: err.message })
   }

@@ -58,15 +58,22 @@ export async function POST(request: Request) {
       data.waybill = `${prefix}-${randomNum}-${suffix}`
     }
 
-    const cleanWaybill = data.waybill.trim()
-    const bareWaybill = cleanWaybill.replace(/^PLOT-/, '').replace(/^NTS-/, '')
+    const rawWaybill = (data.waybill || '').trim()
+    const cleanWaybill = rawWaybill.replace(/\s+/g, '')
+    const bareWaybill = cleanWaybill.replace(/^[A-Za-z]{3,4}-/, '')
+
+    const escapedClean = cleanWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const escapedBare = bareWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
     const created = await (Shipment as any).findOneAndUpdate(
       {
         $or: [
-          { waybill: { $regex: new RegExp(`^${cleanWaybill}$`, 'i') } },
-          { waybill: { $regex: new RegExp(`^PLOT-${bareWaybill}$`, 'i') } },
-          { waybill: { $regex: new RegExp(`^NTS-${bareWaybill}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`^PLOT-${escapedBare}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`^NTS-${escapedBare}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`${escapedBare}`, 'i') } },
+          { clientReference: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+          { id: cleanWaybill },
         ],
       },
       { $set: data },
