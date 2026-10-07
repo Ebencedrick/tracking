@@ -8,6 +8,9 @@ export function AdminLayout() {
   const navigate = useNavigate()
   const { addAuditLog } = useShipments()
 
+  // Mobile Menu State
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
   // Broadcast Notice Modal
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false)
   const [broadcastTitle, setBroadcastTitle] = useState('Port Customs Green-Lane Active')
@@ -40,10 +43,54 @@ export function AdminLayout() {
     { to: '/admin/users', label: 'System Settings', icon: '⚙️' },
   ]
 
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false)
+  }
+
   return (
     <div className="cmd-shell">
-      {/* Sidebar matching the screenshot */}
-      <aside className="cmd-sidebar">
+      {/* Mobile Top Header (Visible on mobile/tablet) */}
+      <header className="cmd-mobile-header">
+        <button
+          type="button"
+          className="cmd-mobile-hamburger"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="Toggle Navigation Menu"
+          aria-expanded={isMobileMenuOpen}
+        >
+          {isMobileMenuOpen ? '✕' : '☰'}
+        </button>
+
+        <div className="cmd-mobile-brand">
+          <img src={siteLogo} alt="Package Pilot" className="cmd-mobile-logo" />
+          <div>
+            <div className="cmd-mobile-brand-title">PACKAGE PILOT</div>
+            <div className="cmd-mobile-brand-subtitle">
+              <span className="cmd-brand-status-dot" /> DISPATCH OPS
+            </div>
+          </div>
+        </div>
+
+        <Link
+          to="/admin/shipments/new"
+          className="cmd-mobile-new-btn"
+          onClick={closeMobileMenu}
+        >
+          <span>+</span> NEW
+        </Link>
+      </header>
+
+      {/* Backdrop overlay for mobile drawer */}
+      {isMobileMenuOpen && (
+        <div
+          className="cmd-sidebar-backdrop"
+          onClick={closeMobileMenu}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar (Responsive drawer on mobile, sticky on desktop) */}
+      <aside className={`cmd-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         {/* Brand Header with Official Logo & Dispatch Control Indicator */}
         <div className="cmd-brand-header">
           <div className="cmd-brand-icon">
@@ -56,10 +103,23 @@ export function AdminLayout() {
               <span>DISPATCH CONTROL</span>
             </div>
           </div>
+          {/* Close button inside mobile drawer */}
+          <button
+            type="button"
+            className="cmd-mobile-close-drawer"
+            onClick={closeMobileMenu}
+            aria-label="Close navigation drawer"
+          >
+            ✕
+          </button>
         </div>
 
         {/* Red New Consignment CTA (Full-Page Studio) */}
-        <Link to="/admin/shipments/new" className="cmd-sidebar-cta">
+        <Link
+          to="/admin/shipments/new"
+          className="cmd-sidebar-cta"
+          onClick={closeMobileMenu}
+        >
           <span className="cmd-sidebar-cta-icon">+</span>
           <span>NEW CONSIGNMENT</span>
         </Link>
@@ -72,6 +132,7 @@ export function AdminLayout() {
               to={item.to}
               end={item.end}
               className={({ isActive }) => `cmd-nav-item ${isActive ? 'active' : ''}`}
+              onClick={closeMobileMenu}
             >
               <span className="cmd-nav-icon">{item.icon}</span>
               <span>{item.label}</span>
@@ -81,12 +142,12 @@ export function AdminLayout() {
 
         {/* Bottom Nav Links */}
         <div className="cmd-sidebar-footer">
-          <Link to="/" className="cmd-nav-item">
+          <Link to="/" className="cmd-nav-item" onClick={closeMobileMenu}>
             <span className="cmd-nav-icon">↗</span>
             <span>Public Web Portal</span>
           </Link>
 
-          <Link to="/login" className="cmd-nav-item sign-out">
+          <Link to="/login" className="cmd-nav-item sign-out" onClick={closeMobileMenu}>
             <span className="cmd-nav-icon">🚪</span>
             <span>Sign Out</span>
           </Link>
@@ -103,6 +164,7 @@ export function AdminLayout() {
           }}
         />
       </div>
+
 
       {/* Broadcast Notice Modal */}
       {isBroadcastModalOpen && (

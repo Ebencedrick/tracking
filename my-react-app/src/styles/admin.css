@@ -2865,3 +2865,338 @@
   background: #0369a1;
   border-color: #0369a1;
 }
+
+/* ==========================================================================
+   Mobile Responsive Navigation & Layout Engine
+   ========================================================================== */
+
+/* Mobile Header (Hidden on desktop by default) */
+.cmd-mobile-header {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  height: 62px;
+  padding: 0 1rem;
+  background-color: var(--cmd-sidebar-bg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  flex-shrink: 0;
+}
+
+.cmd-mobile-hamburger {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.cmd-mobile-hamburger:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.cmd-mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.cmd-mobile-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid rgba(250, 204, 21, 0.4);
+}
+
+.cmd-mobile-brand-title {
+  font-size: 0.88rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+}
+
+.cmd-mobile-brand-subtitle {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cmd-mobile-new-btn {
+  background-color: var(--cmd-red);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+}
+
+.cmd-mobile-close-drawer {
+  display: none;
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.cmd-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 99;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ==========================================================================
+   Responsive Breakpoints (< 1024px Tablet and < 768px Mobile)
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .cmd-shell {
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .cmd-mobile-header {
+    display: flex;
+  }
+
+  .cmd-mobile-close-drawer {
+    display: flex;
+  }
+
+  /* Transform Sidebar into Off-Canvas Drawer */
+  .cmd-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    max-width: 82vw;
+    height: 100vh;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 28px rgba(0, 0, 0, 0.5);
+  }
+
+  .cmd-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .cmd-main {
+    flex: 1;
+    width: 100%;
+    height: calc(100vh - 62px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cmd-canvas {
+    padding: 1.25rem 1.25rem 3rem;
+  }
+
+  .cmd-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .cmd-header-left {
+    max-width: 100%;
+  }
+
+  .cmd-header-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+  }
+
+  .cmd-header-actions .cmd-btn-red {
+    grid-column: span 2;
+    justify-content: center;
+  }
+
+  .cmd-header-actions .cmd-btn {
+    justify-content: center;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.78rem;
+  }
+
+  .cmd-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .cmd-modal {
+    width: 94vw !important;
+    max-width: 94vw !important;
+    max-height: 88vh;
+    padding: 1.25rem;
+    margin: 1rem auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .cmd-canvas {
+    padding: 1rem 0.85rem 2.5rem;
+  }
+
+  .cmd-title {
+    font-size: 1.4rem;
+  }
+
+  .cmd-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .cmd-stats-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .cmd-stat-card {
+    padding: 1.1rem 1.25rem;
+    border-radius: 12px;
+  }
+
+  .cmd-stat-number {
+    font-size: 1.75rem;
+  }
+
+  .cmd-card {
+    border-radius: 12px;
+    padding: 1rem !important;
+  }
+
+  .cmd-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .cmd-card-title {
+    font-size: 1rem;
+  }
+
+  /* Horizontal touch scrolling for tables */
+  .cmd-table-wrap {
+    margin: 0 -0.5rem;
+    padding: 0 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cmd-table {
+    min-width: 640px;
+    font-size: 0.82rem;
+  }
+
+  .cmd-table th,
+  .cmd-table td {
+    padding: 0.65rem 0.75rem;
+  }
+
+  /* Form & Filters Layout */
+  .cmd-form-row {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .cmd-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .cmd-search-input {
+    width: 100% !important;
+  }
+
+  /* Radar map containers on mobile */
+  .dashboard-radar-container {
+    height: 300px !important;
+  }
+
+  /* Create Shipment form container on mobile */
+  .create-shipment-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .create-shipment-summary-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .create-shipment-summary-actions {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .create-shipment-summary-actions .cmd-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .cmd-header-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .cmd-header-actions .cmd-btn-red,
+  .cmd-header-actions .cmd-btn-navy,
+  .cmd-header-actions .cmd-btn-white {
+    grid-column: span 1;
+    width: 100%;
+  }
+
+  .cmd-title {
+    font-size: 1.25rem;
+  }
+}
+
