@@ -339,15 +339,22 @@ router.post('/chats/:id/messages', async (req, res) => {
       time: req.body.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }
 
+    const updateDoc = {
+      $push: { messages: message },
+      $set: {
+        lastMessageTime: message.time,
+      },
+    }
+
+    if (req.body.sender === 'client') {
+      updateDoc.$inc = { unreadCount: 1 }
+    } else {
+      updateDoc.$set.unreadCount = 0
+    }
+
     const chat = await ChatSession.findOneAndUpdate(
       { id: chatId },
-      {
-        $push: { messages: message },
-        $set: {
-          lastMessageTime: message.time,
-          ...(req.body.sender === 'client' ? { $inc: { unreadCount: 1 } } : { unreadCount: 0 }),
-        },
-      },
+      updateDoc,
       { new: true, upsert: true }
     )
     res.json(chat)

@@ -959,14 +959,20 @@ function TrackPage() {
         try {
           const all = await apiService.getShipments()
           if (!isCancelled && Array.isArray(all)) {
-            const clean = requestedWaybill.toUpperCase()
+            const clean = requestedWaybill.trim().toUpperCase()
+            const bare = clean.replace(/^[A-Z]{3,4}-/, '')
             const found = all.find(
               (s) =>
-                s.waybill.toUpperCase() === clean ||
-                s.waybill.toUpperCase().replace(/^PLOT-/, 'NTS-') === clean ||
-                s.waybill.toUpperCase().replace(/^NTS-/, 'PLOT-') === clean
+                (s.waybill && (
+                  s.waybill.toUpperCase() === clean ||
+                  s.waybill.toUpperCase().replace(/^[A-Z]{3,4}-/, '') === bare ||
+                  s.waybill.toUpperCase().replace(/^PLOT-/, 'NTS-') === clean ||
+                  s.waybill.toUpperCase().replace(/^NTS-/, 'PLOT-') === clean
+                )) ||
+                (s.clientReference && s.clientReference.toUpperCase() === clean) ||
+                s.id === clean
             )
-            if (found) {
+            if (found && found.waybill) {
               setDbFetchedShipment(found)
               updateShipment(found.waybill, found)
             }

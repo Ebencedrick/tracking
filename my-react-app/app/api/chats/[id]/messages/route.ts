@@ -22,15 +22,22 @@ export async function POST(request: Request, context: Params) {
       time: body.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }
 
+    const updateDoc: any = {
+      $push: { messages: message },
+      $set: {
+        lastMessageTime: message.time,
+      },
+    }
+
+    if (body.sender === 'client') {
+      updateDoc.$inc = { unreadCount: 1 }
+    } else {
+      updateDoc.$set.unreadCount = 0
+    }
+
     const chat = await (ChatSession as any).findOneAndUpdate(
       { id: chatId },
-      {
-        $push: { messages: message },
-        $set: {
-          lastMessageTime: message.time,
-          ...(body.sender === 'client' ? { $inc: { unreadCount: 1 } } : { unreadCount: 0 }),
-        },
-      },
+      updateDoc,
       { new: true, upsert: true }
     ).lean()
 

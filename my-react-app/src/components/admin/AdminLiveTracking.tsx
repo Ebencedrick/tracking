@@ -73,11 +73,11 @@ export function AdminLiveTracking() {
       if (!searchQuery.trim()) return true
       const query = searchQuery.toLowerCase()
       return (
-        s.waybill.toLowerCase().includes(query) ||
-        s.origin.name.toLowerCase().includes(query) ||
-        s.destination.name.toLowerCase().includes(query) ||
-        s.carrier.toLowerCase().includes(query) ||
-        s.clientName.toLowerCase().includes(query) ||
+        (s.waybill && s.waybill.toLowerCase().includes(query)) ||
+        (s.origin?.name && s.origin.name.toLowerCase().includes(query)) ||
+        (s.destination?.name && s.destination.name.toLowerCase().includes(query)) ||
+        (s.carrier && s.carrier.toLowerCase().includes(query)) ||
+        (s.clientName && s.clientName.toLowerCase().includes(query)) ||
         (s.assignedDriver && s.assignedDriver.toLowerCase().includes(query))
       )
     })

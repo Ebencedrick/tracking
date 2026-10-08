@@ -5,21 +5,31 @@ import type { ChatSession, ChatMessage } from '../types'
 export function LiveSupportChat() {
   const [isOpen, setIsOpen] = useState(false)
   const [hasStarted, setHasStarted] = useState(() => {
-    return Boolean(localStorage.getItem('northstar_chat_email'))
+    if (typeof window !== 'undefined') {
+      return Boolean(localStorage.getItem('northstar_chat_email'))
+    }
+    return false
   })
   const [userEmail, setUserEmail] = useState(() => {
-    return localStorage.getItem('northstar_chat_email') || ''
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('northstar_chat_email') || ''
+    }
+    return ''
   })
   const [userName, setUserName] = useState(() => {
-    return localStorage.getItem('northstar_chat_name') || ''
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('northstar_chat_name') || ''
+    }
+    return ''
   })
   const [waybillRef, setWaybillRef] = useState('')
   const [inputText, setInputText] = useState('')
   const [sessionId, setSessionId] = useState<string>(() => {
-    const savedEmail = localStorage.getItem('northstar_chat_email')
-    return savedEmail
-      ? `chat-${savedEmail.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
-      : `chat-${Date.now()}`
+    if (typeof window !== 'undefined') {
+      const savedEmail = localStorage.getItem('northstar_chat_email')
+      if (savedEmail) return `chat-${savedEmail.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+    }
+    return `chat-${Date.now()}`
   })
   const [messages, setMessages] = useState<ChatMessage[]>([
     {

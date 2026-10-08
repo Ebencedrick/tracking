@@ -868,11 +868,17 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
   const getShipment = (waybill: string): Shipment | undefined => {
     if (!waybill) return undefined
     const clean = waybill.trim().toUpperCase()
+    const bare = clean.replace(/^[A-Z]{3,4}-/, '')
     return shipments.find(
       (s) =>
-        s.waybill.toUpperCase() === clean ||
-        s.waybill.toUpperCase().replace(/^PLOT-/, 'NTS-') === clean ||
-        s.waybill.toUpperCase().replace(/^NTS-/, 'PLOT-') === clean
+        (s.waybill && (
+          s.waybill.toUpperCase() === clean ||
+          s.waybill.toUpperCase().replace(/^[A-Z]{3,4}-/, '') === bare ||
+          s.waybill.toUpperCase().replace(/^PLOT-/, 'NTS-') === clean ||
+          s.waybill.toUpperCase().replace(/^NTS-/, 'PLOT-') === clean
+        )) ||
+        (s.clientReference && s.clientReference.toUpperCase() === clean) ||
+        s.id === waybill.trim()
     )
   }
 
@@ -973,10 +979,12 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateShipment = (waybill: string, data: Partial<Shipment>) => {
+    if (!waybill) return
+    const target = waybill.toUpperCase()
     startTransition(() => {
       setShipments((prev) =>
         prev.map((s) => {
-          if (s.waybill.toUpperCase() === waybill.toUpperCase()) {
+          if (s.waybill && s.waybill.toUpperCase() === target) {
             return { ...s, ...data }
           }
           return s
@@ -991,16 +999,20 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
   }
 
   const deleteShipment = async (waybill: string) => {
+    if (!waybill) return
+    const target = waybill.toUpperCase()
     await apiService.deleteShipment(waybill)
 
     startTransition(() => {
-      setShipments((prev) => prev.filter((s) => s.waybill.toUpperCase() !== waybill.toUpperCase()))
+      setShipments((prev) => prev.filter((s) => s.waybill && s.waybill.toUpperCase() !== target))
     })
 
     addAuditLog('SHIPMENT_DELETED', 'SHIPMENT', `Deleted shipment record ${waybill}`, 'warning', waybill)
   }
 
   const pushCheckpoint = (waybill: string, cp: Omit<Checkpoint, 'id' | 'timestamp'>) => {
+    if (!waybill) return
+    const target = waybill.toUpperCase()
     const timestamp = new Date().toISOString()
     const newCheckpoint: Checkpoint = {
       ...cp,
@@ -1015,7 +1027,7 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
     startTransition(() => {
       setShipments((prev) =>
         prev.map((s) => {
-          if (s.waybill.toUpperCase() === waybill.toUpperCase()) {
+          if (s.waybill && s.waybill.toUpperCase() === target) {
             // mark previous checkpoints as not current
             const existing = (s.checkpoints || []).map((old) => ({ ...old, current: false }))
             const nextStatus = cp.status || s.status
@@ -1053,10 +1065,12 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateShipmentStatus = (waybill: string, status: ShipmentStatus, note?: string) => {
+    if (!waybill) return
+    const target = waybill.toUpperCase()
     startTransition(() => {
       setShipments((prev) =>
         prev.map((s) => {
-          if (s.waybill.toUpperCase() === waybill.toUpperCase()) {
+          if (s.waybill && s.waybill.toUpperCase() === target) {
             return {
               ...s,
               status,
