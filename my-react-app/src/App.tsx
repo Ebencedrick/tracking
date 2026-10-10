@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
   BrowserRouter,
   Link,
@@ -936,9 +936,24 @@ function TrackPage() {
   
   const localShipment = requestedWaybill ? getShipment(requestedWaybill) : undefined
   const matchedShipment = dbFetchedShipment || localShipment
-  const liveTelemetry = matchedShipment ? calculateRealtimeJourneyTelemetry(matchedShipment) : null
 
-  // Fetch fresh shipment details directly from MongoDB Atlas when a waybill is searched
+  // Real-time 1-second cadence ticker for active in_transit movement
+  const [telemetryTick, setTelemetryTick] = useState(0)
+  useEffect(() => {
+    if (matchedShipment?.status !== 'in_transit' || matchedShipment?.isMovementStopped) return
+    const interval = setInterval(() => {
+      setTelemetryTick((t) => (t + 1) % 1000000)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [matchedShipment?.status, matchedShipment?.isMovementStopped])
+
+  const liveTelemetry = useMemo(() => {
+    if (!matchedShipment) return null
+    return calculateRealtimeJourneyTelemetry(matchedShipment)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchedShipment, telemetryTick])
+
+  // Fetch fresh shipment details directly when a waybill is searched
   useEffect(() => {
     if (!requestedWaybill) {
       setDbFetchedShipment(null)
@@ -1093,7 +1108,7 @@ function TrackPage() {
         <div className="card" style={{ padding: '2.5rem', textAlign: 'center' }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📡</div>
           <strong style={{ fontSize: '1.1rem', color: '#f8fafc', display: 'block' }}>
-            Querying MongoDB Atlas Database...
+            Querying Live Tracking Registry...
           </strong>
           <p style={{ margin: '0.5rem auto 0', color: '#94a3b8', fontSize: '0.85rem' }}>
             Fetching real-time satellite telemetry, customs clearance, and consignment details for <strong>{requestedWaybill}</strong>.
@@ -1129,10 +1144,21 @@ function TrackPage() {
                   {matchedShipment.transportScope || 'International'}
                 </span>
                 <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 600 }}>
-                  ⚡ MongoDB Verified
+                  🛡️ Official Consignment Verified
                 </span>
               </div>
               <h2>{matchedShipment.waybill.toUpperCase()}</h2>
+              {(matchedShipment.createdAt || matchedShipment.bookingDate) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '0.82rem', color: '#94a3b8' }}>
+                  <span>📅 Booking / Creation Time:</span>
+                  <strong style={{ color: '#f1f5f9' }}>
+                    {new Date(matchedShipment.createdAt || matchedShipment.bookingDate!).toLocaleString([], {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
+                  </strong>
+                </div>
+              )}
             </div>
 
             <div className="tracking-result-actions">
@@ -1216,14 +1242,21 @@ function TrackPage() {
                 borderLeft: '4px solid #f59e0b',
               }}
             >
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                📍 Percentage Covered
-              </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  📍 Progress & Distance
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 800 }}>
+                  {liveTelemetry ? `${Math.round(liveTelemetry.remainingPct)}% to go` : ''}
+                </span>
+              </div>
               <strong style={{ display: 'block', fontSize: '1.2rem', color: '#f59e0b', marginTop: '4px' }}>
-                {liveTelemetry ? `${Math.round(liveTelemetry.progressPct)}% Complete` : `${matchedShipment.progressPct || 0}% Complete`}
+                {liveTelemetry ? `${Math.round(liveTelemetry.progressPct)}% Covered` : `${matchedShipment.progressPct || 0}% Complete`}
               </strong>
-              <small style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                {liveTelemetry ? `${liveTelemetry.coveredKm.toLocaleString()} / ${liveTelemetry.totalKm.toLocaleString()} km` : `${matchedShipment.estimatedDistanceKm || 0} km`}
+              <small style={{ fontSize: '0.74rem', color: '#cbd5e1', display: 'block', marginTop: '2px' }}>
+                {liveTelemetry
+                  ? `${liveTelemetry.coveredKm.toLocaleString()} km covered · ${liveTelemetry.remainingKm.toLocaleString()} km remaining`
+                  : `${matchedShipment.estimatedDistanceKm || 0} km`}
               </small>
             </div>
 
@@ -1241,10 +1274,10 @@ function TrackPage() {
                 📡 Live Telemetry State
               </span>
               <strong style={{ display: 'block', fontSize: '1.2rem', color: matchedShipment.isMovementStopped ? '#ef4444' : '#818cf8', marginTop: '4px' }}>
-                {matchedShipment.isMovementStopped ? '0 km/h · Halted' : liveTelemetry?.speedDisplay || '80 km/h · Highway Driving'}
+                {matchedShipment.isMovementStopped ? '0 km/h · Halted' : liveTelemetry?.speedDisplay || '80 km/h · Normal Driving Speed'}
               </strong>
               <small style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                Vehicle: {matchedShipment.vehicleId || 'Linehaul Unit'}
+                Total Route: {liveTelemetry?.totalKm.toLocaleString() || matchedShipment.estimatedDistanceKm?.toLocaleString() || 0} KM
               </small>
             </div>
           </div>
@@ -1292,9 +1325,13 @@ function TrackPage() {
 
                 {/* Progress bar */}
                 <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px', flexWrap: 'wrap', gap: '4px' }}>
                     <span>Corridor Transit Progress</span>
-                    <strong style={{ color: '#38bdf8' }}>{liveTelemetry ? Math.round(liveTelemetry.progressPct) : (matchedShipment.progressPct || (matchedShipment.status === 'pending' ? 0 : matchedShipment.status === 'delivered' ? 100 : 50))}%</strong>
+                    <strong style={{ color: '#38bdf8' }}>
+                      {liveTelemetry
+                        ? `${Math.round(liveTelemetry.progressPct)}% covered (${liveTelemetry.coveredKm.toLocaleString()} km) · ${Math.round(liveTelemetry.remainingPct)}% to cover (${liveTelemetry.remainingKm.toLocaleString()} km)`
+                        : `${matchedShipment.progressPct || (matchedShipment.status === 'pending' ? 0 : matchedShipment.status === 'delivered' ? 100 : 50)}%`}
+                    </strong>
                   </div>
                   <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
                     <div
@@ -1389,7 +1426,7 @@ function TrackPage() {
                       ⏳ PENDING DISPATCH APPROVAL (STATIONARY AT ORIGIN)
                     </strong>
                     <span style={{ fontSize: '0.88rem', color: '#1f2937', fontWeight: 600, lineHeight: 1.4 }}>
-                      Consignment booking is recorded in MongoDB. The vehicle will commence active GPS movement once the operations board approves it to In Transit.
+                      Consignment booking is officially confirmed in the logistics system. The vehicle will commence active GPS movement once the operations board approves it to In Transit.
                     </span>
                   </div>
                 </div>
@@ -1640,11 +1677,38 @@ function TrackPage() {
                   <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Consignment Weight</dt>
                   <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>{matchedShipment.weightKg} KG ({matchedShipment.packageCount || 1} PKG)</dd>
                 </div>
+                {(matchedShipment.createdAt || matchedShipment.bookingDate) && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
+                    <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Booking / Created Date</dt>
+                    <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>
+                      {new Date(matchedShipment.createdAt || matchedShipment.bookingDate!).toLocaleString([], {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    </dd>
+                  </div>
+                )}
                 {matchedShipment.estimatedDistanceKm && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
-                    <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Corridor Distance</dt>
+                    <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Total Corridor Distance</dt>
                     <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>{matchedShipment.estimatedDistanceKm.toLocaleString()} KM</dd>
                   </div>
+                )}
+                {liveTelemetry && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
+                      <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Distance Covered</dt>
+                      <dd style={{ margin: 0, color: '#16a34a', fontSize: '0.88rem', fontWeight: 900 }}>
+                        {liveTelemetry.coveredKm.toLocaleString()} KM ({Math.round(liveTelemetry.progressPct)}%)
+                      </dd>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
+                      <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Distance Remaining</dt>
+                      <dd style={{ margin: 0, color: '#0284c7', fontSize: '0.88rem', fontWeight: 900 }}>
+                        {liveTelemetry.remainingKm.toLocaleString()} KM ({Math.round(liveTelemetry.remainingPct)}%)
+                      </dd>
+                    </div>
+                  </>
                 )}
               </dl>
 
@@ -2262,7 +2326,7 @@ function ContactPage() {
                 <button type="submit" className="button button-primary" disabled={isSubmitting}>
                   {isSubmitting ? 'Transmitting...' : 'Send Inquiry to Operations'} <span aria-hidden="true">→</span>
                 </button>
-                <span>Directly dispatched to operations coordinators and logged in MongoDB.</span>
+                <span>Directly dispatched to operations coordinators and logged in logistics system.</span>
               </div>
             </form>
           )}

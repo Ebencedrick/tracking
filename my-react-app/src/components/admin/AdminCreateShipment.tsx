@@ -506,14 +506,16 @@ export function AdminCreateShipment() {
         transportScope,
         cargoType,
         bookingDate,
+        createdAt: bookingDate ? new Date(bookingDate).toISOString() : new Date().toISOString(),
         estimatedDistanceKm: customDistance,
         serviceTier,
       })
 
       navigate('/admin/shipments')
     } else {
-      // CREATE NEW SHIPMENT & SYNC TO MONGODB
+      // CREATE NEW SHIPMENT & SYNC TO DATABASE
       const code = generateWaybillCode()
+      const creationIso = bookingDate ? new Date(bookingDate).toISOString() : new Date().toISOString()
 
       const newShipment = createShipment({
         waybill: code,
@@ -539,7 +541,7 @@ export function AdminCreateShipment() {
         },
         status: shipmentStatus,
         statusNote: shipmentStatus === 'pending'
-          ? 'Pending dispatch approval. Manifest logged into MongoDB Atlas database.'
+          ? 'Pending dispatch approval. Manifest logged into official carrier registry.'
           : `Consignment active. Scope: ${transportScope}`,
         weightKg,
         packageCount,
@@ -561,10 +563,11 @@ export function AdminCreateShipment() {
         transportScope,
         cargoType,
         bookingDate,
+        createdAt: creationIso,
         estimatedDistanceKm: customDistance,
         serviceTier,
         isCustomerBooking: true,
-        progressPct: shipmentStatus === 'delivered' ? 100 : shipmentStatus === 'in_transit' ? 35 : 10,
+        progressPct: shipmentStatus === 'delivered' ? 100 : shipmentStatus === 'in_transit' ? 1 : 0,
       })
 
       // Pop up the confirmation modal with tracking number!
@@ -1096,7 +1099,7 @@ export function AdminCreateShipment() {
             </div>
 
             <div className="cmd-form-group">
-              <label className="cmd-form-label">Booking / Intake Date</label>
+              <label className="cmd-form-label">Shipment Creation / Intake Date & Time (Displays to Client)</label>
               <input
                 type="datetime-local"
                 className="cmd-input"
@@ -1104,6 +1107,9 @@ export function AdminCreateShipment() {
                 onChange={(e) => setBookingDate(e.target.value)}
                 required
               />
+              <small style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '3px' }}>
+                Manually sets the consignment created time shown on the client tracking page.
+              </small>
             </div>
 
             <div className="cmd-form-group">

@@ -897,6 +897,7 @@ export function calculateRealtimeJourneyTelemetry(shipment: {
   if (isDelivered) {
     return {
       progressPct: 100,
+      remainingPct: 0,
       coveredKm: totalKm,
       remainingKm: 0,
       totalKm,
@@ -916,6 +917,7 @@ export function calculateRealtimeJourneyTelemetry(shipment: {
     const etaDate = new Date(Date.now() + totalTransitHours * 3600 * 1000)
     return {
       progressPct: 0,
+      remainingPct: 100,
       coveredKm: 0,
       remainingKm: totalKm,
       totalKm,
@@ -932,13 +934,14 @@ export function calculateRealtimeJourneyTelemetry(shipment: {
   }
 
   if (isStopped) {
-    const p = Math.min(95, Math.max(0, shipment.progressPct ?? 40))
+    const p = Math.min(95, Math.max(1, shipment.progressPct ?? 40))
     const coveredKm = Math.round((totalKm * p) / 100)
     const remainingKm = Math.max(0, totalKm - coveredKm)
     const elapsedHours = coveredKm / normalSpeed
     const remainingHours = remainingKm / normalSpeed
     return {
       progressPct: p,
+      remainingPct: Math.max(0, Math.round((100 - p) * 10) / 10),
       coveredKm,
       remainingKm,
       totalKm,
@@ -965,15 +968,16 @@ export function calculateRealtimeJourneyTelemetry(shipment: {
   }
 
   const timeBasedCoveredKm = elapsedHours * normalSpeed
-  const timeBasedFraction = Math.min(0.96, Math.max(0.02, timeBasedCoveredKm / totalKm))
+  const timeBasedFraction = Math.min(0.96, Math.max(0.01, timeBasedCoveredKm / totalKm))
   const calculatedPct = Math.round(timeBasedFraction * 100 * 10) / 10
 
-  // Anchor to admin-provided progressPct if set
+  // Anchor to admin-provided progressPct if set (starts from at least 1%)
   const finalPct = shipment.progressPct != null ? shipment.progressPct : calculatedPct
-  const clampedPct = Math.min(98, Math.max(2, finalPct))
+  const clampedPct = Math.min(99, Math.max(1, finalPct))
 
-  const coveredKm = Math.min(totalKm, Math.round((totalKm * clampedPct) / 100))
+  const coveredKm = Math.min(totalKm, Math.max(1, Math.round((totalKm * clampedPct) / 100)))
   const remainingKm = Math.max(0, totalKm - coveredKm)
+  const remainingPct = Math.max(0, Math.round((100 - clampedPct) * 10) / 10)
   const exactElapsedHours = coveredKm / normalSpeed
   const exactRemainingHours = remainingKm / normalSpeed
   const arrivalDate = new Date(Date.now() + exactRemainingHours * 3600 * 1000)
@@ -987,6 +991,7 @@ export function calculateRealtimeJourneyTelemetry(shipment: {
 
   return {
     progressPct: clampedPct,
+    remainingPct,
     coveredKm,
     remainingKm,
     totalKm,

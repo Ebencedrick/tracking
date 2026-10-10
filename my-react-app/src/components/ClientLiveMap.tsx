@@ -679,9 +679,13 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
       <div className="live-map-bottom-progress-hud">
         {/* Top metrics row */}
         <div className="live-map-progress-topline">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#94a3b8', fontSize: '11px' }}>
-              Progress: <strong style={{ color: '#38bdf8' }}>{Math.round(currentProgressPct)}%</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700 }}>
+              {Math.round(currentProgressPct)}% Covered
+            </span>
+            <span style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
+            <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600 }}>
+              {Math.max(0, 100 - Math.round(currentProgressPct))}% To Go
             </span>
             <span style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
             <span style={{ color: '#34d399', fontSize: '11px', fontWeight: 600 }}>
@@ -689,9 +693,9 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ color: '#f8fafc', fontSize: '11px' }}>
-              <strong style={{ color: '#cbd5e1' }}>{remainingDistanceKm.toLocaleString()} km</strong> to go
+              <strong style={{ color: '#cbd5e1' }}>{remainingDistanceKm.toLocaleString()} km to destination</strong>
             </span>
             <span className="live-map-desktop-only" style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
             <span className="live-map-desktop-only" style={{ color: '#94a3b8', fontSize: '11px' }}>
@@ -883,6 +887,11 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
         /* RESPONSIVE MEDIA QUERIES FOR MOBILE (< 768px) */
         /* ========================================================================= */
         @media (max-width: 768px) {
+          .client-live-map-wrapper {
+            height: 520px !important;
+            min-height: 480px !important;
+          }
+
           .live-map-desktop-top-hud {
             display: none !important;
           }

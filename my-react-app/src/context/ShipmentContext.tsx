@@ -905,6 +905,14 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
 
     const autoEta = calculateDynamicETA(distKm, mode, new Date().toISOString())
 
+    const creationIso =
+      data.createdAt ||
+      (data.bookingDate ? new Date(data.bookingDate).toISOString() : new Date().toISOString())
+    const formattedBookingTime = new Date(creationIso).toLocaleString([], {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    })
+
     const initialStatus = data.status || 'pending'
     const initialProgress =
       data.progressPct != null
@@ -912,7 +920,7 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
         : initialStatus === 'delivered'
         ? 100
         : initialStatus === 'in_transit'
-        ? 5
+        ? 1
         : 0
 
     const newShipment: Shipment = {
@@ -935,7 +943,7 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
       clientId: data.clientId || currentUser.id,
       rate: computedRate,
       eta: data.eta || autoEta.etaString,
-      createdAt: new Date().toISOString(),
+      createdAt: creationIso,
       progressPct: initialProgress,
       telemetryActive: true,
       assignedDriver: data.assignedDriver || 'Amina Bello',
@@ -949,7 +957,7 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
       packageImageUrl: data.packageImageUrl,
       transportScope: data.transportScope || 'International',
       cargoType: data.cargoType || 'Commercial Freight',
-      bookingDate: data.bookingDate || new Date().toISOString(),
+      bookingDate: data.bookingDate || creationIso,
       estimatedDistanceKm: distKm,
       serviceTier: data.serviceTier || 'STANDARD',
       isCustomerBooking: data.isCustomerBooking ?? true,
@@ -957,14 +965,12 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
         {
           id: `cp-init-${Date.now()}`,
           title: 'Waybill created & booking logged',
-          detail: `Initial cargo booking confirmed with ${data.carrier || 'DHL Express'}.`,
+          detail: `Initial cargo booking confirmed with ${data.carrier || 'DHL Express'}. Distance: ${distKm.toLocaleString()} km.`,
           location: origin.name,
-          time: 'Just now',
-          timestamp: new Date().toISOString(),
-          lat: origin.lat,
-          lng: origin.lng,
+          time: formattedBookingTime,
+          timestamp: creationIso,
           eventType: 'booked',
-          status: data.status || 'pending',
+          status: initialStatus,
           completed: true,
           current: true,
         },
@@ -1095,7 +1101,7 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
         prev.map((s) => {
           if (s.waybill && s.waybill.toUpperCase() === target) {
             const isStartingTransit = status === 'in_transit' && (s.status === 'pending' || (s.progressPct ?? 0) === 0)
-            const nextProgress = isStartingTransit ? Math.max(5, s.progressPct ?? 5) : status === 'delivered' ? 100 : s.progressPct
+            const nextProgress = isStartingTransit ? Math.max(1, s.progressPct ?? 1) : status === 'delivered' ? 100 : s.progressPct
             payload = {
               status,
               statusNote: note || (isStartingTransit ? 'Consignment in transit corridor at normal speed' : s.statusNote),
