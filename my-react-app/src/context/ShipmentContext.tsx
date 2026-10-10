@@ -11,7 +11,11 @@ import type {
   UserAccount,
 } from '../types'
 import { apiService } from '../services/api'
-import { calculateHaversineDistance } from '../utils/mapApis'
+import {
+  calculateHaversineDistance,
+  getShipmentDistanceKm,
+  calculateDynamicETA,
+} from '../utils/mapApis'
 
 interface ShipmentContextType {
   shipments: Shipment[]
