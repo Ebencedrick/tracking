@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import L from 'leaflet'
 import type { Shipment } from '../types'
 import {
   fetchLiveRouteGeometry,
-  calculateBearing,
   calculateDynamicETA,
   calculateRealtimeJourneyTelemetry,
   getShipmentDistanceKm,
+  interpolatePositionAlongRoute,
+  NORMAL_SPEEDS,
   MAP_TILE_PROVIDERS,
   type MapTileKey,
 } from '../utils/mapApis'
@@ -21,43 +22,35 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
   const mapInstanceRef = useRef<L.Map | null>(null)
   const tileLayerRef = useRef<L.TileLayer | null>(null)
   const markersLayerRef = useRef<L.LayerGroup | null>(null)
-  const routePolylineRef = useRef<L.Polyline | null>(null)
   const coveredPolylineRef = useRef<L.Polyline | null>(null)
+  const remainingPolylineRef = useRef<L.Polyline | null>(null)
   const vehicleMarkerRef = useRef<L.Marker | null>(null)
 
   const [activeTileKey, setActiveTileKey] = useState<MapTileKey>('voyager')
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([])
-  
-  // Calculate initial metrics
+  const [showMobileDetails, setShowMobileDetails] = useState(false)
+  const [layerDropdownOpen, setLayerDropdownOpen] = useState(false)
+
+  // Calculate base metrics
   const totalDistanceKm = useMemo(() => getShipmentDistanceKm(shipment), [shipment])
-  
-  const initialTelemetry = useMemo(() => {
-    return calculateRealtimeJourneyTelemetry(shipment)
-  }, [shipment])
+  const initialTelemetry = useMemo(() => calculateRealtimeJourneyTelemetry(shipment), [shipment])
 
   const [currentProgressPct, setCurrentProgressPct] = useState<number>(initialTelemetry.progressPct)
+  const [coveredDistanceKm, setCoveredDistanceKm] = useState<number>(initialTelemetry.coveredKm)
+  const [remainingDistanceKm, setRemainingDistanceKm] = useState<number>(initialTelemetry.remainingKm)
+  const [liveSpeedDisplay, setLiveSpeedDisplay] = useState<string>(initialTelemetry.speedDisplay)
+  const [dynamicEtaString, setDynamicEtaString] = useState<string>(shipment.eta || initialTelemetry.etaString)
+
   const [liveCoords, setLiveCoords] = useState<{ lat: number; lng: number }>(() => ({
     lat: shipment.currentLocation?.lat || shipment.origin.lat || 40.6413,
     lng: shipment.currentLocation?.lng || shipment.origin.lng || -73.7781,
   }))
 
-  const [liveSpeed, setLiveSpeed] = useState<string>(initialTelemetry.speedDisplay)
-  const [liveAltitude, setLiveAltitude] = useState<string>(() => {
-    if (shipment.mode === 'air') return '34,500 FT (FL345)'
-    if (shipment.mode === 'sea') return '0 FT (SEA LEVEL)'
-    return '640 FT (HIGHWAY)'
-  })
-  const [headingBearing, setHeadingBearing] = useState<string>('072° ENE')
   const [bearingAngle, setBearingAngle] = useState<number>(0)
+  const [bearingCardinal, setBearingCardinal] = useState<string>('072° ENE')
 
-  // Dynamic ETA calculation
-  const etaInfo = useMemo(() => {
-    return calculateDynamicETA(
-      totalDistanceKm,
-      shipment.mode,
-      shipment.createdAt || shipment.bookingDate
-    )
-  }, [totalDistanceKm, shipment.mode, shipment.createdAt, shipment.bookingDate])
+  // Mode Emoji
+  const modeEmoji = shipment.mode === 'air' ? '✈️' : shipment.mode === 'sea' ? '🚢' : '🚚'
 
   // 1. Initialize Map Container
   useEffect(() => {
@@ -68,9 +61,12 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
     const initialLng = shipment.currentLocation?.lng || shipment.origin.lng || -73.7781
 
     const map = L.map(mapContainerRef.current, {
-      zoomControl: true,
+      zoomControl: false, // Cleaner custom UI controls
       attributionControl: false,
     }).setView([initialLat, initialLng], 4)
+
+    // Add zoom control at bottom right on desktop
+    L.control.zoom({ position: 'bottomright' }).addTo(map)
 
     const provider = MAP_TILE_PROVIDERS[activeTileKey]
     const tileLayer = L.tileLayer(provider.url, {
@@ -90,8 +86,8 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
       mapInstanceRef.current = null
       tileLayerRef.current = null
       markersLayerRef.current = null
-      routePolylineRef.current = null
       coveredPolylineRef.current = null
+      remainingPolylineRef.current = null
       vehicleMarkerRef.current = null
     }
   }, [])
@@ -145,13 +141,13 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
     if (!map || !markersGroup || !shipment) return
 
     markersGroup.clearLayers()
-    if (routePolylineRef.current) {
-      map.removeLayer(routePolylineRef.current)
-      routePolylineRef.current = null
-    }
     if (coveredPolylineRef.current) {
       map.removeLayer(coveredPolylineRef.current)
       coveredPolylineRef.current = null
+    }
+    if (remainingPolylineRef.current) {
+      map.removeLayer(remainingPolylineRef.current)
+      remainingPolylineRef.current = null
     }
 
     const startLat = shipment.origin.lat || 40.6413
@@ -164,70 +160,72 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
 
     // Start Marker (Origin Pin)
     const startIcon = L.divIcon({
-      className: 'leaflet-custom-marker-start',
+      className: 'live-map-custom-marker-start',
       html: `
         <div style="
-          width: 20px;
-          height: 20px;
+          width: 18px;
+          height: 18px;
           background-color: #10b981;
-          border: 3px solid #ffffff;
+          border: 2px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.6);
           position: relative;
         ">
-          <div style="
+          <div class="live-map-pin-label" style="
             position: absolute;
-            top: -24px;
+            top: -22px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(15, 23, 42, 0.95);
             color: #34d399;
             font-weight: 700;
-            font-size: 10px;
-            padding: 2px 6px;
+            font-size: 9px;
+            padding: 1px 5px;
             border-radius: 4px;
             white-space: nowrap;
             border: 1px solid rgba(52, 211, 153, 0.4);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-          ">ORIGIN: ${shipment.origin.code || 'DEP'}</div>
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+            pointer-events: none;
+          ">${shipment.origin.code || 'DEP'}</div>
         </div>
       `,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10],
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
     })
 
     // Destination Marker (Destination Pin)
     const destIcon = L.divIcon({
-      className: 'leaflet-custom-marker-dest',
+      className: 'live-map-custom-marker-dest',
       html: `
         <div style="
-          width: 20px;
-          height: 20px;
+          width: 18px;
+          height: 18px;
           background-color: #ef4444;
-          border: 3px solid #ffffff;
+          border: 2px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.6);
           position: relative;
         ">
-          <div style="
+          <div class="live-map-pin-label" style="
             position: absolute;
-            top: -24px;
+            top: -22px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(15, 23, 42, 0.95);
             color: #f87171;
             font-weight: 700;
-            font-size: 10px;
-            padding: 2px 6px;
+            font-size: 9px;
+            padding: 1px 5px;
             border-radius: 4px;
             white-space: nowrap;
             border: 1px solid rgba(248, 113, 113, 0.4);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-          ">DEST: ${shipment.destination.code || 'ARR'}</div>
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+            pointer-events: none;
+          ">${shipment.destination.code || 'ARR'}</div>
         </div>
       `,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10],
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
     })
 
     L.marker(startCoord, { icon: startIcon })
@@ -238,101 +236,102 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
       .addTo(markersGroup)
       .bindPopup(`<b>Destination Hub:</b> ${shipment.destination.name}<br>Lat: ${destLat.toFixed(4)}, Lng: ${destLng.toFixed(4)}`)
 
-    // Draw Entire Corridor Polyline (Dashed Path ahead)
-    const fullRouteCoords: L.LatLngTuple[] =
+    // Initial Path rendering
+    const rawCoords =
       routeCoordinates.length > 0
-        ? (routeCoordinates as L.LatLngTuple[])
-        : [startCoord, [liveCoords.lat, liveCoords.lng], destCoord]
+        ? routeCoordinates
+        : ([startCoord, [liveCoords.lat, liveCoords.lng], destCoord] as [number, number][])
 
-    const remainingPolyline = L.polyline(fullRouteCoords, {
+    const fraction = currentProgressPct / 100
+    const interp = interpolatePositionAlongRoute(rawCoords, fraction)
+
+    // Covered path (solid cyan/blue)
+    const coveredLine = L.polyline(interp.coveredCoordinates as L.LatLngTuple[], {
       color: shipment.isMovementStopped ? '#ea580c' : '#0284c7',
       weight: 4,
-      opacity: 0.6,
-      dashArray: '8, 8',
+      opacity: 0.9,
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(map)
+    coveredPolylineRef.current = coveredLine
 
-    routePolylineRef.current = remainingPolyline
+    // Remaining path (dashed ahead)
+    const remainingLine = L.polyline(interp.remainingCoordinates as L.LatLngTuple[], {
+      color: shipment.isMovementStopped ? '#ea580c' : '#38bdf8',
+      weight: 3,
+      opacity: 0.6,
+      dashArray: '6, 8',
+      lineCap: 'round',
+      lineJoin: 'round',
+    }).addTo(map)
+    remainingPolylineRef.current = remainingLine
 
-    // Vehicle Icon
-    const modeEmoji = shipment.mode === 'air' ? '✈️' : shipment.mode === 'sea' ? '🚢' : '🚚'
+    // Vehicle Marker Icon
     const vehicleIcon = L.divIcon({
-      className: 'leaflet-custom-marker-vehicle',
+      className: 'live-map-custom-marker-vehicle',
       html: `
         <div id="vehicle-marker-wrapper" style="
-          width: 38px;
-          height: 38px;
-          background-color: ${shipment.isMovementStopped ? '#ea580c' : '#0284c7'};
-          border: 3px solid #ffffff;
+          width: 36px;
+          height: 36px;
+          background: ${shipment.isMovementStopped ? 'linear-gradient(135deg, #c2410c, #ea580c)' : 'linear-gradient(135deg, #0369a1, #0284c7)'};
+          border: 2px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 0 20px ${shipment.isMovementStopped ? 'rgba(234, 88, 12, 0.95)' : 'rgba(2, 132, 199, 0.95)'}, 0 2px 10px rgba(0,0,0,0.5);
+          box-shadow: 0 0 16px ${shipment.isMovementStopped ? 'rgba(234, 88, 12, 0.9)' : 'rgba(2, 132, 199, 0.9)'}, 0 2px 8px rgba(0,0,0,0.5);
           position: relative;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 18px;
-          transition: transform 0.8s ease-in-out;
+          font-size: 17px;
+          transition: transform 0.4s ease;
         ">
-          <span style="display:inline-block; transform: rotate(${bearingAngle}deg); transition: transform 0.6s ease;">${modeEmoji}</span>
+          <span id="vehicle-emoji-rotator" style="display:inline-block; transform: rotate(${interp.bearingAngle}deg); transition: transform 0.4s ease;">${modeEmoji}</span>
           <div style="
             position: absolute;
-            inset: -6px;
+            inset: -5px;
             border: 2px solid ${shipment.isMovementStopped ? '#ea580c' : '#38bdf8'};
             border-radius: 50%;
             animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
           "></div>
-          <div style="
-            position: absolute;
-            bottom: -24px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.94);
-            color: #ffffff;
-            font-weight: 700;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            white-space: nowrap;
-            border: 1px solid rgba(56, 189, 248, 0.4);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-          ">LIVE: ${shipment.currentLocation?.name || (shipment.status === 'delivered' ? shipment.destination.name : 'In Corridor')}</div>
         </div>
       `,
-      iconSize: [38, 38],
-      iconAnchor: [19, 19],
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
     })
 
-    const vMarker = L.marker([liveCoords.lat, liveCoords.lng], { icon: vehicleIcon })
+    const vMarker = L.marker([interp.lat, interp.lng], { icon: vehicleIcon })
       .addTo(markersGroup)
       .bindPopup(`
-        <div style="font-family: inherit; font-size: 12px;">
+        <div style="font-family: inherit; font-size: 12px; line-height: 1.4;">
           <strong style="color: #0284c7; font-size: 13px;">${shipment.carrier} (${shipment.waybill})</strong><br>
-          <b>Current Position:</b> ${shipment.currentLocation?.name || 'In Corridor Vector'}<br>
-          <b>Live Coordinates:</b> ${liveCoords.lat.toFixed(4)}°N, ${liveCoords.lng.toFixed(4)}°E<br>
-          <b>Operator / Linehaul:</b> ${shipment.assignedDriver || 'Linehaul Team'}<br>
+          <b>Location:</b> ${shipment.currentLocation?.name || 'In Corridor'}<br>
+          <b>Speed:</b> ${liveSpeedDisplay}<br>
           <b>Status:</b> ${shipment.status.toUpperCase()} (${Math.round(currentProgressPct)}%)<br>
-          <b>ETA:</b> ${shipment.eta || etaInfo.etaString}
+          <b>ETA:</b> ${shipment.eta || dynamicEtaString}
         </div>
       `)
 
     vehicleMarkerRef.current = vMarker
 
-    // Fit map bounds
+    // Fit map bounds smoothly with responsive padding
     try {
-      const bounds = L.latLngBounds([startCoord, [liveCoords.lat, liveCoords.lng], destCoord])
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 11 })
+      const isMobile = window.innerWidth < 768
+      const bounds = L.latLngBounds([startCoord, [interp.lat, interp.lng], destCoord])
+      map.fitBounds(bounds, { padding: isMobile ? [25, 20] : [45, 45], maxZoom: 11 })
     } catch {
-      map.setView([liveCoords.lat, liveCoords.lng], 5)
+      map.setView([interp.lat, interp.lng], 5)
     }
   }, [shipment, routeCoordinates])
 
-  // 5. Active Movement & Real-time Live Telemetry Animation Engine
+  // 5. Accurate Real-Time Normal Vehicle Speed & Distance Movement Engine
   useEffect(() => {
+    // Delivery State: Fixed at destination
     if (shipment.status === 'delivered') {
-      setLiveSpeed('0 km/h (Delivered & Cleared)')
-      setHeadingBearing('Terminal Final Arrival')
+      setLiveSpeedDisplay('0 km/h (Delivered)')
+      setBearingCardinal('Terminal Final Arrival')
       setCurrentProgressPct(100)
+      setCoveredDistanceKm(totalDistanceKm)
+      setRemainingDistanceKm(0)
+      setDynamicEtaString('Delivered & Confirmed')
       if (shipment.destination) {
         setLiveCoords({ lat: shipment.destination.lat, lng: shipment.destination.lng })
         vehicleMarkerRef.current?.setLatLng([shipment.destination.lat, shipment.destination.lng])
@@ -340,77 +339,80 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
       return
     }
 
+    // Hold State: Stationary
     if (shipment.isMovementStopped) {
-      setLiveSpeed('0 km/h (Movement Halted by Dispatch)')
-      setHeadingBearing(shipment.movementStopReason ? `Hold: ${shipment.movementStopReason}` : 'Stationary Security Hold')
+      setLiveSpeedDisplay('0 km/h (Hold Active)')
+      setBearingCardinal(shipment.movementStopReason ? `Hold: ${shipment.movementStopReason}` : 'Stationary Hold')
       return
     }
 
+    // Pending Intake: Staged at Origin
     if (shipment.status === 'pending') {
-      setLiveSpeed('0 km/h (Awaiting Intake Dispatch)')
-      setHeadingBearing('Staged at Origin Terminal')
-      setCurrentProgressPct(5)
+      setLiveSpeedDisplay('0 km/h (Awaiting Dispatch)')
+      setBearingCardinal('Staged at Origin Terminal')
+      setCurrentProgressPct(0)
+      setCoveredDistanceKm(0)
+      setRemainingDistanceKm(totalDistanceKm)
+      if (shipment.origin) {
+        setLiveCoords({ lat: shipment.origin.lat, lng: shipment.origin.lng })
+        vehicleMarkerRef.current?.setLatLng([shipment.origin.lat, shipment.origin.lng])
+      }
       return
     }
 
-    // High-precision smooth animation interval
+    // Active In-Transit Movement Engine
+    // Real-time normal vehicle driving speed (80 km/h for land car/truck, 850 km/h for air, 38 km/h for sea)
+    const mode = shipment.mode || 'land'
+    const normalSpeedKmH = NORMAL_SPEEDS[mode] || NORMAL_SPEEDS.land
+
+    // Recalculate and update on 1-second ticks for smooth, mathematically exact movement
     const intervalId = setInterval(() => {
-      // 1. Calculate live progress based on real-time elapsed duration
+      // 1. Calculate latest telemetry based on elapsed time & speed
       const telemetry = calculateRealtimeJourneyTelemetry(shipment)
-      
-      // Add subtle real-time forward micro-drift while viewing the page
-      const livePct = Math.min(98, telemetry.progressPct + ((Date.now() / 2000) % 2) * 0.15)
-      setCurrentProgressPct(livePct)
+      const pct = telemetry.progressPct
+      setCurrentProgressPct(pct)
+      setCoveredDistanceKm(telemetry.coveredKm)
+      setRemainingDistanceKm(telemetry.remainingKm)
+      setLiveSpeedDisplay(telemetry.speedDisplay)
+      setDynamicEtaString(shipment.eta || telemetry.etaString)
 
-      // 2. Interpolate coordinates along route geometry
+      // 2. Interpolate exact physical vehicle position along route geometry
       if (routeCoordinates && routeCoordinates.length >= 2) {
-        const totalPoints = routeCoordinates.length
-        const targetIndex = Math.min(
-          totalPoints - 1,
-          Math.max(0, Math.floor((livePct / 100) * totalPoints))
-        )
-        const currentCoord = routeCoordinates[targetIndex]
-        const nextCoord = routeCoordinates[Math.min(totalPoints - 1, targetIndex + 1)]
+        const fraction = pct / 100
+        const interp = interpolatePositionAlongRoute(routeCoordinates, fraction)
 
-        if (currentCoord) {
-          setLiveCoords({ lat: currentCoord[0], lng: currentCoord[1] })
-          
-          if (vehicleMarkerRef.current) {
-            vehicleMarkerRef.current.setLatLng([currentCoord[0], currentCoord[1]])
-          }
+        setLiveCoords({ lat: interp.lat, lng: interp.lng })
+        setBearingAngle(interp.bearingAngle)
+        setBearingCardinal(interp.bearingCardinal)
 
-          if (nextCoord) {
-            const bearing = calculateBearing(currentCoord[0], currentCoord[1], nextCoord[0], nextCoord[1])
-            setHeadingBearing(bearing.cardinal)
-            setBearingAngle(bearing.degrees)
+        // Update Vehicle Marker Position & Bearing
+        if (vehicleMarkerRef.current) {
+          vehicleMarkerRef.current.setLatLng([interp.lat, interp.lng])
+          const rotElement = document.getElementById('vehicle-emoji-rotator')
+          if (rotElement) {
+            rotElement.style.transform = `rotate(${interp.bearingAngle}deg)`
           }
         }
-      }
 
-      // 3. Simulate realistic speed and telemetry fluctuations
-      if (shipment.mode === 'air') {
-        const spd = 840 + Math.floor(Math.random() * 25)
-        setLiveSpeed(`${spd} km/h (Air Corridor FL345)`)
-        setLiveAltitude(`${34200 + Math.floor(Math.random() * 500)} FT`)
-      } else if (shipment.mode === 'sea') {
-        const spd = (20.5 + Math.random() * 2.0).toFixed(1)
-        setLiveSpeed(`${spd} knots (Ocean Linehaul)`)
-      } else {
-        const spd = 76 + Math.floor(Math.random() * 14)
-        setLiveSpeed(`${spd} km/h (Highway Linehaul)`)
-        setLiveAltitude(`${580 + Math.floor(Math.random() * 80)} FT`)
+        // Update Polylines dynamically
+        if (coveredPolylineRef.current) {
+          coveredPolylineRef.current.setLatLngs(interp.coveredCoordinates as L.LatLngTuple[])
+        }
+        if (remainingPolylineRef.current) {
+          remainingPolylineRef.current.setLatLngs(interp.remainingCoordinates as L.LatLngTuple[])
+        }
       }
-    }, 2000)
+    }, 1000)
 
     return () => clearInterval(intervalId)
-  }, [shipment, routeCoordinates])
+  }, [shipment, routeCoordinates, totalDistanceKm])
 
-  const handleCenterVehicle = () => {
+  const handleCenterVehicle = useCallback(() => {
     if (!mapInstanceRef.current) return
-    mapInstanceRef.current.flyTo([liveCoords.lat, liveCoords.lng], 7, { duration: 1.2 })
-  }
+    mapInstanceRef.current.flyTo([liveCoords.lat, liveCoords.lng], 8, { duration: 1.2 })
+  }, [liveCoords])
 
-  const handleFitCorridor = () => {
+  const handleFitCorridor = useCallback(() => {
     if (!mapInstanceRef.current || !shipment) return
     const startLat = shipment.origin.lat || 40.6413
     const startLng = shipment.origin.lng || -73.7781
@@ -422,14 +424,13 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
       [liveCoords.lat, liveCoords.lng],
       [destLat, destLng],
     ])
-    mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 11 })
-  }
-
-  const coveredDistanceKm = Math.round((totalDistanceKm * currentProgressPct) / 100)
-  const remainingDistanceKm = Math.max(0, totalDistanceKm - coveredDistanceKm)
+    const isMobile = window.innerWidth < 768
+    mapInstanceRef.current.fitBounds(bounds, { padding: isMobile ? [25, 20] : [45, 45], maxZoom: 11 })
+  }, [shipment, liveCoords])
 
   return (
     <div
+      className="client-live-map-wrapper"
       style={{
         position: 'relative',
         width: '100%',
@@ -451,38 +452,12 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
         }}
       />
 
-      {/* Floating Top Telemetry HUD */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '12px',
-          left: '12px',
-          right: '12px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '8px',
-          zIndex: 1000,
-          pointerEvents: 'none',
-        }}
-      >
+      {/* ========================================================================= */}
+      {/* TOP DESKTOP HUD (Hidden on Mobile) */}
+      {/* ========================================================================= */}
+      <div className="live-map-desktop-top-hud">
         {/* Left Telemetry Card */}
-        <div
-          style={{
-            background: 'rgba(15, 23, 42, 0.94)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRadius: '8px',
-            padding: '7px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-            pointerEvents: 'auto',
-          }}
-        >
+        <div className="live-map-hud-pill">
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span
               style={{
@@ -506,31 +481,21 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
             </span>
           </div>
 
-          <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+          <span className="live-map-hud-divider">|</span>
 
           <div style={{ fontSize: '11px', color: '#e2e8f0' }}>
             <span style={{ color: '#94a3b8' }}>Speed:</span>{' '}
-            <strong style={{ color: '#38bdf8' }}>{shipment.isMovementStopped ? '0 km/h (Hold)' : liveSpeed}</strong>
+            <strong style={{ color: '#38bdf8' }}>{liveSpeedDisplay}</strong>
           </div>
 
-          <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+          <span className="live-map-hud-divider">|</span>
 
           <div style={{ fontSize: '11px', color: '#e2e8f0' }}>
             <span style={{ color: '#94a3b8' }}>Heading:</span>{' '}
-            <strong style={{ color: '#f1f5f9' }}>{headingBearing}</strong>
+            <strong style={{ color: '#f1f5f9' }}>{bearingCardinal}</strong>
           </div>
 
-          {shipment.mode === 'air' && (
-            <>
-              <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
-              <div style={{ fontSize: '11px', color: '#e2e8f0' }}>
-                <span style={{ color: '#94a3b8' }}>Alt:</span>{' '}
-                <strong style={{ color: '#facc15' }}>{liveAltitude}</strong>
-              </div>
-            </>
-          )}
-
-          <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+          <span className="live-map-hud-divider">|</span>
 
           <div style={{ fontSize: '11px', color: '#e2e8f0' }}>
             <span style={{ color: '#94a3b8' }}>Coords:</span>{' '}
@@ -540,72 +505,27 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           </div>
         </div>
 
-        {/* Right Controls: Layer Switcher & Camera Fly */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            pointerEvents: 'auto',
-          }}
-        >
-          <div
-            style={{
-              background: 'rgba(15, 23, 42, 0.94)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '6px',
-              padding: '2px',
-              display: 'flex',
-              gap: '2px',
-            }}
-          >
+        {/* Right Controls: Layer Switcher & Fly Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div className="live-map-layer-selector">
             <button
               type="button"
               onClick={() => setActiveTileKey('voyager')}
-              style={{
-                background: activeTileKey === 'voyager' ? '#0284c7' : 'transparent',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '4px 8px',
-                fontSize: '10px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
+              className={`live-map-layer-btn ${activeTileKey === 'voyager' ? 'active' : ''}`}
             >
               🗺️ Street
             </button>
             <button
               type="button"
               onClick={() => setActiveTileKey('satellite')}
-              style={{
-                background: activeTileKey === 'satellite' ? '#0284c7' : 'transparent',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '4px 8px',
-                fontSize: '10px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
+              className={`live-map-layer-btn ${activeTileKey === 'satellite' ? 'active' : ''}`}
             >
               🛰️ Satellite
             </button>
             <button
               type="button"
               onClick={() => setActiveTileKey('dark')}
-              style={{
-                background: activeTileKey === 'dark' ? '#0284c7' : 'transparent',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '4px 8px',
-                fontSize: '10px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
+              className={`live-map-layer-btn ${activeTileKey === 'dark' ? 'active' : ''}`}
             >
               🌙 Radar
             </button>
@@ -614,20 +534,8 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           <button
             type="button"
             onClick={handleCenterVehicle}
-            style={{
-              background: 'rgba(15, 23, 42, 0.94)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '6px',
-              padding: '6px 10px',
-              fontSize: '11px',
-              fontWeight: 600,
-              color: '#f8fafc',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
+            className="live-map-action-btn"
+            title="Center Vehicle"
           >
             <span>🎯</span> Center
           </button>
@@ -635,92 +543,469 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           <button
             type="button"
             onClick={handleFitCorridor}
-            style={{
-              background: 'rgba(15, 23, 42, 0.94)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '6px',
-              padding: '6px 10px',
-              fontSize: '11px',
-              fontWeight: 600,
-              color: '#f8fafc',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
+            className="live-map-action-btn"
+            title="Fit Entire Route Corridor"
           >
             <span>🗺️</span> Corridor
           </button>
         </div>
       </div>
 
-      {/* Floating Bottom Progress & ETA Bar */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '12px',
-          left: '12px',
-          right: '12px',
-          background: 'rgba(15, 23, 42, 0.94)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          borderRadius: '10px',
-          padding: '8px 14px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-          zIndex: 1000,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '240px' }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
-              <span style={{ color: '#94a3b8' }}>
-                Progress: <strong style={{ color: '#38bdf8' }}>{Math.round(currentProgressPct)}%</strong>
-              </span>
-              <span style={{ color: '#cbd5e1' }}>
-                {coveredDistanceKm.toLocaleString()} km / {totalDistanceKm.toLocaleString()} km
-              </span>
-            </div>
-            <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '999px', overflow: 'hidden' }}>
-              <div
-                style={{
-                  height: '100%',
-                  width: `${currentProgressPct}%`,
-                  background: shipment.isMovementStopped
-                    ? '#ea580c'
-                    : 'linear-gradient(90deg, #0284c7, #38bdf8)',
-                  transition: 'width 0.8s ease-in-out',
-                }}
-              />
-            </div>
-          </div>
-        </div>
+      {/* ========================================================================= */}
+      {/* TOP MOBILE HUD (Clean, Minimalist, Zero Screen Clutter) */}
+      {/* ========================================================================= */}
+      <div className="live-map-mobile-top-hud">
+        {/* Compact Mobile Live Pill */}
+        <button
+          type="button"
+          onClick={() => setShowMobileDetails((prev) => !prev)}
+          className="live-map-mobile-status-pill"
+          title="Tap for Live Specs"
+        >
+          <span
+            style={{
+              width: '7px',
+              height: '7px',
+              borderRadius: '50%',
+              backgroundColor: shipment.isMovementStopped ? '#ea580c' : '#10b981',
+              boxShadow: shipment.isMovementStopped ? '0 0 8px #ea580c' : '0 0 8px #10b981',
+            }}
+          />
+          <span style={{ fontWeight: 700, color: shipment.isMovementStopped ? '#fdba74' : '#6ee7b7' }}>
+            {shipment.isMovementStopped ? 'HOLD' : 'LIVE'}
+          </span>
+          <span style={{ color: 'rgba(255,255,255,0.3)' }}>•</span>
+          <span style={{ color: '#38bdf8', fontWeight: 600 }}>
+            {modeEmoji} {shipment.isMovementStopped ? '0 km/h' : shipment.status === 'pending' ? 'Staged' : '80 km/h'}
+          </span>
+          <span style={{ fontSize: '10px', color: '#94a3b8', marginLeft: '2px' }}>ℹ️</span>
+        </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '11px' }}>
-          <div>
-            <span style={{ color: '#94a3b8' }}>Remaining:</span>{' '}
-            <strong style={{ color: '#f8fafc' }}>{remainingDistanceKm.toLocaleString()} km</strong>
-          </div>
-          <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
-          <div>
-            <span style={{ color: '#94a3b8' }}>Calculated ETA:</span>{' '}
-            <strong style={{ color: '#34d399' }}>{shipment.eta || etaInfo.etaString}</strong>
+        {/* Floating Quick Action Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <button
+            type="button"
+            onClick={handleCenterVehicle}
+            className="live-map-mobile-icon-btn"
+            title="Center Vehicle"
+          >
+            🎯
+          </button>
+
+          <button
+            type="button"
+            onClick={handleFitCorridor}
+            className="live-map-mobile-icon-btn"
+            title="Fit Route Corridor"
+          >
+            🗺️
+          </button>
+
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setLayerDropdownOpen((prev) => !prev)}
+              className="live-map-mobile-icon-btn"
+              title="Change Map Tile"
+            >
+              🛰️
+            </button>
+            {layerDropdownOpen && (
+              <div className="live-map-mobile-layer-menu">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTileKey('voyager')
+                    setLayerDropdownOpen(false)
+                  }}
+                  className={activeTileKey === 'voyager' ? 'active' : ''}
+                >
+                  🗺️ Street
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTileKey('satellite')
+                    setLayerDropdownOpen(false)
+                  }}
+                  className={activeTileKey === 'satellite' ? 'active' : ''}
+                >
+                  🛰️ Satellite
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTileKey('dark')
+                    setLayerDropdownOpen(false)
+                  }}
+                  className={activeTileKey === 'dark' ? 'active' : ''}
+                >
+                  🌙 Radar
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Pulse ring animation */}
+      {/* Mobile Detailed Specs Drawer Modal (Optional Expansion) */}
+      {showMobileDetails && (
+        <div className="live-map-mobile-drawer">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <strong style={{ color: '#38bdf8', fontSize: '12px' }}>🛰️ Live Consignment Telemetry</strong>
+            <button
+              type="button"
+              onClick={() => setShowMobileDetails(false)}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '14px', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11px' }}>
+            <div><span style={{ color: '#94a3b8' }}>Speed:</span> <strong style={{ color: '#f8fafc' }}>{liveSpeedDisplay}</strong></div>
+            <div><span style={{ color: '#94a3b8' }}>Heading:</span> <strong style={{ color: '#f8fafc' }}>{bearingCardinal}</strong></div>
+            <div><span style={{ color: '#94a3b8' }}>Vehicle:</span> <strong style={{ color: '#f8fafc' }}>{shipment.vehicleId || 'Linehaul 101'}</strong></div>
+            <div><span style={{ color: '#94a3b8' }}>Driver:</span> <strong style={{ color: '#f8fafc' }}>{shipment.assignedDriver || 'Assigned'}</strong></div>
+            <div style={{ gridColumn: 'span 2' }}>
+              <span style={{ color: '#94a3b8' }}>Coords:</span> <strong style={{ color: '#f8fafc' }}>{liveCoords.lat.toFixed(4)}°N, {liveCoords.lng.toFixed(4)}°E</strong>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* BOTTOM PROGRESS & DISTANCE HUD (Responsive Desktop & Mobile) */}
+      {/* ========================================================================= */}
+      <div className="live-map-bottom-progress-hud">
+        {/* Top metrics row */}
+        <div className="live-map-progress-topline">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#94a3b8', fontSize: '11px' }}>
+              Progress: <strong style={{ color: '#38bdf8' }}>{Math.round(currentProgressPct)}%</strong>
+            </span>
+            <span style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
+            <span style={{ color: '#34d399', fontSize: '11px', fontWeight: 600 }}>
+              {coveredDistanceKm.toLocaleString()} km covered
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#f8fafc', fontSize: '11px' }}>
+              <strong style={{ color: '#cbd5e1' }}>{remainingDistanceKm.toLocaleString()} km</strong> to go
+            </span>
+            <span className="live-map-desktop-only" style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
+            <span className="live-map-desktop-only" style={{ color: '#94a3b8', fontSize: '11px' }}>
+              ETA: <strong style={{ color: '#34d399' }}>{dynamicEtaString}</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Smooth Linear Progress Track */}
+        <div className="live-map-progress-track">
+          <div
+            className="live-map-progress-fill"
+            style={{
+              width: `${currentProgressPct}%`,
+              background: shipment.isMovementStopped
+                ? '#ea580c'
+                : 'linear-gradient(90deg, #0284c7, #38bdf8, #34d399)',
+            }}
+          />
+        </div>
+
+        {/* Mobile secondary info line */}
+        <div className="live-map-mobile-only live-map-mobile-bottom-footnote">
+          <span>⏱️ ETA: <strong style={{ color: '#34d399' }}>{dynamicEtaString}</strong></span>
+          <span>{liveSpeedDisplay}</span>
+        </div>
+      </div>
+
+      {/* Scoped CSS Styles for Fluid Mobile & Desktop Aesthetics */}
       <style>{`
+        .client-live-map-wrapper {
+          position: relative;
+          user-select: none;
+        }
+
+        /* Desktop Top HUD */
+        .live-map-desktop-top-hud {
+          position: absolute;
+          top: 10px;
+          left: 10px;
+          right: 10px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 8px;
+          z-index: 1000;
+          pointer-events: none;
+        }
+
+        .live-map-hud-pill {
+          background: rgba(15, 23, 42, 0.92);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 8px;
+          padding: 6px 12px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+          pointer-events: auto;
+        }
+
+        .live-map-hud-divider {
+          color: rgba(255, 255, 255, 0.2);
+        }
+
+        .live-map-layer-selector {
+          background: rgba(15, 23, 42, 0.92);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 6px;
+          padding: 2px;
+          display: flex;
+          gap: 2px;
+          pointer-events: auto;
+        }
+
+        .live-map-layer-btn {
+          background: transparent;
+          color: #94a3b8;
+          border: none;
+          border-radius: 4px;
+          padding: 4px 8px;
+          font-size: 10px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .live-map-layer-btn.active {
+          background: #0284c7;
+          color: #ffffff;
+        }
+
+        .live-map-action-btn {
+          background: rgba(15, 23, 42, 0.92);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 6px;
+          padding: 5px 10px;
+          font-size: 11px;
+          font-weight: 600;
+          color: #f8fafc;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          pointer-events: auto;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+          transition: all 0.2s ease;
+        }
+
+        .live-map-action-btn:hover {
+          background: rgba(30, 41, 59, 0.96);
+          border-color: #38bdf8;
+        }
+
+        /* Mobile Top HUD (Hidden on desktop) */
+        .live-map-mobile-top-hud {
+          display: none;
+        }
+
+        /* Mobile Drawer */
+        .live-map-mobile-drawer {
+          position: absolute;
+          top: 48px;
+          left: 10px;
+          right: 10px;
+          background: rgba(15, 23, 42, 0.96);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(56, 189, 248, 0.4);
+          border-radius: 10px;
+          padding: 10px 12px;
+          z-index: 1001;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+          animation: fadeIn 0.2s ease;
+        }
+
+        /* Bottom Progress HUD */
+        .live-map-bottom-progress-hud {
+          position: absolute;
+          bottom: 10px;
+          left: 10px;
+          right: 10px;
+          background: rgba(15, 23, 42, 0.92);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 10px;
+          padding: 8px 14px;
+          z-index: 1000;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .live-map-progress-topline {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .live-map-progress-track {
+          height: 5px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 999px;
+          overflow: hidden;
+        }
+
+        .live-map-progress-fill {
+          height: 100%;
+          border-radius: 999px;
+          transition: width 0.6s ease-in-out;
+        }
+
+        .live-map-desktop-only {
+          display: inline;
+        }
+
+        .live-map-mobile-only {
+          display: none;
+        }
+
+        /* ========================================================================= */
+        /* RESPONSIVE MEDIA QUERIES FOR MOBILE (< 768px) */
+        /* ========================================================================= */
+        @media (max-width: 768px) {
+          .live-map-desktop-top-hud {
+            display: none !important;
+          }
+
+          .live-map-desktop-only {
+            display: none !important;
+          }
+
+          .live-map-mobile-only {
+            display: flex !important;
+          }
+
+          .live-map-mobile-top-hud {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            display: flex !important;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            pointer-events: none;
+          }
+
+          .live-map-mobile-status-pill {
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #f8fafc;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+          }
+
+          .live-map-mobile-icon-btn {
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+          }
+
+          .live-map-mobile-layer-menu {
+            position: absolute;
+            top: 36px;
+            right: 0;
+            background: rgba(15, 23, 42, 0.96);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            z-index: 1002;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+            min-width: 100px;
+            pointer-events: auto;
+          }
+
+          .live-map-mobile-layer-menu button {
+            background: transparent;
+            color: #cbd5e1;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+          }
+
+          .live-map-mobile-layer-menu button.active {
+            background: #0284c7;
+            color: #ffffff;
+          }
+
+          .live-map-bottom-progress-hud {
+            bottom: 8px;
+            left: 8px;
+            right: 8px;
+            padding: 6px 10px;
+            border-radius: 8px;
+          }
+
+          .live-map-mobile-bottom-footnote {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 1px;
+          }
+
+          .live-map-pin-label {
+            font-size: 8px !important;
+            padding: 1px 3px !important;
+          }
+        }
+
         @keyframes pulse-ring {
           0% { transform: scale(0.95); opacity: 0.8; }
-          50% { transform: scale(1.4); opacity: 0.2; }
+          50% { transform: scale(1.35); opacity: 0.2; }
           100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>

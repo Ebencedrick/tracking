@@ -594,20 +594,31 @@ export interface ShipmentProgressMetrics {
   isStopped: boolean
 }
 
+export const NORMAL_SPEEDS: Record<string, number> = {
+  land: 80, // 80 km/h: Normal car highway & overland driving speed
+  air: 850, // 850 km/h: Cruising commercial aviation speed
+  sea: 38,  // 38 km/h: Normal container maritime linehaul (~20.5 knots)
+}
+
 export function getShipmentDistanceKm(shipment: {
   estimatedDistanceKm?: number
   origin?: { lat?: number; lng?: number }
   destination?: { lat?: number; lng?: number }
+  mode?: string
 }): number {
   if (shipment.estimatedDistanceKm && shipment.estimatedDistanceKm > 0) {
-    return shipment.estimatedDistanceKm
+    return Math.round(shipment.estimatedDistanceKm)
   }
   const lat1 = shipment.origin?.lat ?? 40.6413
   const lng1 = shipment.origin?.lng ?? -73.7781
   const lat2 = shipment.destination?.lat ?? 51.4700
   const lng2 = shipment.destination?.lng ?? -0.4543
-  const dist = Math.round(calculateHaversineDistance(lat1, lng1, lat2, lng2))
-  return Math.max(50, dist || 1200)
+  let dist = calculateHaversineDistance(lat1, lng1, lat2, lng2)
+  if (shipment.mode === 'land') {
+    // Normal road winding detour factor for overland car/truck driving
+    dist *= 1.22
+  }
+  return Math.max(20, Math.round(dist) || 450)
 }
 
 export function getShipmentProgressMetrics(shipment: {
@@ -618,77 +629,29 @@ export function getShipmentProgressMetrics(shipment: {
   estimatedDistanceKm?: number
   origin?: { lat?: number; lng?: number }
   destination?: { lat?: number; lng?: number }
+  createdAt?: string
+  bookingDate?: string
 }): ShipmentProgressMetrics {
-  const totalKm = getShipmentDistanceKm(shipment)
-  const isDelivered = shipment.status === 'delivered'
-  const isPending = shipment.status === 'pending'
-  const isStopped = !!shipment.isMovementStopped
-
-  const pct = isDelivered
-    ? 100
-    : isPending
-    ? 0
-    : Math.min(100, Math.max(0, Math.round((shipment.progressPct ?? 45) * 10) / 10))
-
-  const coveredKm = Math.round((totalKm * pct) / 100)
-  const remainingKm = Math.max(0, totalKm - coveredKm)
-
-  let speedDisplay = '80 km/h'
-  if (isDelivered) {
-    speedDisplay = '0 km/h · Arrived'
-  } else if (isPending) {
-    speedDisplay = '0 km/h · Staged'
-  } else if (isStopped) {
-    speedDisplay = '0 km/h · Hold'
-  } else if (shipment.mode === 'air') {
-    speedDisplay = '850 km/h · FL345'
-  } else if (shipment.mode === 'sea') {
-    speedDisplay = '22 kts · Maritime'
-  } else {
-    speedDisplay = '80 km/h · Highway'
-  }
-
-  let statusDisplay = 'In Transit'
-  if (isStopped) {
-    statusDisplay = 'Movement Hold'
-  } else if (shipment.status === 'in_transit') {
-    statusDisplay = 'In Transit'
-  } else if (shipment.status === 'delivered') {
-    statusDisplay = 'Delivered'
-  } else if (shipment.status === 'pending') {
-    statusDisplay = 'Pending'
-  } else if (shipment.status === 'customs') {
-    statusDisplay = 'Customs'
-  } else if (shipment.status === 'exception') {
-    statusDisplay = 'Exception'
-  }
-
+  const telemetry = calculateRealtimeJourneyTelemetry(shipment)
   return {
-    totalKm,
-    pct,
-    coveredKm,
-    remainingKm,
-    speedDisplay,
-    statusDisplay,
-    isStopped,
+    totalKm: telemetry.totalKm,
+    pct: telemetry.progressPct,
+    coveredKm: telemetry.coveredKm,
+    remainingKm: telemetry.remainingKm,
+    speedDisplay: telemetry.speedDisplay,
+    statusDisplay: telemetry.statusDisplay,
+    isStopped: !!shipment.isMovementStopped,
   }
 }
 
 /**
- * Calculate realistic transit duration in hours based on distance and shipping mode
+ * Calculate realistic transit duration in hours based on distance and normal vehicle speed
  */
-export function calculateEstimatedTransitHours(distanceKm: number, mode: string = 'air'): number {
-  const d = Math.max(50, distanceKm)
-  if (mode === 'air') {
-    // Air freight: ~800 km/h cruising + 2 hrs handling/intake
-    return Math.max(2, Math.round((d / 800) + 2))
-  } else if (mode === 'sea') {
-    // Ocean freight: ~36 km/h (19.5 knots) + 24 hrs port customs/berthing
-    return Math.max(24, Math.round((d / 36) + 24))
-  } else {
-    // Land freight: ~72 km/h + 3 hrs depot/sorting
-    return Math.max(3, Math.round((d / 72) + 3))
-  }
+export function calculateEstimatedTransitHours(distanceKm: number, mode: string = 'land'): number {
+  const d = Math.max(10, distanceKm)
+  const speed = NORMAL_SPEEDS[mode] || NORMAL_SPEEDS.land
+  const hours = d / speed
+  return Math.max(0.2, Math.round(hours * 10) / 10)
 }
 
 /**
@@ -696,7 +659,7 @@ export function calculateEstimatedTransitHours(distanceKm: number, mode: string 
  */
 export function calculateDynamicETA(
   distanceKm: number,
-  mode: string = 'air',
+  mode: string = 'land',
   startDateInput?: Date | string
 ): { etaString: string; durationHours: number; arrivalDate: Date; humanSummary: string } {
   const durationHours = calculateEstimatedTransitHours(distanceKm, mode)
@@ -767,7 +730,125 @@ export function calculateBearing(
 }
 
 /**
+ * Interpolate exact position along route coordinates based on progress fraction (0 to 1)
+ * Calculates true geodesic segment distances and returns interpolated lat/lng, bearing, and split path polylines.
+ */
+export interface RouteInterpolationResult {
+  lat: number
+  lng: number
+  bearingAngle: number
+  bearingCardinal: string
+  coveredCoordinates: [number, number][]
+  remainingCoordinates: [number, number][]
+}
+
+export function interpolatePositionAlongRoute(
+  coordinates: [number, number][],
+  fraction: number // 0 to 1
+): RouteInterpolationResult {
+  if (!coordinates || coordinates.length === 0) {
+    return {
+      lat: 0,
+      lng: 0,
+      bearingAngle: 0,
+      bearingCardinal: '000° N',
+      coveredCoordinates: [],
+      remainingCoordinates: [],
+    }
+  }
+
+  const clampedFraction = Math.max(0, Math.min(1, fraction))
+
+  if (coordinates.length === 1 || clampedFraction <= 0) {
+    const [lat, lng] = coordinates[0]
+    return {
+      lat,
+      lng,
+      bearingAngle: 0,
+      bearingCardinal: '000° N',
+      coveredCoordinates: [coordinates[0]],
+      remainingCoordinates: coordinates,
+    }
+  }
+
+  if (clampedFraction >= 1) {
+    const last = coordinates[coordinates.length - 1]
+    const prev = coordinates[coordinates.length - 2] || last
+    const bearing = calculateBearing(prev[0], prev[1], last[0], last[1])
+    return {
+      lat: last[0],
+      lng: last[1],
+      bearingAngle: bearing.degrees,
+      bearingCardinal: bearing.cardinal,
+      coveredCoordinates: coordinates,
+      remainingCoordinates: [last],
+    }
+  }
+
+  // Calculate cumulative distances along route geometry
+  const distances: number[] = [0]
+  let totalDistance = 0
+  for (let i = 0; i < coordinates.length - 1; i++) {
+    const d = calculateHaversineDistance(
+      coordinates[i][0],
+      coordinates[i][1],
+      coordinates[i + 1][0],
+      coordinates[i + 1][1]
+    )
+    totalDistance += d
+    distances.push(totalDistance)
+  }
+
+  if (totalDistance === 0) {
+    return {
+      lat: coordinates[0][0],
+      lng: coordinates[0][1],
+      bearingAngle: 0,
+      bearingCardinal: '000° N',
+      coveredCoordinates: [coordinates[0]],
+      remainingCoordinates: coordinates,
+    }
+  }
+
+  const targetDistance = clampedFraction * totalDistance
+  let segIndex = 0
+  for (let i = 0; i < distances.length - 1; i++) {
+    if (targetDistance >= distances[i] && targetDistance <= distances[i + 1]) {
+      segIndex = i
+      break
+    }
+  }
+
+  const segStartDist = distances[segIndex]
+  const segEndDist = distances[segIndex + 1]
+  const segLength = segEndDist - segStartDist
+  const segFraction = segLength > 0 ? (targetDistance - segStartDist) / segLength : 0
+
+  const p1 = coordinates[segIndex]
+  const p2 = coordinates[segIndex + 1]
+
+  const lat = p1[0] + (p2[0] - p1[0]) * segFraction
+  const lng = p1[1] + (p2[1] - p1[1]) * segFraction
+
+  const bearing = calculateBearing(p1[0], p1[1], p2[0], p2[1])
+
+  const currentPt: [number, number] = [lat, lng]
+  const coveredCoordinates: [number, number][] = [...coordinates.slice(0, segIndex + 1), currentPt]
+  const remainingCoordinates: [number, number][] = [currentPt, ...coordinates.slice(segIndex + 1)]
+
+  return {
+    lat,
+    lng,
+    bearingAngle: bearing.degrees,
+    bearingCardinal: bearing.cardinal,
+    coveredCoordinates,
+    remainingCoordinates,
+  }
+}
+
+/**
  * Calculate Real-Time Journey Telemetry and Progress Percentage
+ * Accurate calculation based on start & end location distance and normal vehicle speed.
  */
 export function calculateRealtimeJourneyTelemetry(shipment: {
   createdAt?: string
@@ -776,54 +857,106 @@ export function calculateRealtimeJourneyTelemetry(shipment: {
   mode?: string
   progressPct?: number
   isMovementStopped?: boolean
+  movementStopReason?: string
   estimatedDistanceKm?: number
   origin?: { lat?: number; lng?: number }
   destination?: { lat?: number; lng?: number }
 }) {
   const totalKm = getShipmentDistanceKm(shipment)
-  const mode = shipment.mode || 'air'
+  const mode = shipment.mode || 'land'
+  const normalSpeed = NORMAL_SPEEDS[mode] || NORMAL_SPEEDS.land
+  const totalTransitHours = calculateEstimatedTransitHours(totalKm, mode)
   const isDelivered = shipment.status === 'delivered'
   const isPending = shipment.status === 'pending'
   const isStopped = !!shipment.isMovementStopped
+
+  const formatHoursAndMinutes = (h: number): string => {
+    if (h <= 0) return '0h 00m'
+    const hours = Math.floor(h)
+    const mins = Math.round((h - hours) * 60)
+    if (hours === 0) return `${mins}m`
+    return `${hours}h ${String(mins).padStart(2, '0')}m`
+  }
+
+  const formatEtaDate = (arrivalDate: Date): string => {
+    const now = new Date()
+    const isToday = arrivalDate.toDateString() === now.toDateString()
+    const tomorrow = new Date(now)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const isTomorrow = arrivalDate.toDateString() === tomorrow.toDateString()
+    const timeStr = arrivalDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+    if (isToday) return `Today, ${timeStr}`
+    if (isTomorrow) return `Tomorrow, ${timeStr}`
+    const month = arrivalDate.toLocaleString('default', { month: 'short' })
+    const day = arrivalDate.getDate()
+    const year = arrivalDate.getFullYear()
+    return `${month} ${day}, ${year} · ${timeStr}`
+  }
 
   if (isDelivered) {
     return {
       progressPct: 100,
       coveredKm: totalKm,
       remainingKm: 0,
+      totalKm,
+      speedKmH: 0,
       speedDisplay: '0 km/h (Delivered)',
       statusDisplay: 'Delivered',
       isMoving: false,
+      elapsedHours: totalTransitHours,
+      remainingHours: 0,
+      hoursCoveredStr: `${formatHoursAndMinutes(totalTransitHours)} (Completed)`,
+      hoursRemainingStr: '0h 00m (Arrived)',
+      etaString: 'Delivered & Confirmed',
     }
   }
 
   if (isPending) {
+    const etaDate = new Date(Date.now() + totalTransitHours * 3600 * 1000)
     return {
-      progressPct: 5,
-      coveredKm: Math.round(totalKm * 0.05),
+      progressPct: 0,
+      coveredKm: 0,
       remainingKm: totalKm,
+      totalKm,
+      speedKmH: 0,
       speedDisplay: '0 km/h (Awaiting Dispatch)',
       statusDisplay: 'Staged at Origin',
       isMoving: false,
+      elapsedHours: 0,
+      remainingHours: totalTransitHours,
+      hoursCoveredStr: '0h 00m (Pending)',
+      hoursRemainingStr: `${formatHoursAndMinutes(totalTransitHours)} to Destination`,
+      etaString: formatEtaDate(etaDate),
     }
   }
 
   if (isStopped) {
-    const p = Math.min(95, Math.max(5, shipment.progressPct ?? 45))
+    const p = Math.min(95, Math.max(0, shipment.progressPct ?? 40))
     const coveredKm = Math.round((totalKm * p) / 100)
+    const remainingKm = Math.max(0, totalKm - coveredKm)
+    const elapsedHours = coveredKm / normalSpeed
+    const remainingHours = remainingKm / normalSpeed
     return {
       progressPct: p,
       coveredKm,
-      remainingKm: Math.max(0, totalKm - coveredKm),
+      remainingKm,
+      totalKm,
+      speedKmH: 0,
       speedDisplay: '0 km/h (Movement Hold)',
       statusDisplay: 'Hold / Inspection',
       isMoving: false,
+      elapsedHours,
+      remainingHours,
+      hoursCoveredStr: formatHoursAndMinutes(elapsedHours),
+      hoursRemainingStr: 'Paused on Hold',
+      etaString: 'Schedule On Hold',
     }
   }
 
-  // Calculate elapsed transit time
+  // Active in_transit
   const createdTime = shipment.createdAt || shipment.bookingDate
-  let elapsedHours = 1.2
+  let elapsedHours = 0.5
   if (createdTime) {
     const elapsedMs = Math.max(0, Date.now() - new Date(createdTime).getTime())
     if (!isNaN(elapsedMs) && elapsedMs > 0) {
@@ -831,26 +964,42 @@ export function calculateRealtimeJourneyTelemetry(shipment: {
     }
   }
 
-  const totalTransitHours = calculateEstimatedTransitHours(totalKm, mode)
-  const timeProgressFraction = Math.min(0.96, Math.max(0.08, elapsedHours / totalTransitHours))
-  const calculatedPct = Math.round(timeProgressFraction * 100 * 10) / 10
+  const timeBasedCoveredKm = elapsedHours * normalSpeed
+  const timeBasedFraction = Math.min(0.96, Math.max(0.02, timeBasedCoveredKm / totalKm))
+  const calculatedPct = Math.round(timeBasedFraction * 100 * 10) / 10
 
-  // Combine with explicit progressPct if given by admin
-  const finalPct = shipment.progressPct != null && shipment.progressPct > calculatedPct
-    ? shipment.progressPct
-    : calculatedPct
+  // Anchor to admin-provided progressPct if set
+  const finalPct = shipment.progressPct != null ? shipment.progressPct : calculatedPct
+  const clampedPct = Math.min(98, Math.max(2, finalPct))
 
-  const clampedPct = Math.min(98, Math.max(5, finalPct))
-  const coveredKm = Math.round((totalKm * clampedPct) / 100)
+  const coveredKm = Math.min(totalKm, Math.round((totalKm * clampedPct) / 100))
   const remainingKm = Math.max(0, totalKm - coveredKm)
+  const exactElapsedHours = coveredKm / normalSpeed
+  const exactRemainingHours = remainingKm / normalSpeed
+  const arrivalDate = new Date(Date.now() + exactRemainingHours * 3600 * 1000)
+
+  const speedDisplay =
+    mode === 'air'
+      ? '850 km/h (Cruising FL345)'
+      : mode === 'sea'
+      ? '38 km/h (20.5 kts Ocean Linehaul)'
+      : '80 km/h (Normal Driving Speed)'
 
   return {
     progressPct: clampedPct,
     coveredKm,
     remainingKm,
-    speedDisplay: mode === 'air' ? '850 km/h' : mode === 'sea' ? '22 knots' : '80 km/h',
+    totalKm,
+    speedKmH: normalSpeed,
+    speedDisplay,
     statusDisplay: 'In Transit',
     isMoving: true,
+    elapsedHours: exactElapsedHours,
+    remainingHours: exactRemainingHours,
+    hoursCoveredStr: `${formatHoursAndMinutes(exactElapsedHours)} Elapsed`,
+    hoursRemainingStr: `${formatHoursAndMinutes(exactRemainingHours)} Left`,
+    etaString: formatEtaDate(arrivalDate),
   }
 }
+
 

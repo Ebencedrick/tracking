@@ -892,6 +892,25 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
     const origin = data.origin || { name: 'New York, NY (JFK)', code: 'JFK', lat: 40.6413, lng: -73.7781 }
     const destination = data.destination || { name: 'London, UK (LHR)', code: 'LHR', lat: 51.47, lng: -0.4543 }
 
+    const distKm = getShipmentDistanceKm({
+      estimatedDistanceKm: data.estimatedDistanceKm,
+      origin,
+      destination,
+      mode,
+    })
+
+    const autoEta = calculateDynamicETA(distKm, mode, new Date().toISOString())
+
+    const initialStatus = data.status || 'pending'
+    const initialProgress =
+      data.progressPct != null
+        ? data.progressPct
+        : initialStatus === 'delivered'
+        ? 100
+        : initialStatus === 'in_transit'
+        ? 5
+        : 0
+
     const newShipment: Shipment = {
       id: `s-${Date.now()}`,
       waybill,
@@ -901,8 +920,8 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
       origin,
       destination,
       currentLocation: data.currentLocation || origin,
-      status: data.status || 'pending',
-      statusNote: data.statusNote || (data.status === 'pending' ? 'Pending dispatch intake manifest' : 'Active linehaul movement'),
+      status: initialStatus,
+      statusNote: data.statusNote || (initialStatus === 'pending' ? 'Pending dispatch intake manifest' : 'Active linehaul movement in transit corridor'),
       weightKg: weight,
       packageCount: data.packageCount || 1,
       declaredValue: value,
@@ -911,9 +930,9 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
       clientEmail: data.clientEmail || currentUser.email,
       clientId: data.clientId || currentUser.id,
       rate: computedRate,
-      eta: data.eta || 'Calculated on dispatch',
+      eta: data.eta || autoEta.etaString,
       createdAt: new Date().toISOString(),
-      progressPct: data.progressPct ?? (data.status === 'delivered' ? 100 : data.status === 'in_transit' ? 45 : 5),
+      progressPct: initialProgress,
       telemetryActive: true,
       assignedDriver: data.assignedDriver || 'Amina Bello',
       vehicleId: data.vehicleId || 'VEH-101',
@@ -927,9 +946,7 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
       transportScope: data.transportScope || 'International',
       cargoType: data.cargoType || 'Commercial Freight',
       bookingDate: data.bookingDate || new Date().toISOString(),
-      estimatedDistanceKm:
-        data.estimatedDistanceKm ||
-        Math.max(50, Math.round(calculateHaversineDistance(origin.lat, origin.lng, destination.lat, destination.lng))),
+      estimatedDistanceKm: distKm,
       serviceTier: data.serviceTier || 'STANDARD',
       isCustomerBooking: data.isCustomerBooking ?? true,
       checkpoints: (data.checkpoints && data.checkpoints.length > 0) ? data.checkpoints : [
@@ -1067,14 +1084,22 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
   const updateShipmentStatus = (waybill: string, status: ShipmentStatus, note?: string) => {
     if (!waybill) return
     const target = waybill.toUpperCase()
+    let payload: Partial<Shipment> = { status, statusNote: note }
+
     startTransition(() => {
       setShipments((prev) =>
         prev.map((s) => {
           if (s.waybill && s.waybill.toUpperCase() === target) {
+            const isStartingTransit = status === 'in_transit' && (s.status === 'pending' || (s.progressPct ?? 0) === 0)
+            const nextProgress = isStartingTransit ? Math.max(5, s.progressPct ?? 5) : status === 'delivered' ? 100 : s.progressPct
+            payload = {
+              status,
+              statusNote: note || (isStartingTransit ? 'Consignment in transit corridor at normal speed' : s.statusNote),
+              progressPct: nextProgress,
+            }
             return {
               ...s,
-              status,
-              statusNote: note || s.statusNote,
+              ...payload,
             }
           }
           return s
@@ -1083,10 +1108,7 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
     })
 
     // Persist status change to MongoDB Atlas database
-    apiService.updateShipment(waybill, {
-      status,
-      statusNote: note,
-    }).catch(() => {})
+    apiService.updateShipment(waybill, payload).catch(() => {})
 
     addAuditLog('STATUS_OVERRIDE', 'SHIPMENT', `Overrode status to "${status}" (Note: ${note || 'None'})`, status === 'exception' ? 'warning' : 'info', waybill)
   }
@@ -1194,41 +1216,38 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
 
           hasUpdated = true
           const curPct = shipment.progressPct ?? 0
+          const totalKm = getShipmentDistanceKm(shipment)
+          const mode = shipment.mode || 'land'
 
-          // Calculate step and speed based on mode:
-          // Land: normal driving speed (approx 70-90 km/h on highway, with occasional traffic/waypoint pause)
-          // Air: cruising speed (approx 850 km/h)
-          // Sea: maritime cruising (approx 20 kts)
-          let step = 0.35
+          // Normal vehicle speeds (km/h)
+          // Land: 80 km/h (0.0888 km per 4s)
+          // Air: 850 km/h (0.944 km per 4s)
+          // Sea: 38 km/h (0.0422 km per 4s)
+          let speedKmH = 80
           let speedDisplay = '80 km/h'
           let altitudeDisplay: string | undefined = undefined
 
-          if (shipment.mode === 'land') {
-            // 15% chance of simulated traffic light / waypoint intersection pause
-            const isTrafficPause = Math.random() < 0.15
-            if (isTrafficPause) {
-              const pauseSpeed = Math.floor(15 + Math.random() * 20)
-              speedDisplay = `${pauseSpeed} km/h (Toll / Traffic Slowdown)`
-              step = 0.08
-            } else {
-              const currentSpeed = Math.floor(75 + Math.random() * 15) // 75 - 90 km/h normal driving speed
-              speedDisplay = `${currentSpeed} km/h`
-              step = Math.random() * 0.35 + 0.2 // 0.20% - 0.55% steady road progression
-            }
-          } else if (shipment.mode === 'sea') {
-            const currentSpeed = (18 + Math.random() * 4).toFixed(1)
-            speedDisplay = `${currentSpeed} kts`
-            step = Math.random() * 0.25 + 0.1
+          if (mode === 'land') {
+            speedKmH = Math.floor(76 + Math.random() * 8) // 76 - 84 km/h normal car/truck highway speed
+            speedDisplay = `${speedKmH} km/h (Normal Driving Speed)`
+          } else if (mode === 'sea') {
+            speedKmH = 38
+            const currentSpeed = (20.0 + Math.random() * 1.5).toFixed(1)
+            speedDisplay = `${currentSpeed} kts (Ocean Linehaul)`
           } else {
             // Air
-            const currentSpeed = Math.floor(830 + Math.random() * 50)
-            const currentAlt = Math.floor(34000 + Math.random() * 4000)
-            speedDisplay = `${currentSpeed} km/h`
+            speedKmH = 850
+            const currentSpeed = Math.floor(840 + Math.random() * 20)
+            const currentAlt = Math.floor(34000 + Math.random() * 1000)
+            speedDisplay = `${currentSpeed} km/h (Air Corridor FL345)`
             altitudeDisplay = `${currentAlt} ft`
-            step = Math.random() * 0.5 + 0.3
           }
 
-          const nextPct = Math.min(100, curPct + step)
+          // Distance covered in 4 seconds at this normal speed
+          const distIncrementKm = (speedKmH * 4) / 3600
+          const stepPct = (distIncrementKm / totalKm) * 100
+
+          const nextPct = Math.min(99.5, curPct + stepPct)
 
           // Interpolate lat / lng along origin -> destination corridor strictly from progress percentage
           const lat = shipment.origin.lat + (shipment.destination.lat - shipment.origin.lat) * (nextPct / 100)
@@ -1247,16 +1266,14 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
 
           setTelemetryPackets((pkts) => [packet, ...pkts.slice(0, 49)])
 
-          const isNowDelivered = nextPct >= 100
+          const isNowDelivered = nextPct >= 99.5
 
           return {
             ...shipment,
-            progressPct: Math.round(nextPct * 10) / 10,
+            progressPct: Math.round(nextPct * 100) / 100,
             status: isNowDelivered ? ('delivered' as ShipmentStatus) : shipment.status,
             statusNote: isNowDelivered
               ? 'Consignment arrived at destination terminal and cleared final receipt.'
-              : shipment.mode === 'land'
-              ? `En route overland corridor at ${speedDisplay}. Telemetry synchronized.`
               : `En route active corridor at ${speedDisplay}. Telemetry synchronized.`,
             currentLocation: {
               name: isNowDelivered

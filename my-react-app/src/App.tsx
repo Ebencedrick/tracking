@@ -14,6 +14,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { ShipmentProvider, useShipments } from './context/ShipmentContext'
 import type { ShippingMode, Shipment } from './types'
 import { ClientLiveMap } from './components/ClientLiveMap'
+import { calculateRealtimeJourneyTelemetry } from './utils/mapApis'
 import { LiveSupportChat } from './components/LiveSupportChat'
 import { apiService } from './services/api'
 import { WaybillLabelModal } from './components/admin/WaybillLabelModal'
@@ -935,6 +936,7 @@ function TrackPage() {
   
   const localShipment = requestedWaybill ? getShipment(requestedWaybill) : undefined
   const matchedShipment = dbFetchedShipment || localShipment
+  const liveTelemetry = matchedShipment ? calculateRealtimeJourneyTelemetry(matchedShipment) : null
 
   // Fetch fresh shipment details directly from MongoDB Atlas when a waybill is searched
   useEffect(() => {
@@ -986,8 +988,8 @@ function TrackPage() {
     // Call immediately on mount/waybill change
     fetchLiveDatabaseRecord()
 
-    // 8-Second Live Auto-Refresh Polling
-    const pollTimer = setInterval(fetchLiveDatabaseRecord, 8000)
+    // 5-Second Live Auto-Refresh Polling for instant tracking updates
+    const pollTimer = setInterval(fetchLiveDatabaseRecord, 5000)
 
     return () => {
       isCancelled = true
@@ -1176,7 +1178,7 @@ function TrackPage() {
                 ⏱️ Hours & Time Covered
               </span>
               <strong style={{ display: 'block', fontSize: '1.2rem', color: '#f8fafc', marginTop: '4px' }}>
-                {matchedShipment.status === 'pending' ? '0h 00m' : matchedShipment.status === 'delivered' ? '18h 45m (Complete)' : '14h 20m Elapsed'}
+                {liveTelemetry?.hoursCoveredStr || (matchedShipment.status === 'pending' ? '0h 00m' : matchedShipment.status === 'delivered' ? 'Completed' : 'Calculating...')}
               </strong>
               <small style={{ fontSize: '0.74rem', color: '#64748b' }}>
                 Since departure at {matchedShipment.origin.code}
@@ -1197,10 +1199,10 @@ function TrackPage() {
                 ⏳ Time Remaining
               </span>
               <strong style={{ display: 'block', fontSize: '1.2rem', color: '#38bdf8', marginTop: '4px' }}>
-                {matchedShipment.status === 'delivered' ? '0h 00m (Arrived)' : matchedShipment.isMovementStopped ? 'Paused on Hold' : matchedShipment.status === 'pending' ? 'Awaiting Dispatch' : '2h 45m Left'}
+                {matchedShipment.isMovementStopped ? 'Paused on Hold' : liveTelemetry?.hoursRemainingStr || (matchedShipment.status === 'delivered' ? '0h 00m (Arrived)' : 'Calculating...')}
               </strong>
               <small style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                ETA: {matchedShipment.eta || 'Today, 04:28 PM'}
+                ETA: {matchedShipment.eta || liveTelemetry?.etaString || 'Calculated Live'}
               </small>
             </div>
 
@@ -1218,10 +1220,10 @@ function TrackPage() {
                 📍 Percentage Covered
               </span>
               <strong style={{ display: 'block', fontSize: '1.2rem', color: '#f59e0b', marginTop: '4px' }}>
-                {matchedShipment.status === 'delivered' ? '100% Completed' : matchedShipment.status === 'pending' ? '0% (Staged)' : `${matchedShipment.progressPct || 50}% Complete`}
+                {liveTelemetry ? `${Math.round(liveTelemetry.progressPct)}% Complete` : `${matchedShipment.progressPct || 0}% Complete`}
               </strong>
               <small style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                {matchedShipment.estimatedDistanceKm ? `${Math.round((matchedShipment.estimatedDistanceKm * (matchedShipment.progressPct || 50)) / 100).toLocaleString()} / ${matchedShipment.estimatedDistanceKm.toLocaleString()} km` : 'Calculated Live'}
+                {liveTelemetry ? `${liveTelemetry.coveredKm.toLocaleString()} / ${liveTelemetry.totalKm.toLocaleString()} km` : `${matchedShipment.estimatedDistanceKm || 0} km`}
               </small>
             </div>
 
@@ -1239,15 +1241,7 @@ function TrackPage() {
                 📡 Live Telemetry State
               </span>
               <strong style={{ display: 'block', fontSize: '1.2rem', color: matchedShipment.isMovementStopped ? '#ef4444' : '#818cf8', marginTop: '4px' }}>
-                {matchedShipment.isMovementStopped
-                  ? '0 km/h · Halted'
-                  : matchedShipment.status === 'pending'
-                  ? '0 km/h · Staged'
-                  : matchedShipment.mode === 'air'
-                  ? '850 km/h · FL345'
-                  : matchedShipment.mode === 'sea'
-                  ? '22.4 kts · Sea Level'
-                  : '80 km/h · Highway Driving'}
+                {matchedShipment.isMovementStopped ? '0 km/h · Halted' : liveTelemetry?.speedDisplay || '80 km/h · Highway Driving'}
               </strong>
               <small style={{ fontSize: '0.74rem', color: '#64748b' }}>
                 Vehicle: {matchedShipment.vehicleId || 'Linehaul Unit'}
@@ -1300,14 +1294,14 @@ function TrackPage() {
                 <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>
                     <span>Corridor Transit Progress</span>
-                    <strong style={{ color: '#38bdf8' }}>{matchedShipment.progressPct || (matchedShipment.status === 'pending' ? 0 : matchedShipment.status === 'delivered' ? 100 : 50)}%</strong>
+                    <strong style={{ color: '#38bdf8' }}>{liveTelemetry ? Math.round(liveTelemetry.progressPct) : (matchedShipment.progressPct || (matchedShipment.status === 'pending' ? 0 : matchedShipment.status === 'delivered' ? 100 : 50))}%</strong>
                   </div>
                   <div style={{ height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
                     <div
                       style={{
                         height: '100%',
-                        width: `${matchedShipment.progressPct || (matchedShipment.status === 'pending' ? 0 : matchedShipment.status === 'delivered' ? 100 : 50)}%`,
-                        background: matchedShipment.isMovementStopped ? '#ef4444' : 'linear-gradient(90deg, #0284c7, #38bdf8)',
+                        width: `${liveTelemetry ? liveTelemetry.progressPct : (matchedShipment.progressPct || (matchedShipment.status === 'pending' ? 0 : matchedShipment.status === 'delivered' ? 100 : 50))}%`,
+                        background: matchedShipment.isMovementStopped ? '#ef4444' : 'linear-gradient(90deg, #0284c7, #38bdf8, #34d399)',
                         borderRadius: '3px',
                         transition: 'width 0.6s ease',
                       }}
@@ -1317,7 +1311,7 @@ function TrackPage() {
 
                 <div className="tracking-route-footer" style={{ marginTop: '0.75rem' }}>
                   <span>Estimated Delivery Schedule (ETA)</span>
-                  <strong style={{ color: '#38bdf8' }}>{matchedShipment.eta}</strong>
+                  <strong style={{ color: '#38bdf8' }}>{matchedShipment.eta || liveTelemetry?.etaString || 'Calculated Live'}</strong>
                 </div>
               </article>
 
