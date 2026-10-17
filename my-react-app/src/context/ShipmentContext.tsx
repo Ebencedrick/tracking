@@ -15,7 +15,9 @@ import {
   calculateHaversineDistance,
   getShipmentDistanceKm,
   calculateDynamicETA,
+  generateCurvedFlightArc,
 } from '../utils/mapApis'
+import { ALT_70568_884_ROUTE } from '../data/atlastrackRoute'
 
 interface ShipmentContextType {
   shipments: Shipment[]
@@ -196,6 +198,110 @@ const INITIAL_HUB_NODES: HubNode[] = [
 
 const INITIAL_SHIPMENTS: Shipment[] = [
   {
+    id: 's-alt',
+    waybill: 'ALT-70568-884',
+    carrier: 'AtlasTrack Logistics',
+    carrierCode: 'ALT',
+    mode: 'land',
+    origin: {
+      name: '1401, North Rainbow Boulevard, Michael Way, Las Vegas, NV',
+      code: 'LAS',
+      lat: 36.186548,
+      lng: -115.24238,
+    },
+    destination: {
+      name: '15418, Klamath Street, La Puente, CA',
+      code: 'LAX',
+      lat: 34.0383332,
+      lng: -117.9488263,
+    },
+    currentLocation: {
+      name: 'Interstate 15 Highway Transit Corridor (Mojave Desert)',
+      lat: 35.15,
+      lng: -116.5,
+    },
+    status: 'in_transit',
+    statusNote: 'Active linehaul transit via Interstate 15 Southwest corridor',
+    weightKg: 42.5,
+    packageCount: 1,
+    declaredValue: 2850,
+    clientReference: 'ALT-2026-70568',
+    clientName: 'AtlasTrack Overland Logistics',
+    clientEmail: 'dispatch@atlastracklogistics.com',
+    clientId: 'u2',
+    rate: 285.0,
+    eta: 'Today, 06:45 PM',
+    createdAt: new Date(Date.now() - 3600000 * 3.5).toISOString(),
+    assignedDriver: 'M. Vance (Truck #884)',
+    vehicleId: 'Freightliner Cascadia / Unit #884',
+    telemetryActive: true,
+    progressPct: 48,
+    estimatedDistanceKm: 435,
+    serviceTier: 'EXPEDITED GROUND LINEHAUL',
+    isCustomerBooking: true,
+    isMovementStopped: false,
+    routePolyline: ALT_70568_884_ROUTE,
+    checkpoints: [
+      {
+        id: 'alt-cp-1',
+        title: 'Shipment accepted & manifest generated',
+        detail: 'Dispatched from Las Vegas Regional Sorting Facility',
+        location: '1401 N Rainbow Blvd, Las Vegas, NV',
+        time: 'Today · 09:15',
+        timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
+        lat: 36.186548,
+        lng: -115.24238,
+        eventType: 'booked',
+        status: 'pending',
+        completed: true,
+      },
+      {
+        id: 'alt-cp-2',
+        title: 'Loaded onto linehaul trailer #884',
+        detail: 'Pre-trip telemetry verification complete, departing Nevada weigh station',
+        location: 'Michael Way Hub, Las Vegas, NV',
+        time: 'Today · 10:45',
+        timestamp: new Date(Date.now() - 3600000 * 3.5).toISOString(),
+        lat: 36.186548,
+        lng: -115.24238,
+        eventType: 'pickup',
+        status: 'in_transit',
+        completed: true,
+      },
+      {
+        id: 'alt-cp-3',
+        title: 'In transit via I-15 South Corridor',
+        detail: 'Cruising at 80 km/h en route to Greater Los Angeles terminal',
+        location: 'I-15 Corridor / Mojave Gateway',
+        time: 'Today · 12:30',
+        timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString(),
+        lat: 35.15,
+        lng: -116.5,
+        eventType: 'in_transit',
+        status: 'in_transit',
+        completed: true,
+        current: true,
+      },
+      {
+        id: 'alt-cp-4',
+        title: 'Scheduled destination terminal arrival',
+        detail: 'Intake and priority delivery to Klamath Street facility',
+        location: '15418 Klamath St, La Puente, CA',
+        time: 'Today · 18:45 (Est.)',
+        timestamp: new Date(Date.now() + 3600000 * 3).toISOString(),
+        lat: 34.0383332,
+        lng: -117.9488263,
+        eventType: 'out_for_delivery',
+        status: 'delivered',
+        completed: false,
+      },
+    ],
+    documents: [
+      { id: 'alt-d1', name: 'Bill of Lading (BOL-70568)', type: 'label', size: '210 KB', date: 'Today' },
+      { id: 'alt-d2', name: 'Carrier Freight Manifest', type: 'invoice', size: '380 KB', date: 'Today' },
+    ],
+  },
+  {
     id: 's0',
     waybill: 'PLOT-70955-JFD',
     carrier: 'DHL Express',
@@ -224,6 +330,7 @@ const INITIAL_SHIPMENTS: Shipment[] = [
     serviceTier: 'PRIORITY EXPRESS',
     isCustomerBooking: true,
     isMovementStopped: false,
+    routePolyline: generateCurvedFlightArc([40.6413, -73.7781], [51.4700, -0.4543], 80),
     checkpoints: [
       {
         id: 'cp-01',
@@ -693,7 +800,29 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
   const [shipments, setShipments] = useState<Shipment[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SHIPMENTS)
-      return saved ? JSON.parse(saved) : INITIAL_SHIPMENTS
+      if (saved) {
+        const parsed: Shipment[] = JSON.parse(saved)
+        const upgraded = parsed.map((s) => {
+          if (s.waybill === 'ALT-70568-884' && (!s.routePolyline || s.routePolyline.length < 10)) {
+            return { ...s, routePolyline: ALT_70568_884_ROUTE }
+          }
+          if (!s.routePolyline || s.routePolyline.length < 2) {
+            const start: [number, number] = [s.origin?.lat || 40.6413, s.origin?.lng || -73.7781]
+            const end: [number, number] = [s.destination?.lat || 51.47, s.destination?.lng || -0.4543]
+            return {
+              ...s,
+              routePolyline: generateCurvedFlightArc(start, end, 80),
+            }
+          }
+          return s
+        })
+        if (!upgraded.some((s) => s.waybill === 'ALT-70568-884')) {
+          const altShipment = INITIAL_SHIPMENTS.find((s) => s.waybill === 'ALT-70568-884')
+          if (altShipment) upgraded.unshift(altShipment)
+        }
+        return upgraded
+      }
+      return INITIAL_SHIPMENTS
     } catch {
       return INITIAL_SHIPMENTS
     }
@@ -961,6 +1090,7 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
       estimatedDistanceKm: distKm,
       serviceTier: data.serviceTier || 'STANDARD',
       isCustomerBooking: data.isCustomerBooking ?? true,
+      routePolyline: data.routePolyline || generateCurvedFlightArc([origin.lat, origin.lng], [destination.lat, destination.lng], 80),
       checkpoints: (data.checkpoints && data.checkpoints.length > 0) ? data.checkpoints : [
         {
           id: `cp-init-${Date.now()}`,

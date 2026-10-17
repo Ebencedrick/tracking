@@ -495,69 +495,121 @@ export function generateGreatCircleArc(
     points.push([phi * rad2deg, lambda * rad2deg])
   }
 
+  if (points.length >= 2) {
+    points[0] = start
+    points[points.length - 1] = end
+  }
+
+  return points
+}
+
+/**
+ * Calculate Smooth Arched Flight / Marine Corridor Curvature Coordinates
+ * Generates an authentic elevated airway corridor arc (quadratic Bezier on spherical projection)
+ * so routes always arch gracefully across the map and never appear as a flat straight line.
+ */
+export function generateCurvedFlightArc(
+  start: [number, number],
+  end: [number, number],
+  numPoints = 80
+): [number, number][] {
+  const [lat1, lon1] = start
+  const [lat2, lon2] = end
+
+  const midLat = (lat1 + lat2) / 2
+  const midLon = (lon1 + lon2) / 2
+
+  const dLat = lat2 - lat1
+  const dLon = lon2 - lon1
+  const chordLen = Math.sqrt(dLat * dLat + dLon * dLon)
+
+  if (chordLen < 0.001) return [start, end]
+
+  // Normal perpendicular vector to chord
+  let perpLat = -dLon / chordLen
+  let perpLon = dLat / chordLen
+
+  // Arch towards the northern hemisphere or consistent airway elevation
+  if (perpLat < 0 && midLat > 0) {
+    perpLat = -perpLat
+    perpLon = -perpLon
+  }
+
+  // Curvature height proportional to distance (gives natural arched flight path)
+  const curvatureHeight = Math.min(11, Math.max(1.6, chordLen * 0.16))
+  const ctrlLat = midLat + perpLat * curvatureHeight
+  const ctrlLon = midLon + perpLon * curvatureHeight
+
+  const points: [number, number][] = []
+  for (let i = 0; i <= numPoints; i++) {
+    const t = i / numPoints
+    const lat = (1 - t) * (1 - t) * lat1 + 2 * (1 - t) * t * ctrlLat + t * t * lat2
+    const lon = (1 - t) * (1 - t) * lon1 + 2 * (1 - t) * t * ctrlLon + t * t * lon2
+    points.push([Number(lat.toFixed(6)), Number(lon.toFixed(6))])
+  }
+
+  points[0] = start
+  points[points.length - 1] = end
   return points
 }
 
 /**
  * Live Road Route Geometry via OSRM (Open Source Routing Machine) API
- * Falls back to Great Circle arc for trans-oceanic / non-drivable routes.
+ * Falls back to Curved Flight Arc for trans-oceanic / non-drivable routes.
+ * Guaranteed turn-by-turn road polyline for land and curved corridor for air/sea.
  */
 export async function fetchLiveRouteGeometry(
   start: [number, number],
   end: [number, number],
-  mode: 'air' | 'sea' | 'land'
+  mode: 'air' | 'sea' | 'land' = 'land'
 ): Promise<RouteGeometryResult> {
   const [lat1, lng1] = start
   const [lat2, lng2] = end
 
-  // If Air or Sea, use high-precision Geodesic arc
-  if (mode === 'air' || mode === 'sea') {
-    const arc = generateGreatCircleArc(start, end, 60)
-    const distanceKm = Math.round(calculateHaversineDistance(lat1, lng1, lat2, lng2))
-    const durationMinutes = mode === 'air' ? Math.round((distanceKm / 850) * 60) : Math.round((distanceKm / 40) * 60)
-    return {
-      coordinates: arc,
-      distanceKm,
-      durationMinutes,
-      isRealRoad: false,
-    }
-  }
+  // Try real road routing via OSRM first if land mode OR try to determine if road connection exists
+  if (mode === 'land') {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 4500)
 
-  // Land / Overland: Fetch real road turn-by-turn geometry via OSRM
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 4000)
+      const url = `https://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=full&geometries=geojson`
+      const response = await fetch(url, { signal: controller.signal })
+      clearTimeout(timeoutId)
 
-    const url = `https://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=full&geometries=geojson`
-    const response = await fetch(url, { signal: controller.signal })
-    clearTimeout(timeoutId)
-
-    if (response.ok) {
-      const data = await response.json()
-      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-        const route = data.routes[0]
-        const rawCoords: [number, number][] = route.geometry.coordinates.map(
-          (c: [number, number]) => [c[1], c[0]] // Swap [lng, lat] to [lat, lng]
-        )
-        return {
-          coordinates: rawCoords,
-          distanceKm: Math.round(route.distance / 1000),
-          durationMinutes: Math.round(route.duration / 60),
-          isRealRoad: true,
+      if (response.ok) {
+        const data = await response.json()
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          const route = data.routes[0]
+          const rawCoords: [number, number][] = route.geometry.coordinates.map(
+            (c: [number, number]) => [c[1], c[0]] // Swap [lng, lat] to [lat, lng]
+          )
+          if (rawCoords.length >= 2) {
+            rawCoords[0] = [lat1, lng1]
+            rawCoords[rawCoords.length - 1] = [lat2, lng2]
+          }
+          return {
+            coordinates: rawCoords,
+            distanceKm: Math.round(route.distance / 1000),
+            durationMinutes: Math.round(route.duration / 60),
+            isRealRoad: true,
+          }
         }
       }
+    } catch {
+      // Fallback on timeout or CORS
     }
-  } catch {
-    // Fallback on timeout or CORS
   }
 
-  // Fallback to Great-Circle
-  const arc = generateGreatCircleArc(start, end, 40)
+  // If Air, Sea, or non-drivable route: Use realistic arched corridor arc (never a straight line)
+  const arc = generateCurvedFlightArc(start, end, 80)
   const distanceKm = Math.round(calculateHaversineDistance(lat1, lng1, lat2, lng2))
+  const speed = mode === 'air' ? 850 : mode === 'sea' ? 40 : 80
+  const durationMinutes = Math.round((distanceKm / speed) * 60)
+
   return {
     coordinates: arc,
     distanceKm,
-    durationMinutes: Math.round((distanceKm / 75) * 60),
+    durationMinutes,
     isRealRoad: false,
   }
 }

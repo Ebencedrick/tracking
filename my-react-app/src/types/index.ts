@@ -95,6 +95,8 @@ export interface Shipment {
   cargoType?: string
   bookingDate?: string
   estimatedDistanceKm?: number
+  routePolyline?: [number, number][]
+  returnRoutePolyline?: [number, number][]
 }
 
 

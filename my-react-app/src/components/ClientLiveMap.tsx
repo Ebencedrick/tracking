@@ -1,8 +1,22 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import L from 'leaflet'
+import {
+  Map as MapIcon,
+  Globe as GlobeIcon,
+  Compass as CompassIcon,
+  Crosshair as CrosshairIcon,
+  Maximize2 as RouteIcon,
+  Clock as ClockIcon,
+  Info as InfoIcon,
+  Radio as RadioIcon,
+  Plane as PlaneIcon,
+  Ship as ShipIcon,
+  Truck as TruckIcon,
+} from 'lucide-react'
 import type { Shipment } from '../types'
 import {
   fetchLiveRouteGeometry,
+  generateCurvedFlightArc,
   calculateDynamicETA,
   calculateRealtimeJourneyTelemetry,
   getShipmentDistanceKm,
@@ -11,6 +25,29 @@ import {
   MAP_TILE_PROVIDERS,
   type MapTileKey,
 } from '../utils/mapApis'
+
+function getVehicleIconSvg(mode: string = 'land') {
+  if (mode === 'air') {
+    return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z"/>
+    </svg>`
+  }
+  if (mode === 'sea') {
+    return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>
+      <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/>
+      <path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/>
+      <path d="M12 10V2"/>
+    </svg>`
+  }
+  return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
+    <path d="M15 18H9"/>
+    <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
+    <circle cx="17" cy="18.5" r="2.5"/>
+    <circle cx="7" cy="18.5" r="2.5"/>
+  </svg>`
+}
 
 interface ClientLiveMapProps {
   shipment: Shipment
@@ -22,14 +59,19 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
   const mapInstanceRef = useRef<L.Map | null>(null)
   const tileLayerRef = useRef<L.TileLayer | null>(null)
   const markersLayerRef = useRef<L.LayerGroup | null>(null)
+  const baseCorridorPolylineRef = useRef<L.Polyline | null>(null)
   const coveredPolylineRef = useRef<L.Polyline | null>(null)
   const remainingPolylineRef = useRef<L.Polyline | null>(null)
   const vehicleMarkerRef = useRef<L.Marker | null>(null)
 
-  const [activeTileKey, setActiveTileKey] = useState<MapTileKey>('voyager')
-  const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([])
+  const [activeTileKey] = useState<MapTileKey>('satellite')
+  const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>(() => {
+    if (shipment.routePolyline && shipment.routePolyline.length >= 2) {
+      return shipment.routePolyline
+    }
+    return []
+  })
   const [showMobileDetails, setShowMobileDetails] = useState(false)
-  const [layerDropdownOpen, setLayerDropdownOpen] = useState(false)
 
   // Calculate base metrics
   const totalDistanceKm = useMemo(() => getShipmentDistanceKm(shipment), [shipment])
@@ -48,9 +90,6 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
 
   const [bearingAngle, setBearingAngle] = useState<number>(0)
   const [bearingCardinal, setBearingCardinal] = useState<string>('072° ENE')
-
-  // Mode Emoji
-  const modeEmoji = shipment.mode === 'air' ? '✈️' : shipment.mode === 'sea' ? '🚢' : '🚚'
 
   // 1. Initialize Map Container
   useEffect(() => {
@@ -111,8 +150,14 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
     tileLayerRef.current = nextLayer
   }, [activeTileKey])
 
-  // 3. Fetch Full Corridor Route Geometry (OSRM / Great-Circle Arc)
+  // 3. Fetch Full Corridor Route Geometry (OSRM real road turn-by-turn or curved flight arc)
   useEffect(() => {
+    // If the shipment already has a full precomputed route polyline, use it immediately
+    if (shipment.routePolyline && shipment.routePolyline.length >= 2) {
+      setRouteCoordinates(shipment.routePolyline)
+      return
+    }
+
     let isCancelled = false
 
     const startCoord: [number, number] = [
@@ -132,7 +177,15 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
     return () => {
       isCancelled = true
     }
-  }, [shipment])
+  }, [
+    shipment.waybill,
+    shipment.routePolyline,
+    shipment.origin?.lat,
+    shipment.origin?.lng,
+    shipment.destination?.lat,
+    shipment.destination?.lng,
+    shipment.mode,
+  ])
 
   // 4. Render Route Polylines and Waypoint Markers
   useEffect(() => {
@@ -141,6 +194,10 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
     if (!map || !markersGroup || !shipment) return
 
     markersGroup.clearLayers()
+    if (baseCorridorPolylineRef.current) {
+      map.removeLayer(baseCorridorPolylineRef.current)
+      baseCorridorPolylineRef.current = null
+    }
     if (coveredPolylineRef.current) {
       map.removeLayer(coveredPolylineRef.current)
       coveredPolylineRef.current = null
@@ -158,155 +215,182 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
     const startCoord: [number, number] = [startLat, startLng]
     const destCoord: [number, number] = [destLat, destLng]
 
-    // Start Marker (Origin Pin)
+    // Start Marker (Origin Pin - Small & Clean)
     const startIcon = L.divIcon({
       className: 'live-map-custom-marker-start',
       html: `
         <div style="
-          width: 18px;
-          height: 18px;
+          width: 12px;
+          height: 12px;
           background-color: #10b981;
-          border: 2px solid #ffffff;
+          border: 1.5px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+          box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
           position: relative;
         ">
           <div class="live-map-pin-label" style="
             position: absolute;
-            top: -22px;
+            top: -18px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.95);
-            color: #34d399;
-            font-weight: 700;
-            font-size: 9px;
-            padding: 1px 5px;
-            border-radius: 4px;
+            background: rgba(15, 23, 42, 0.92);
+            color: #6ee7b7;
+            font-weight: 300;
+            font-size: 8.5px;
+            letter-spacing: 0.04em;
+            padding: 1px 4px;
+            border-radius: 3px;
             white-space: nowrap;
-            border: 1px solid rgba(52, 211, 153, 0.4);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+            border: 1px solid rgba(52, 211, 153, 0.3);
             pointer-events: none;
           ">${shipment.origin.code || 'DEP'}</div>
         </div>
       `,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9],
+      iconSize: [12, 12],
+      iconAnchor: [6, 6],
     })
 
-    // Destination Marker (Destination Pin)
+    // Destination Marker (Destination Pin - Small & Clean)
     const destIcon = L.divIcon({
       className: 'live-map-custom-marker-dest',
       html: `
         <div style="
-          width: 18px;
-          height: 18px;
-          background-color: #ef4444;
-          border: 2px solid #ffffff;
+          width: 12px;
+          height: 12px;
+          background-color: #f43f5e;
+          border: 1.5px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+          box-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
           position: relative;
         ">
           <div class="live-map-pin-label" style="
             position: absolute;
-            top: -22px;
+            top: -18px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.95);
-            color: #f87171;
-            font-weight: 700;
-            font-size: 9px;
-            padding: 1px 5px;
-            border-radius: 4px;
+            background: rgba(15, 23, 42, 0.92);
+            color: #fda4af;
+            font-weight: 300;
+            font-size: 8.5px;
+            letter-spacing: 0.04em;
+            padding: 1px 4px;
+            border-radius: 3px;
             white-space: nowrap;
-            border: 1px solid rgba(248, 113, 113, 0.4);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+            border: 1px solid rgba(244, 63, 94, 0.3);
             pointer-events: none;
           ">${shipment.destination.code || 'ARR'}</div>
         </div>
       `,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9],
+      iconSize: [12, 12],
+      iconAnchor: [6, 6],
     })
 
     L.marker(startCoord, { icon: startIcon })
       .addTo(markersGroup)
-      .bindPopup(`<b>Origin Hub:</b> ${shipment.origin.name}<br>Lat: ${startLat.toFixed(4)}, Lng: ${startLng.toFixed(4)}`)
+      .bindPopup(`
+        <div style="font-family: inherit; font-size: 11px; line-height: 1.5; color: #334155; font-weight: 300;">
+          <div style="color: #10b981; font-size: 11px; font-weight: 400; margin-bottom: 2px; letter-spacing: 0.02em;">ORIGIN HUB</div>
+          <div><span style="color: #64748b; font-weight: 300;">Location:</span> <span style="color: #0f172a; font-weight: 400;">${shipment.origin.name}</span></div>
+          <div><span style="color: #64748b; font-weight: 300;">GPS:</span> <span style="color: #0f172a; font-weight: 400;">${startLat.toFixed(3)}°, ${startLng.toFixed(3)}°</span></div>
+        </div>
+      `)
 
     L.marker(destCoord, { icon: destIcon })
       .addTo(markersGroup)
-      .bindPopup(`<b>Destination Hub:</b> ${shipment.destination.name}<br>Lat: ${destLat.toFixed(4)}, Lng: ${destLng.toFixed(4)}`)
+      .bindPopup(`
+        <div style="font-family: inherit; font-size: 11px; line-height: 1.5; color: #334155; font-weight: 300;">
+          <div style="color: #f43f5e; font-size: 11px; font-weight: 400; margin-bottom: 2px; letter-spacing: 0.02em;">DESTINATION HUB</div>
+          <div><span style="color: #64748b; font-weight: 300;">Location:</span> <span style="color: #0f172a; font-weight: 400;">${shipment.destination.name}</span></div>
+          <div><span style="color: #64748b; font-weight: 300;">GPS:</span> <span style="color: #0f172a; font-weight: 400;">${destLat.toFixed(3)}°, ${destLng.toFixed(3)}°</span></div>
+        </div>
+      `)
 
-    // Initial Path rendering
+    // Realistic curved/road route coordinates (never a straight line)
     const rawCoords =
-      routeCoordinates.length > 0
+      routeCoordinates.length >= 2
         ? routeCoordinates
-        : ([startCoord, [liveCoords.lat, liveCoords.lng], destCoord] as [number, number][])
+        : (shipment.routePolyline && shipment.routePolyline.length >= 2
+            ? shipment.routePolyline
+            : generateCurvedFlightArc(startCoord, destCoord, 80))
 
     const fraction = currentProgressPct / 100
     const interp = interpolatePositionAlongRoute(rawCoords, fraction)
 
-    // Covered path (solid cyan/blue)
+    // Base corridor route line (subtle guiding track along the realistic curve)
+    const baseCorridorLine = L.polyline(rawCoords as L.LatLngTuple[], {
+      color: '#63d72a',
+      weight: 2,
+      opacity: 0.22,
+      smoothFactor: 1.2,
+      lineCap: 'round',
+      lineJoin: 'round',
+    }).addTo(map)
+    baseCorridorPolylineRef.current = baseCorridorLine
+
+    // Covered path (solid vibrant AtlasTrack green along actual road/arc curve)
     const coveredLine = L.polyline(interp.coveredCoordinates as L.LatLngTuple[], {
-      color: shipment.isMovementStopped ? '#ea580c' : '#0284c7',
+      color: shipment.isMovementStopped ? '#ea580c' : '#63d72a',
       weight: 4,
-      opacity: 0.9,
+      opacity: 0.95,
+      smoothFactor: 1.2,
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(map)
     coveredPolylineRef.current = coveredLine
 
-    // Remaining path (dashed ahead)
+    // Remaining path (dashed ahead along actual road/arc curve)
     const remainingLine = L.polyline(interp.remainingCoordinates as L.LatLngTuple[], {
-      color: shipment.isMovementStopped ? '#ea580c' : '#38bdf8',
+      color: shipment.isMovementStopped ? '#ea580c' : '#63d72a',
       weight: 3,
-      opacity: 0.6,
-      dashArray: '6, 8',
+      opacity: 0.55,
+      dashArray: '4, 8',
+      smoothFactor: 1.2,
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(map)
     remainingPolylineRef.current = remainingLine
 
-    // Vehicle Marker Icon
+    // Vehicle Marker Icon (Small, Crisp SVG, Smooth Rotation)
     const vehicleIcon = L.divIcon({
       className: 'live-map-custom-marker-vehicle',
       html: `
         <div id="vehicle-marker-wrapper" style="
-          width: 36px;
-          height: 36px;
-          background: ${shipment.isMovementStopped ? 'linear-gradient(135deg, #c2410c, #ea580c)' : 'linear-gradient(135deg, #0369a1, #0284c7)'};
-          border: 2px solid #ffffff;
+          width: 24px;
+          height: 24px;
+          background: ${shipment.isMovementStopped ? 'linear-gradient(135deg, #c2410c, #ea580c)' : 'linear-gradient(135deg, #15803d, #22c55e)'};
+          border: 1.5px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 0 16px ${shipment.isMovementStopped ? 'rgba(234, 88, 12, 0.9)' : 'rgba(2, 132, 199, 0.9)'}, 0 2px 8px rgba(0,0,0,0.5);
+          box-shadow: 0 0 10px ${shipment.isMovementStopped ? 'rgba(234, 88, 12, 0.7)' : 'rgba(34, 197, 94, 0.7)'}, 0 2px 6px rgba(0,0,0,0.4);
           position: relative;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 17px;
-          transition: transform 0.4s ease;
         ">
-          <span id="vehicle-emoji-rotator" style="display:inline-block; transform: rotate(${interp.bearingAngle}deg); transition: transform 0.4s ease;">${modeEmoji}</span>
+          <span id="vehicle-icon-rotator" style="display:inline-flex; align-items:center; justify-content:center; transform: rotate(${interp.bearingAngle}deg); transition: transform 0.45s ease-out;">
+            ${getVehicleIconSvg(shipment.mode)}
+          </span>
           <div style="
             position: absolute;
-            inset: -5px;
-            border: 2px solid ${shipment.isMovementStopped ? '#ea580c' : '#38bdf8'};
+            inset: -3px;
+            border: 1px solid ${shipment.isMovementStopped ? '#ea580c' : '#63d72a'};
             border-radius: 50%;
-            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            animation: pulse-ring 2.2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
           "></div>
         </div>
       `,
-      iconSize: [36, 36],
-      iconAnchor: [18, 18],
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
     })
 
     const vMarker = L.marker([interp.lat, interp.lng], { icon: vehicleIcon })
       .addTo(markersGroup)
       .bindPopup(`
-        <div style="font-family: inherit; font-size: 12px; line-height: 1.4;">
-          <strong style="color: #0284c7; font-size: 13px;">${shipment.carrier} (${shipment.waybill})</strong><br>
-          <b>Location:</b> ${shipment.currentLocation?.name || 'In Corridor'}<br>
-          <b>Speed:</b> ${liveSpeedDisplay}<br>
-          <b>Status:</b> ${shipment.status.toUpperCase()} (${Math.round(currentProgressPct)}%)<br>
-          <b>ETA:</b> ${shipment.eta || dynamicEtaString}
+        <div style="font-family: inherit; font-size: 11px; line-height: 1.5; color: #334155; font-weight: 300; min-width: 170px;">
+          <div style="color: #0284c7; font-size: 11px; font-weight: 400; margin-bottom: 2px; letter-spacing: 0.02em;">${shipment.carrier} · ${shipment.waybill}</div>
+          <div><span style="color: #64748b; font-weight: 300;">Location:</span> <span style="color: #0f172a; font-weight: 400;">${shipment.currentLocation?.name || 'In Corridor'}</span></div>
+          <div><span style="color: #64748b; font-weight: 300;">Speed:</span> <span style="color: #0f172a; font-weight: 400;">${liveSpeedDisplay}</span></div>
+          <div><span style="color: #64748b; font-weight: 300;">Status:</span> <span style="color: #0f172a; font-weight: 400;">${shipment.status.toUpperCase()} (${Math.round(currentProgressPct)}%)</span></div>
+          <div><span style="color: #64748b; font-weight: 300;">ETA:</span> <span style="color: #0f172a; font-weight: 400;">${shipment.eta || dynamicEtaString}</span></div>
         </div>
       `)
 
@@ -388,7 +472,7 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
         // Update Vehicle Marker Position & Bearing
         if (vehicleMarkerRef.current) {
           vehicleMarkerRef.current.setLatLng([interp.lat, interp.lng])
-          const rotElement = document.getElementById('vehicle-emoji-rotator')
+          const rotElement = document.getElementById('vehicle-icon-rotator')
           if (rotElement) {
             rotElement.style.transform = `rotate(${interp.bearingAngle}deg)`
           }
@@ -461,74 +545,55 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span
               style={{
-                width: '8px',
-                height: '8px',
+                width: '7px',
+                height: '7px',
                 borderRadius: '50%',
                 backgroundColor: shipment.isMovementStopped ? '#ea580c' : '#10b981',
-                boxShadow: shipment.isMovementStopped ? '0 0 10px #ea580c' : '0 0 10px #10b981',
+                boxShadow: shipment.isMovementStopped ? '0 0 8px #ea580c' : '0 0 8px #10b981',
               }}
             />
             <span
               style={{
                 fontSize: '11px',
-                fontWeight: 700,
+                fontWeight: 400,
                 color: shipment.isMovementStopped ? '#fdba74' : '#6ee7b7',
-                letterSpacing: '0.5px',
+                letterSpacing: '0.04em',
                 textTransform: 'uppercase',
               }}
             >
-              {shipment.isMovementStopped ? 'HOLD ACTIVE' : 'LIVE GPS ACTIVE'}
+              {shipment.isMovementStopped ? 'HOLD ACTIVE' : 'LIVE GPS'}
             </span>
           </div>
 
           <span className="live-map-hud-divider">|</span>
 
-          <div style={{ fontSize: '11px', color: '#e2e8f0' }}>
+          <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: 300 }}>
             <span style={{ color: '#94a3b8' }}>Speed:</span>{' '}
-            <strong style={{ color: '#38bdf8' }}>{liveSpeedDisplay}</strong>
+            <span style={{ color: '#38bdf8', fontWeight: 400 }}>{liveSpeedDisplay}</span>
           </div>
 
           <span className="live-map-hud-divider">|</span>
 
-          <div style={{ fontSize: '11px', color: '#e2e8f0' }}>
+          <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: 300 }}>
             <span style={{ color: '#94a3b8' }}>Heading:</span>{' '}
-            <strong style={{ color: '#f1f5f9' }}>{bearingCardinal}</strong>
+            <span style={{ color: '#f1f5f9', fontWeight: 400 }}>{bearingCardinal}</span>
           </div>
 
           <span className="live-map-hud-divider">|</span>
 
-          <div style={{ fontSize: '11px', color: '#e2e8f0' }}>
+          <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: 300 }}>
             <span style={{ color: '#94a3b8' }}>Coords:</span>{' '}
-            <strong style={{ color: '#f1f5f9' }}>
+            <span style={{ color: '#f1f5f9', fontWeight: 400 }}>
               {liveCoords.lat.toFixed(2)}°N, {liveCoords.lng.toFixed(2)}°E
-            </strong>
+            </span>
           </div>
         </div>
 
-        {/* Right Controls: Layer Switcher & Fly Buttons */}
+        {/* Right Controls: Satellite Badge & Fly Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div className="live-map-layer-selector">
-            <button
-              type="button"
-              onClick={() => setActiveTileKey('voyager')}
-              className={`live-map-layer-btn ${activeTileKey === 'voyager' ? 'active' : ''}`}
-            >
-              🗺️ Street
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTileKey('satellite')}
-              className={`live-map-layer-btn ${activeTileKey === 'satellite' ? 'active' : ''}`}
-            >
-              🛰️ Satellite
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTileKey('dark')}
-              className={`live-map-layer-btn ${activeTileKey === 'dark' ? 'active' : ''}`}
-            >
-              🌙 Radar
-            </button>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#94a3b8', background: 'rgba(15, 23, 42, 0.92)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '6px', padding: '4px 8px', fontWeight: 300 }}>
+            <GlobeIcon size={11} strokeWidth={1.5} style={{ color: '#38bdf8' }} />
+            <span>Satellite</span>
           </div>
 
           <button
@@ -537,7 +602,8 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
             className="live-map-action-btn"
             title="Center Vehicle"
           >
-            <span>🎯</span> Center
+            <CrosshairIcon size={11} strokeWidth={1.5} />
+            Center
           </button>
 
           <button
@@ -546,7 +612,8 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
             className="live-map-action-btn"
             title="Fit Entire Route Corridor"
           >
-            <span>🗺️</span> Corridor
+            <RouteIcon size={11} strokeWidth={1.5} />
+            Corridor
           </button>
         </div>
       </div>
@@ -564,21 +631,28 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
         >
           <span
             style={{
-              width: '7px',
-              height: '7px',
+              width: '6px',
+              height: '6px',
               borderRadius: '50%',
               backgroundColor: shipment.isMovementStopped ? '#ea580c' : '#10b981',
-              boxShadow: shipment.isMovementStopped ? '0 0 8px #ea580c' : '0 0 8px #10b981',
+              boxShadow: shipment.isMovementStopped ? '0 0 6px #ea580c' : '0 0 6px #10b981',
             }}
           />
-          <span style={{ fontWeight: 700, color: shipment.isMovementStopped ? '#fdba74' : '#6ee7b7' }}>
+          <span style={{ fontWeight: 400, color: shipment.isMovementStopped ? '#fdba74' : '#6ee7b7', fontSize: '10px' }}>
             {shipment.isMovementStopped ? 'HOLD' : 'LIVE'}
           </span>
           <span style={{ color: 'rgba(255,255,255,0.3)' }}>•</span>
-          <span style={{ color: '#38bdf8', fontWeight: 600 }}>
-            {modeEmoji} {shipment.isMovementStopped ? '0 km/h' : shipment.status === 'pending' ? 'Staged' : '80 km/h'}
+          <span style={{ color: '#38bdf8', fontWeight: 300, display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10.5px' }}>
+            {shipment.mode === 'air' ? (
+              <PlaneIcon size={11} strokeWidth={1.5} />
+            ) : shipment.mode === 'sea' ? (
+              <ShipIcon size={11} strokeWidth={1.5} />
+            ) : (
+              <TruckIcon size={11} strokeWidth={1.5} />
+            )}
+            {shipment.isMovementStopped ? '0 km/h' : shipment.status === 'pending' ? 'Staged' : '80 km/h'}
           </span>
-          <span style={{ fontSize: '10px', color: '#94a3b8', marginLeft: '2px' }}>ℹ️</span>
+          <InfoIcon size={10} strokeWidth={1.5} style={{ color: '#94a3b8', marginLeft: '2px' }} />
         </button>
 
         {/* Floating Quick Action Buttons */}
@@ -589,7 +663,7 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
             className="live-map-mobile-icon-btn"
             title="Center Vehicle"
           >
-            🎯
+            <CrosshairIcon size={13} strokeWidth={1.5} />
           </button>
 
           <button
@@ -598,76 +672,33 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
             className="live-map-mobile-icon-btn"
             title="Fit Route Corridor"
           >
-            🗺️
+            <RouteIcon size={13} strokeWidth={1.5} />
           </button>
-
-          <div style={{ position: 'relative' }}>
-            <button
-              type="button"
-              onClick={() => setLayerDropdownOpen((prev) => !prev)}
-              className="live-map-mobile-icon-btn"
-              title="Change Map Tile"
-            >
-              🛰️
-            </button>
-            {layerDropdownOpen && (
-              <div className="live-map-mobile-layer-menu">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTileKey('voyager')
-                    setLayerDropdownOpen(false)
-                  }}
-                  className={activeTileKey === 'voyager' ? 'active' : ''}
-                >
-                  🗺️ Street
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTileKey('satellite')
-                    setLayerDropdownOpen(false)
-                  }}
-                  className={activeTileKey === 'satellite' ? 'active' : ''}
-                >
-                  🛰️ Satellite
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTileKey('dark')
-                    setLayerDropdownOpen(false)
-                  }}
-                  className={activeTileKey === 'dark' ? 'active' : ''}
-                >
-                  🌙 Radar
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
-      {/* Mobile Detailed Specs Drawer Modal (Optional Expansion) */}
+      {/* Mobile Detailed Specs Drawer Modal */}
       {showMobileDetails && (
         <div className="live-map-mobile-drawer">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <strong style={{ color: '#38bdf8', fontSize: '12px' }}>🛰️ Live Consignment Telemetry</strong>
+            <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 400, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <RadioIcon size={12} strokeWidth={1.5} /> Live Consignment Telemetry
+            </span>
             <button
               type="button"
               onClick={() => setShowMobileDetails(false)}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '14px', cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '13px', cursor: 'pointer' }}
             >
               ✕
             </button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11px' }}>
-            <div><span style={{ color: '#94a3b8' }}>Speed:</span> <strong style={{ color: '#f8fafc' }}>{liveSpeedDisplay}</strong></div>
-            <div><span style={{ color: '#94a3b8' }}>Heading:</span> <strong style={{ color: '#f8fafc' }}>{bearingCardinal}</strong></div>
-            <div><span style={{ color: '#94a3b8' }}>Vehicle:</span> <strong style={{ color: '#f8fafc' }}>{shipment.vehicleId || 'Linehaul 101'}</strong></div>
-            <div><span style={{ color: '#94a3b8' }}>Driver:</span> <strong style={{ color: '#f8fafc' }}>{shipment.assignedDriver || 'Assigned'}</strong></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11px', fontWeight: 300 }}>
+            <div><span style={{ color: '#94a3b8' }}>Speed:</span> <span style={{ color: '#f8fafc', fontWeight: 400 }}>{liveSpeedDisplay}</span></div>
+            <div><span style={{ color: '#94a3b8' }}>Heading:</span> <span style={{ color: '#f8fafc', fontWeight: 400 }}>{bearingCardinal}</span></div>
+            <div><span style={{ color: '#94a3b8' }}>Vehicle:</span> <span style={{ color: '#f8fafc', fontWeight: 400 }}>{shipment.vehicleId || 'Linehaul 101'}</span></div>
+            <div><span style={{ color: '#94a3b8' }}>Driver:</span> <span style={{ color: '#f8fafc', fontWeight: 400 }}>{shipment.assignedDriver || 'Assigned'}</span></div>
             <div style={{ gridColumn: 'span 2' }}>
-              <span style={{ color: '#94a3b8' }}>Coords:</span> <strong style={{ color: '#f8fafc' }}>{liveCoords.lat.toFixed(4)}°N, {liveCoords.lng.toFixed(4)}°E</strong>
+              <span style={{ color: '#94a3b8' }}>Coords:</span> <span style={{ color: '#f8fafc', fontWeight: 400 }}>{liveCoords.lat.toFixed(4)}°N, {liveCoords.lng.toFixed(4)}°E</span>
             </div>
           </div>
         </div>
@@ -680,26 +711,26 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
         {/* Top metrics row */}
         <div className="live-map-progress-topline">
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 700 }}>
+            <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 400 }}>
               {Math.round(currentProgressPct)}% Covered
             </span>
             <span style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
-            <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600 }}>
+            <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 300 }}>
               {Math.max(0, 100 - Math.round(currentProgressPct))}% To Go
             </span>
             <span style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
-            <span style={{ color: '#34d399', fontSize: '11px', fontWeight: 600 }}>
+            <span style={{ color: '#34d399', fontSize: '11px', fontWeight: 300 }}>
               {coveredDistanceKm.toLocaleString()} km covered
             </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#f8fafc', fontSize: '11px' }}>
-              <strong style={{ color: '#cbd5e1' }}>{remainingDistanceKm.toLocaleString()} km to destination</strong>
+            <span style={{ color: '#f8fafc', fontSize: '11px', fontWeight: 300 }}>
+              <span style={{ color: '#cbd5e1', fontWeight: 400 }}>{remainingDistanceKm.toLocaleString()} km to destination</span>
             </span>
             <span className="live-map-desktop-only" style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
-            <span className="live-map-desktop-only" style={{ color: '#94a3b8', fontSize: '11px' }}>
-              ETA: <strong style={{ color: '#34d399' }}>{dynamicEtaString}</strong>
+            <span className="live-map-desktop-only" style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 300 }}>
+              ETA: <span style={{ color: '#34d399', fontWeight: 400 }}>{dynamicEtaString}</span>
             </span>
           </div>
         </div>
@@ -719,8 +750,11 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
 
         {/* Mobile secondary info line */}
         <div className="live-map-mobile-only live-map-mobile-bottom-footnote">
-          <span>⏱️ ETA: <strong style={{ color: '#34d399' }}>{dynamicEtaString}</strong></span>
-          <span>{liveSpeedDisplay}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontWeight: 300 }}>
+            <ClockIcon size={10} strokeWidth={1.5} style={{ color: '#34d399' }} />
+            ETA: <span style={{ color: '#34d399', fontWeight: 400 }}>{dynamicEtaString}</span>
+          </span>
+          <span style={{ fontWeight: 300 }}>{liveSpeedDisplay}</span>
         </div>
       </div>
 
@@ -729,6 +763,15 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
         .client-live-map-wrapper {
           position: relative;
           user-select: none;
+        }
+
+        /* Smooth Vehicle Hardware Transition */
+        .leaflet-marker-icon.live-map-custom-marker-vehicle {
+          transition: transform 0.95s linear !important;
+          will-change: transform;
+        }
+        .leaflet-zoom-anim .leaflet-marker-icon.live-map-custom-marker-vehicle {
+          transition: none !important;
         }
 
         /* Desktop Top HUD */
@@ -749,12 +792,12 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           background: rgba(15, 23, 42, 0.92);
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.12);
           border-radius: 8px;
-          padding: 6px 12px;
+          padding: 5px 10px;
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           box-shadow: 0 4px 16px rgba(0,0,0,0.5);
           pointer-events: auto;
         }
@@ -766,7 +809,7 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
         .live-map-layer-selector {
           background: rgba(15, 23, 42, 0.92);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.12);
           border-radius: 6px;
           padding: 2px;
           display: flex;
@@ -779,26 +822,29 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           color: #94a3b8;
           border: none;
           border-radius: 4px;
-          padding: 4px 8px;
+          padding: 3px 7px;
           font-size: 10px;
-          font-weight: 600;
+          font-weight: 300;
           cursor: pointer;
+          display: inline-flex;
+          align-items: center;
           transition: all 0.2s ease;
         }
 
         .live-map-layer-btn.active {
           background: #0284c7;
           color: #ffffff;
+          font-weight: 400;
         }
 
         .live-map-action-btn {
           background: rgba(15, 23, 42, 0.92);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.12);
           border-radius: 6px;
-          padding: 5px 10px;
-          font-size: 11px;
-          font-weight: 600;
+          padding: 4px 8px;
+          font-size: 10px;
+          font-weight: 300;
           color: #f8fafc;
           cursor: pointer;
           display: flex;
@@ -822,14 +868,14 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
         /* Mobile Drawer */
         .live-map-mobile-drawer {
           position: absolute;
-          top: 48px;
-          left: 10px;
-          right: 10px;
+          top: 44px;
+          left: 8px;
+          right: 8px;
           background: rgba(15, 23, 42, 0.96);
           backdrop-filter: blur(12px);
-          border: 1px solid rgba(56, 189, 248, 0.4);
+          border: 1px solid rgba(56, 189, 248, 0.3);
           border-radius: 10px;
-          padding: 10px 12px;
+          padding: 8px 10px;
           z-index: 1001;
           box-shadow: 0 8px 24px rgba(0,0,0,0.6);
           animation: fadeIn 0.2s ease;
@@ -844,14 +890,14 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           background: rgba(15, 23, 42, 0.92);
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          border-radius: 10px;
-          padding: 8px 14px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 8px;
+          padding: 6px 12px;
           z-index: 1000;
           box-shadow: 0 4px 20px rgba(0,0,0,0.5);
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 5px;
         }
 
         .live-map-progress-topline {
@@ -863,7 +909,7 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
         }
 
         .live-map-progress-track {
-          height: 5px;
+          height: 4px;
           background: rgba(255, 255, 255, 0.1);
           border-radius: 999px;
           overflow: hidden;
@@ -883,13 +929,22 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           display: none;
         }
 
-        /* ========================================================================= */
-        /* RESPONSIVE MEDIA QUERIES FOR MOBILE (< 768px) */
-        /* ========================================================================= */
+        /* Leaflet Popup Styling - Clean & Thin */
+        .leaflet-popup-content-wrapper {
+          border-radius: 8px !important;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.4) !important;
+          padding: 2px !important;
+        }
+        .leaflet-popup-content {
+          margin: 8px 10px !important;
+          line-height: 1.45 !important;
+        }
+
+        /* Responsive Media Queries for Mobile (< 768px) */
         @media (max-width: 768px) {
           .client-live-map-wrapper {
-            height: 520px !important;
-            min-height: 480px !important;
+            height: 480px !important;
+            min-height: 440px !important;
           }
 
           .live-map-desktop-top-hud {
@@ -919,13 +974,14 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           .live-map-mobile-status-pill {
             background: rgba(15, 23, 42, 0.92);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 20px;
-            padding: 5px 10px;
+            padding: 4px 8px;
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 11px;
+            gap: 5px;
+            font-size: 10px;
+            font-weight: 300;
             color: #f8fafc;
             cursor: pointer;
             pointer-events: auto;
@@ -935,14 +991,14 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           .live-map-mobile-icon-btn {
             background: rgba(15, 23, 42, 0.92);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 50%;
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            color: #cbd5e1;
             cursor: pointer;
             pointer-events: auto;
             box-shadow: 0 2px 8px rgba(0,0,0,0.5);
@@ -950,19 +1006,19 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
 
           .live-map-mobile-layer-menu {
             position: absolute;
-            top: 36px;
+            top: 32px;
             right: 0;
             background: rgba(15, 23, 42, 0.96);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 8px;
-            padding: 4px;
+            padding: 3px;
             display: flex;
             flex-direction: column;
             gap: 2px;
             z-index: 1002;
             box-shadow: 0 4px 16px rgba(0,0,0,0.6);
-            min-width: 100px;
+            min-width: 90px;
             pointer-events: auto;
           }
 
@@ -971,9 +1027,11 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
             color: #cbd5e1;
             border: none;
             border-radius: 4px;
-            padding: 6px 8px;
-            font-size: 11px;
-            font-weight: 600;
+            padding: 5px 7px;
+            font-size: 10px;
+            font-weight: 300;
+            display: flex;
+            align-items: center;
             text-align: left;
             cursor: pointer;
           }
@@ -981,14 +1039,15 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           .live-map-mobile-layer-menu button.active {
             background: #0284c7;
             color: #ffffff;
+            font-weight: 400;
           }
 
           .live-map-bottom-progress-hud {
-            bottom: 8px;
-            left: 8px;
-            right: 8px;
-            padding: 6px 10px;
-            border-radius: 8px;
+            bottom: 6px;
+            left: 6px;
+            right: 6px;
+            padding: 5px 8px;
+            border-radius: 6px;
           }
 
           .live-map-mobile-bottom-footnote {
@@ -997,11 +1056,12 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
             align-items: center;
             font-size: 10px;
             color: #94a3b8;
+            font-weight: 300;
             margin-top: 1px;
           }
 
           .live-map-pin-label {
-            font-size: 8px !important;
+            font-size: 7.5px !important;
             padding: 1px 3px !important;
           }
         }

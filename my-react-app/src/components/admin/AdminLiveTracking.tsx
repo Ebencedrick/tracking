@@ -1,5 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
+import {
+  Plane,
+  Ship,
+  Truck,
+  Crosshair,
+  Maximize2 as Route,
+  Edit,
+  Play,
+  Pause,
+  Tag,
+  Copy,
+  ChevronLeft,
+  ChevronRight,
+  List,
+} from 'lucide-react'
 import { useShipments } from '../../context/ShipmentContext'
 import type { Shipment, ShippingMode, ShipmentStatus } from '../../types'
 import { WaybillLabelModal } from './WaybillLabelModal'
@@ -7,8 +22,32 @@ import {
   MAP_TILE_PROVIDERS,
   type MapTileKey,
   fetchLiveRouteGeometry,
+  generateCurvedFlightArc,
   getShipmentProgressMetrics,
 } from '../../utils/mapApis'
+
+function getAdminVehicleIconSvg(mode: string = 'land') {
+  if (mode === 'air') {
+    return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z"/>
+    </svg>`
+  }
+  if (mode === 'sea') {
+    return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>
+      <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/>
+      <path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/>
+      <path d="M12 10V2"/>
+    </svg>`
+  }
+  return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
+    <path d="M15 18H9"/>
+    <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
+    <circle cx="17" cy="18.5" r="2.5"/>
+    <circle cx="7" cy="18.5" r="2.5"/>
+  </svg>`
+}
 
 export function AdminLiveTracking() {
   const { shipments, updateShipment, addAuditLog } = useShipments()
@@ -28,7 +67,7 @@ export function AdminLiveTracking() {
   )
   const [labelModalWaybill, setLabelModalWaybill] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState('')
-  const [activeTileKey, setActiveTileKey] = useState<MapTileKey>('voyager')
+  const [activeTileKey, setActiveTileKey] = useState<MapTileKey>('satellite')
   const [isFleetSidebarOpen, setIsFleetSidebarOpen] = useState(true)
 
   // Invalidate map size when sidebar opens or closes
@@ -167,134 +206,164 @@ export function AdminLiveTracking() {
     const vehicleCoord: [number, number] = [vehicleLat, vehicleLng]
     const destCoord: [number, number] = [destLat, destLng]
 
-    // Start Marker (Green Pin)
+    // Start Marker (Origin Pin - Small & Clean)
     const startIcon = L.divIcon({
       className: 'leaflet-custom-marker-start',
       html: `
         <div style="
-          width: 28px; height: 28px;
+          width: 12px; height: 12px;
           background: #10b981;
-          border: 3px solid #ffffff;
+          border: 1.5px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.6);
-          display: flex; align-items: center; justify-content: center;
-          color: #ffffff; font-size: 13px; font-weight: 800;
+          box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+          position: relative;
         ">
-          🟢
+          <div style="
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.92);
+            color: #6ee7b7;
+            font-weight: 300;
+            font-size: 8.5px;
+            letter-spacing: 0.04em;
+            padding: 1px 4px;
+            border-radius: 3px;
+            white-space: nowrap;
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            pointer-events: none;
+          ">${selectedShipment.origin.code || 'DEP'}</div>
         </div>
       `,
-      iconSize: [28, 28],
-      iconAnchor: [14, 14],
+      iconSize: [12, 12],
+      iconAnchor: [6, 6],
     })
 
     const startMarker = L.marker(startCoord, { icon: startIcon }).addTo(markersGroup)
     startMarker.bindPopup(`
-      <div style="font-family: inherit; font-size: 12px;">
-        <strong style="color: #10b981; font-size: 13px;">ORIGIN TERMINAL</strong><br>
-        <b>Location:</b> ${selectedShipment.origin.name}<br>
-        <b>Code:</b> ${selectedShipment.origin.code}
+      <div style="font-family: inherit; font-size: 11px; line-height: 1.5; color: #334155; font-weight: 300;">
+        <div style="color: #10b981; font-size: 11px; font-weight: 400; margin-bottom: 2px; letter-spacing: 0.02em;">ORIGIN TERMINAL</div>
+        <div><span style="color: #64748b; font-weight: 300;">Location:</span> <span style="color: #0f172a; font-weight: 400;">${selectedShipment.origin.name}</span></div>
+        <div><span style="color: #64748b; font-weight: 300;">Code:</span> <span style="color: #0f172a; font-weight: 400;">${selectedShipment.origin.code}</span></div>
       </div>
     `)
 
-    // Vehicle Marker (Moving Beacon)
-    const vehicleEmoji = selectedShipment.mode === 'air' ? '✈️' : selectedShipment.mode === 'sea' ? '🚢' : '🚚'
+    // Vehicle Marker (Small, Crisp SVG, Smooth Rotation)
     const vehicleIcon = L.divIcon({
       className: 'leaflet-custom-marker-vehicle',
       html: `
         <div style="
-          width: 38px; height: 38px;
-          background: ${selectedShipment.isMovementStopped ? '#ea580c' : '#0284c7'};
-          border: 3px solid #ffffff;
+          width: 24px; height: 24px;
+          background: ${selectedShipment.isMovementStopped ? 'linear-gradient(135deg, #c2410c, #ea580c)' : 'linear-gradient(135deg, #15803d, #22c55e)'};
+          border: 1.5px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 0 20px ${selectedShipment.isMovementStopped ? 'rgba(234, 88, 12, 0.9)' : 'rgba(2, 132, 199, 0.9)'};
+          box-shadow: 0 0 10px ${selectedShipment.isMovementStopped ? 'rgba(234, 88, 12, 0.7)' : 'rgba(34, 197, 94, 0.7)'};
           display: flex; align-items: center; justify-content: center;
-          font-size: 18px;
           position: relative;
           cursor: pointer;
         ">
-          ${vehicleEmoji}
+          ${getAdminVehicleIconSvg(selectedShipment.mode)}
           <div style="
             position: absolute;
-            inset: -6px;
-            border: 2px solid ${selectedShipment.isMovementStopped ? '#ea580c' : '#38bdf8'};
+            inset: -3px;
+            border: 1px solid ${selectedShipment.isMovementStopped ? '#ea580c' : '#63d72a'};
             border-radius: 50%;
-            animation: radar-pulse 2s infinite;
+            animation: radar-pulse 2.2s infinite;
           "></div>
         </div>
       `,
-      iconSize: [38, 38],
-      iconAnchor: [19, 19],
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
     })
 
     const vehicleMarker = L.marker(vehicleCoord, { icon: vehicleIcon }).addTo(markersGroup)
     vehicleMarker.bindPopup(`
-      <div style="font-family: inherit; font-size: 12px; min-width: 190px;">
-        <strong style="color: #0284c7; font-size: 13px;">${selectedShipment.carrier} (${selectedShipment.waybill})</strong><br>
-        <b>Status:</b> ${selectedShipment.status.toUpperCase()} (${selectedShipment.progressPct || 50}%)<br>
-        <b>Position:</b> ${selectedShipment.currentLocation?.name || 'In Corridor'}<br>
-        <b>Driver:</b> ${selectedShipment.assignedDriver || 'Linehaul Operator'}<br>
-        <b>Vehicle:</b> ${selectedShipment.vehicleId || 'Active Fleet'}<br>
-        <b>Movement:</b> ${selectedShipment.isMovementStopped ? '<span style="color:#ea580c;font-weight:bold;">HOLD (STOPPED)</span>' : '<span style="color:#10b981;font-weight:bold;">ACTIVE</span>'}
+      <div style="font-family: inherit; font-size: 11px; line-height: 1.5; color: #334155; font-weight: 300; min-width: 180px;">
+        <div style="color: #0284c7; font-size: 11px; font-weight: 400; margin-bottom: 2px; letter-spacing: 0.02em;">${selectedShipment.carrier} · ${selectedShipment.waybill}</div>
+        <div><span style="color: #64748b; font-weight: 300;">Status:</span> <span style="color: #0f172a; font-weight: 400;">${selectedShipment.status.toUpperCase()} (${selectedShipment.progressPct || 50}%)</span></div>
+        <div><span style="color: #64748b; font-weight: 300;">Position:</span> <span style="color: #0f172a; font-weight: 400;">${selectedShipment.currentLocation?.name || 'In Corridor'}</span></div>
+        <div><span style="color: #64748b; font-weight: 300;">Driver:</span> <span style="color: #0f172a; font-weight: 400;">${selectedShipment.assignedDriver || 'Linehaul Operator'}</span></div>
+        <div><span style="color: #64748b; font-weight: 300;">Vehicle:</span> <span style="color: #0f172a; font-weight: 400;">${selectedShipment.vehicleId || 'Active Fleet'}</span></div>
+        <div><span style="color: #64748b; font-weight: 300;">Movement:</span> <span style="color:${selectedShipment.isMovementStopped ? '#ea580c' : '#10b981'}; font-weight: 400;">${selectedShipment.isMovementStopped ? 'HOLD (STOPPED)' : 'ACTIVE'}</span></div>
       </div>
     `)
 
-    // Destination Marker (Red Pin)
+    // Destination Marker (Destination Pin - Small & Clean)
     const destIcon = L.divIcon({
       className: 'leaflet-custom-marker-dest',
       html: `
         <div style="
-          width: 28px; height: 28px;
-          background: #ef4444;
-          border: 3px solid #ffffff;
+          width: 12px; height: 12px;
+          background: #f43f5e;
+          border: 1.5px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.6);
-          display: flex; align-items: center; justify-content: center;
-          color: #ffffff; font-size: 13px; font-weight: 800;
+          box-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
+          position: relative;
         ">
-          🔴
+          <div style="
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.92);
+            color: #fda4af;
+            font-weight: 300;
+            font-size: 8.5px;
+            letter-spacing: 0.04em;
+            padding: 1px 4px;
+            border-radius: 3px;
+            white-space: nowrap;
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            pointer-events: none;
+          ">${selectedShipment.destination.code || 'ARR'}</div>
         </div>
       `,
-      iconSize: [28, 28],
-      iconAnchor: [14, 14],
+      iconSize: [12, 12],
+      iconAnchor: [6, 6],
     })
 
     const destMarker = L.marker(destCoord, { icon: destIcon }).addTo(markersGroup)
     destMarker.bindPopup(`
-      <div style="font-family: inherit; font-size: 12px;">
-        <strong style="color: #ef4444; font-size: 13px;">DESTINATION HUB</strong><br>
-        <b>Location:</b> ${selectedShipment.destination.name}<br>
-        <b>Code:</b> ${selectedShipment.destination.code}<br>
-        <b>ETA:</b> ${selectedShipment.eta}
+      <div style="font-family: inherit; font-size: 11px; line-height: 1.5; color: #334155; font-weight: 300;">
+        <div style="color: #f43f5e; font-size: 11px; font-weight: 400; margin-bottom: 2px; letter-spacing: 0.02em;">DESTINATION HUB</div>
+        <div><span style="color: #64748b; font-weight: 300;">Location:</span> <span style="color: #0f172a; font-weight: 400;">${selectedShipment.destination.name}</span></div>
+        <div><span style="color: #64748b; font-weight: 300;">Code:</span> <span style="color: #0f172a; font-weight: 400;">${selectedShipment.destination.code}</span></div>
+        <div><span style="color: #64748b; font-weight: 300;">ETA:</span> <span style="color: #0f172a; font-weight: 400;">${selectedShipment.eta || 'Scheduled'}</span></div>
       </div>
     `)
 
-    // Fetch and Draw Real Route Polyline
-    fetchLiveRouteGeometry(startCoord, destCoord, selectedShipment.mode)
-      .then((res) => {
-        if (!mapInstanceRef.current) return
-        if (routeLayerRef.current) {
-          mapInstanceRef.current.removeLayer(routeLayerRef.current)
-        }
+    // Draw Real Route Polyline (Turn-by-turn road or realistic curved flight corridor)
+    const drawPolyline = (coords: [number, number][]) => {
+      if (!mapInstanceRef.current) return
+      if (routeLayerRef.current) {
+        mapInstanceRef.current.removeLayer(routeLayerRef.current)
+      }
+      const polyline = L.polyline(coords, {
+        color: selectedShipment.isMovementStopped ? '#ea580c' : '#63d72a',
+        weight: 4,
+        opacity: 0.92,
+        smoothFactor: 1.2,
+        dashArray: selectedShipment.mode === 'air' ? '6, 6' : undefined,
+        lineCap: 'round',
+        lineJoin: 'round',
+      }).addTo(mapInstanceRef.current)
+      routeLayerRef.current = polyline
+    }
 
-        const polyline = L.polyline(res.coordinates, {
-          color: selectedShipment.isMovementStopped ? '#ea580c' : '#0284c7',
-          weight: 4,
-          opacity: 0.85,
-          dashArray: selectedShipment.mode === 'air' ? '8, 8' : undefined,
-        }).addTo(mapInstanceRef.current)
-
-        routeLayerRef.current = polyline
-      })
-      .catch(() => {
-        // Fallback direct geodesic line
-        if (!mapInstanceRef.current) return
-        const polyline = L.polyline([startCoord, vehicleCoord, destCoord], {
-          color: '#0284c7',
-          weight: 3.5,
-          dashArray: '6, 6',
-        }).addTo(mapInstanceRef.current)
-        routeLayerRef.current = polyline
-      })
+    if (selectedShipment.routePolyline && selectedShipment.routePolyline.length >= 2) {
+      drawPolyline(selectedShipment.routePolyline)
+    } else {
+      fetchLiveRouteGeometry(startCoord, destCoord, selectedShipment.mode)
+        .then((res) => {
+          drawPolyline(res.coordinates)
+        })
+        .catch(() => {
+          // Fallback realistic curved corridor (never a straight line)
+          const curved = generateCurvedFlightArc(startCoord, destCoord, 80)
+          drawPolyline(curved)
+        })
+    }
   }, [selectedShipment])
 
   const handleCenterVehicle = () => {
@@ -403,8 +472,10 @@ export function AdminLiveTracking() {
     showToast(`Copied waybill ${wb} to clipboard!`)
   }
 
-  const getModeEmoji = (m: ShippingMode) => {
-    return m === 'air' ? '✈️' : m === 'sea' ? '🚢' : '🚚'
+  const renderModeIcon = (m: ShippingMode, size = 12) => {
+    if (m === 'air') return <Plane size={size} strokeWidth={1.5} />
+    if (m === 'sea') return <Ship size={size} strokeWidth={1.5} />
+    return <Truck size={size} strokeWidth={1.5} />
   }
 
   return (
@@ -425,26 +496,27 @@ export function AdminLiveTracking() {
           <div className="live-track-hud-bar">
             <div className="live-track-hud-left">
               <div className="live-track-hud-waybill-row">
-                <span className="live-track-hud-mode-icon">
-                  {getModeEmoji(selectedShipment.mode)}
+                <span className="live-track-hud-mode-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  {renderModeIcon(selectedShipment.mode, 13)}
                 </span>
-                <strong className="live-track-hud-code">
+                <span className="live-track-hud-code" style={{ fontWeight: 400 }}>
                   {selectedShipment.waybill}
-                </strong>
+                </span>
                 <button
                   type="button"
                   className="live-track-hud-copy-btn"
                   onClick={() => copyWaybill(selectedShipment.waybill)}
                   title="Copy Waybill"
+                  style={{ display: 'inline-flex', alignItems: 'center' }}
                 >
-                  📋
+                  <Copy size={11} strokeWidth={1.5} />
                 </button>
-                <span className={`cmd-status-pill ${selectedShipment.status}`}>
+                <span className={`cmd-status-pill ${selectedShipment.status}`} style={{ fontWeight: 300, fontSize: '0.72rem' }}>
                   {selectedShipment.status.replace('_', ' ').toUpperCase()}
                 </span>
                 {selectedShipment.isMovementStopped && (
-                  <span className="live-track-stopped-badge">
-                    ⏸️ MOVEMENT HOLD
+                  <span className="live-track-stopped-badge" style={{ fontWeight: 400, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                    <Pause size={10} strokeWidth={1.5} /> HOLD ACTIVE
                   </span>
                 )}
               </div>
@@ -453,22 +525,22 @@ export function AdminLiveTracking() {
                 const hudMetrics = getShipmentProgressMetrics(selectedShipment)
                 return (
                   <div>
-                    <div className="live-track-hud-route-row">
+                    <div className="live-track-hud-route-row" style={{ fontWeight: 300 }}>
                       <span className="live-track-hud-corridor">
-                        <strong>{selectedShipment.origin.name.split(',')[0]}</strong> ({selectedShipment.origin.code})
+                        <span style={{ fontWeight: 400 }}>{selectedShipment.origin.name.split(',')[0]}</span> ({selectedShipment.origin.code})
                         <span style={{ color: '#94a3b8', margin: '0 6px' }}>➔</span>
-                        <strong>{selectedShipment.destination.name.split(',')[0]}</strong> ({selectedShipment.destination.code})
+                        <span style={{ fontWeight: 400 }}>{selectedShipment.destination.name.split(',')[0]}</span> ({selectedShipment.destination.code})
                       </span>
-                      <span className="live-track-hud-driver">
-                        👤 {selectedShipment.assignedDriver || 'Amina Bello'} • {selectedShipment.vehicleId || 'VEH-101'}
+                      <span className="live-track-hud-driver" style={{ color: '#94a3b8' }}>
+                        {selectedShipment.assignedDriver || 'Assigned Driver'} • {selectedShipment.vehicleId || 'Active Fleet'}
                       </span>
-                      <span style={{ color: selectedShipment.isMovementStopped ? '#fca5a5' : '#38bdf8', fontWeight: 700, fontSize: '0.78rem' }}>
-                        📍 {hudMetrics.pct}% ({hudMetrics.coveredKm.toLocaleString()} / {hudMetrics.totalKm.toLocaleString()} KM)
+                      <span style={{ color: selectedShipment.isMovementStopped ? '#fca5a5' : '#38bdf8', fontWeight: 400, fontSize: '0.76rem' }}>
+                        {hudMetrics.pct}% ({hudMetrics.coveredKm.toLocaleString()} / {hudMetrics.totalKm.toLocaleString()} KM)
                       </span>
                     </div>
 
                     {/* Progress Bar in HUD */}
-                    <div style={{ marginTop: '4px', width: '100%', height: '4px', background: 'rgba(255, 255, 255, 0.15)', borderRadius: '2px', overflow: 'hidden' }}>
+                    <div style={{ marginTop: '4px', width: '100%', height: '3px', background: 'rgba(255, 255, 255, 0.12)', borderRadius: '2px', overflow: 'hidden' }}>
                       <div
                         style={{
                           width: `${hudMetrics.pct}%`,
@@ -485,18 +557,10 @@ export function AdminLiveTracking() {
             </div>
 
             <div className="live-track-hud-actions">
-              {/* Map Tile Switcher */}
-              <div className="live-track-tile-group">
-                {(['voyager', 'satellite', 'dark'] as MapTileKey[]).map((k) => (
-                  <button
-                    key={k}
-                    type="button"
-                    className={`live-track-tile-btn ${activeTileKey === k ? 'active' : ''}`}
-                    onClick={() => setActiveTileKey(k)}
-                  >
-                    {k === 'voyager' ? '🗺️ Street' : k === 'satellite' ? '🛰️ Satellite' : '🌙 Radar'}
-                  </button>
-                ))}
+              {/* Map Tile: Satellite */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: '#cbd5e1', background: 'rgba(15, 23, 42, 0.92)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '6px', padding: '4px 8px', fontWeight: 300 }}>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#38bdf8' }} />
+                <span>Satellite</span>
               </div>
 
               {/* Map Telemetry Group */}
@@ -506,16 +570,18 @@ export function AdminLiveTracking() {
                   className="live-track-hud-btn"
                   onClick={handleCenterVehicle}
                   title="Focus map on Vehicle"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 300 }}
                 >
-                  🎯 Vehicle
+                  <Crosshair size={11} strokeWidth={1.5} /> Vehicle
                 </button>
                 <button
                   type="button"
                   className="live-track-hud-btn"
                   onClick={handleFitCorridor}
                   title="Fit whole Route Corridor"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 300 }}
                 >
-                  🗺️ Route
+                  <Route size={11} strokeWidth={1.5} /> Route
                 </button>
               </div>
 
@@ -526,24 +592,35 @@ export function AdminLiveTracking() {
                   className="live-track-hud-btn primary"
                   onClick={() => handleOpenEditModal(selectedShipment)}
                   title="Edit Fleet Status & Telemetry"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 300 }}
                 >
-                  ✏️ Edit Fleet
+                  <Edit size={11} strokeWidth={1.5} /> Edit Fleet
                 </button>
                 <button
                   type="button"
                   className={`live-track-hud-btn ${selectedShipment.isMovementStopped ? 'resume' : 'hold'}`}
                   onClick={handleToggleHold}
                   title={selectedShipment.isMovementStopped ? 'Resume Linehaul Movement' : 'Halt Consignment Movement'}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 300 }}
                 >
-                  {selectedShipment.isMovementStopped ? '▶️ Resume' : '⏸️ Stop Movement'}
+                  {selectedShipment.isMovementStopped ? (
+                    <>
+                      <Play size={11} strokeWidth={1.5} /> Resume
+                    </>
+                  ) : (
+                    <>
+                      <Pause size={11} strokeWidth={1.5} /> Stop Movement
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
                   className="live-track-hud-btn label-btn"
                   onClick={() => setLabelModalWaybill(selectedShipment.waybill)}
                   title="Print Consignment Label"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 300 }}
                 >
-                  🏷️ Label
+                  <Tag size={11} strokeWidth={1.5} /> Label
                 </button>
               </div>
 
@@ -553,8 +630,17 @@ export function AdminLiveTracking() {
                 className={`live-track-hud-btn fleet-toggle-btn ${isFleetSidebarOpen ? 'active' : ''}`}
                 onClick={() => setIsFleetSidebarOpen(!isFleetSidebarOpen)}
                 title={isFleetSidebarOpen ? 'Collapse active fleets panel' : 'Open active fleets panel'}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 300 }}
               >
-                {isFleetSidebarOpen ? '◀ Hide Fleets' : `▶ Active Fleets (${filteredShipments.length})`}
+                {isFleetSidebarOpen ? (
+                  <>
+                    <ChevronLeft size={11} strokeWidth={1.5} /> Hide Fleets
+                  </>
+                ) : (
+                  <>
+                    <ChevronRight size={11} strokeWidth={1.5} /> Active Fleets ({filteredShipments.length})
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -702,13 +788,13 @@ export function AdminLiveTracking() {
                   {/* Card Row 1: Waybill, Mode, Carrier, Status, and Edit Action Button */}
                   <div className="live-track-card-header">
                     <div className="live-track-card-id-group">
-                      <span className="live-track-mode-badge" title={s.mode.toUpperCase()}>
-                        {getModeEmoji(s.mode)}
+                      <span className="live-track-mode-badge" title={s.mode.toUpperCase()} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        {renderModeIcon(s.mode, 12)}
                       </span>
                       <div>
-                        <strong className="live-track-waybill">
+                        <span className="live-track-waybill" style={{ fontWeight: 400 }}>
                           {s.waybill}
-                        </strong>
+                        </span>
                         <div className="live-track-carrier-text">
                           {s.carrier} {s.serviceTier && `• ${s.serviceTier}`}
                         </div>

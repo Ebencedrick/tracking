@@ -11,6 +11,7 @@ import {
   useParams,
 } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
+import { Plane, Ship, Truck } from 'lucide-react'
 import { ShipmentProvider, useShipments } from './context/ShipmentContext'
 import type { ShippingMode, Shipment } from './types'
 import { ClientLiveMap } from './components/ClientLiveMap'
@@ -1312,7 +1313,15 @@ function TrackPage() {
                     <small>{matchedShipment.origin.name}</small>
                   </div>
                   <div className="tracking-route-path">
-                    <span>{matchedShipment.mode === 'air' ? '✈️' : matchedShipment.mode === 'sea' ? '🚢' : '🚚'}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {matchedShipment.mode === 'air' ? (
+                        <Plane size={15} strokeWidth={1.5} />
+                      ) : matchedShipment.mode === 'sea' ? (
+                        <Ship size={15} strokeWidth={1.5} />
+                      ) : (
+                        <Truck size={15} strokeWidth={1.5} />
+                      )}
+                    </span>
                     <i />
                   </div>
                   <div className="tracking-route-stop tracking-route-destination">
