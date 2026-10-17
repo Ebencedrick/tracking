@@ -26,8 +26,8 @@
   font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
   line-height: 1.55;
   font-weight: 300;
-  color: var(--color-gray-light);
-  background: var(--color-black);
+  color: #3a3a3a;
+  background: #ffffff;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -41,7 +41,7 @@
 html {
   scroll-behavior: smooth;
   overflow-x: clip;
-  background-color: #030812;
+  background-color: #ffffff;
 }
 
 body {
@@ -49,13 +49,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   overflow-x: clip;
-  background-color: #030812;
-  background-image:
-    radial-gradient(ellipse at 15% 12%, rgba(0, 82, 180, 0.35), transparent 48%),
-    radial-gradient(ellipse at 85% 45%, rgba(243, 121, 32, 0.12), transparent 38%),
-    radial-gradient(ellipse at 35% 85%, rgba(0, 82, 180, 0.25), transparent 50%),
-    linear-gradient(180deg, #030812 0%, #061122 35%, #040915 70%, #030812 100%);
-  color: #e6edf8;
+  background-color: #ffffff;
+  color: #3a3a3a;
   font-weight: 300;
   font-size: 13.5px;
 }
@@ -79,7 +74,7 @@ img {
 /* Thin, small, refined typography across all site pages */
 h1, h2, h3, h4, h5, h6 {
   margin-top: 0;
-  color: var(--color-white);
+  color: #0a182d;
   font-weight: 400;
   letter-spacing: -0.01em;
 }
@@ -105,7 +100,7 @@ p, span, div, li, label, input, button, small, table, th, td {
 
 strong, b {
   font-weight: 400;
-  color: var(--color-white);
+  color: #0a182d;
 }
 
 button,

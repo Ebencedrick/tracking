@@ -366,9 +366,36 @@ function DashboardLayout() {
   )
 }
 
+function useScrollReveal() {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const root = ref.current
+    if (!root) return
+    const elements = root.querySelectorAll('.reveal-on-scroll')
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      elements.forEach((el) => el.classList.add('is-revealed'))
+      return
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-revealed')
+          }
+        })
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
+    )
+    elements.forEach((el) => observer.observe(el))
+    return () => observer.disconnect()
+  }, [])
+  return ref
+}
+
 function HomePage() {
+  const revealRef = useScrollReveal()
   return (
-    <section className="section-block home-page">
+    <section ref={revealRef} className="section-block home-page">
       <div className="hero-panel">
         <div className="hero-copy">
           <p className="eyebrow">Global Dispatch Network</p>
@@ -388,7 +415,7 @@ function HomePage() {
 
           <form className="tracking-mini-box" action="/track" method="get">
             <div className="tracking-field">
-              <span className="field-icon">◎</span>
+              <Search className="field-icon" style={{ width: 16, height: 16, color: '#f37920', flexShrink: 0 }} />
               <input name="waybill" type="text" aria-label="Enter waybill number" placeholder="Waybill number (e.g. NTS-99420-CT4)" />
             </div>
             <button type="submit" className="button button-primary small-button">
@@ -396,10 +423,9 @@ function HomePage() {
             </button>
           </form>
         </div>
-
       </div>
 
-      <div className="partner-row" aria-label="Carrier partners">
+      <div className="partner-row reveal-on-scroll" aria-label="Carrier partners">
         {carrierLogos.map((carrier) => (
           <Link key={carrier.name} to={`/ship?carrier=${encodeURIComponent(carrier.booking)}`} className="carrier-pill">
             <img src={carrier.logo} alt={`${carrier.name} logo`} loading="eager" />
@@ -407,36 +433,46 @@ function HomePage() {
         ))}
       </div>
 
-      <div className="network-strip" aria-label="Network operations status">
+      <div className="network-strip reveal-on-scroll" aria-label="Network operations status">
         <div className="network-status">
           <span className="network-pulse" />
           <span>Dispatch network</span>
           <strong>Operational</strong>
         </div>
         <span className="network-detail">Global hubs <strong>ORD · FRA · LHR · DXB</strong></span>
-        <Link to="/contact" className="network-support">24/7 operations support <span aria-hidden="true">↗</span></Link>
+        <Link to="/contact" className="network-support">
+          24/7 operations support
+          <ArrowUpRight size={13} style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: 4 }} />
+        </Link>
       </div>
 
-      <section className="content-panel">
+      <section className="content-panel reveal-on-scroll">
         <div className="panel-header">
           <div>
             <p className="eyebrow">Transport modes & infrastructure</p>
             <h2>End-to-end freight modalities</h2>
           </div>
-          <Link to="/services" className="panel-link">
-            Explore Full Portfolio →
+          <Link to="/services" className="panel-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span>Explore Full Portfolio</span>
+            <ArrowRight size={14} />
           </Link>
         </div>
 
         <div className="service-grid">
-          {serviceCards.map((service) => (
-            <article key={service.title} className="info-card">
-              <div className={`service-image ${service.tone}`} aria-hidden="true" />
+          {serviceCards.map((service, idx) => (
+            <article key={service.title} className={`info-card reveal-on-scroll reveal-delay-${idx + 1}`}>
+              <div className={`service-image ${service.tone}`} aria-hidden="true">
+                <span className="modality-badge">
+                  {service.title.includes('Air') ? <Plane size={13} /> : service.title.includes('Ocean') ? <Ship size={13} /> : <Truck size={13} />}
+                  <span>{service.title.includes('Air') ? 'Air Freight' : service.title.includes('Ocean') ? 'Ocean Freight' : 'Ground Freight'}</span>
+                </span>
+              </div>
               <div className="service-copy">
                 <h3>{service.title}</h3>
                 <p>{service.text}</p>
                 <Link to={service.link} className="text-link">
-                  Book this service →
+                  <span>Book this service</span>
+                  <ArrowRight size={13} />
                 </Link>
               </div>
             </article>
@@ -444,7 +480,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="feature-split">
+      <section className="feature-split reveal-on-scroll">
         <div className="feature-copy">
           <p className="eyebrow">Precision tracking engine</p>
           <h2>Live waypoints with transparent milestone visibility.</h2>
@@ -454,11 +490,17 @@ function HomePage() {
 
           <div className="mini-feature-grid">
             <div>
-              <h3>Millisecond telemetry</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+                <Radio size={16} style={{ color: '#f37920' }} />
+                <h3 style={{ margin: 0 }}>Millisecond telemetry</h3>
+              </div>
               <p>Live coordinates interpolate across air, sea, and highway corridors.</p>
             </div>
             <div>
-              <h3>Automated notifications</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+                <Zap size={16} style={{ color: '#f37920' }} />
+                <h3 style={{ margin: 0 }}>Automated notifications</h3>
+              </div>
               <p>Dispatch and delay notices are generated instantly as routes evolve.</p>
             </div>
           </div>
@@ -476,7 +518,9 @@ function HomePage() {
         <div className="tracking-panel card">
           <div className="qr-header">
             <div className="qr-identity">
-              <span className="qr-ring">◉</span>
+              <span className="qr-ring">
+                <Package size={18} />
+              </span>
               <div>
                 <small>Sample shipment</small>
                 <strong>NTS-99420-CT4</strong>
@@ -489,7 +533,7 @@ function HomePage() {
             <div className="qr-scan-block">
               <div className="qr-box">
                 <QRCodeSVG
-                  value={`${window.location.origin}/track?waybill=NTS-99420-CT4`}
+                  value={`${typeof window !== 'undefined' ? window.location.origin : ''}/track?waybill=NTS-99420-CT4`}
                   size={120}
                   level="M"
                   title="Track waybill NTS-99420-CT4"
@@ -520,13 +564,14 @@ function HomePage() {
             </div>
           </div>
 
-          <Link to="/track?waybill=NTS-99420-CT4" className="button button-primary full-width">
-            View Shipment Status
+          <Link to="/track?waybill=NTS-99420-CT4" className="button button-primary full-width" style={{ gap: 8 }}>
+            <span>View Shipment Status</span>
+            <ArrowRight size={15} />
           </Link>
         </div>
       </section>
 
-      <section className="cta-banner">
+      <section className="cta-banner reveal-on-scroll">
         <div>
           <p className="eyebrow">Ready to dispatch?</p>
           <h2>Get a transparent rate and live tracking on day one.</h2>
@@ -1411,7 +1456,7 @@ function TrackPage() {
                 >
                   <span style={{ flexShrink: 0, display: 'inline-flex' }}><AlertCircle size={28} color='#ea580c' strokeWidth={1.5} /></span>
                   <div>
-                    <strong style={{ display: 'block', fontSize: '1.05rem', color: '#991b1b', fontWeight: 900, marginBottom: '2px' }}>
+                    <strong style={{ display: 'block', fontSize: '1.05rem', color: '#991b1b', fontWeight: 500, marginBottom: '2px' }}>
                       SHIPMENT MOVEMENT STOPPED / DISPATCH HOLD ACTIVE
                     </strong>
                     <span style={{ fontSize: '0.88rem', color: '#1f2937', fontWeight: 400, lineHeight: 1.4 }}>
@@ -1434,11 +1479,11 @@ function TrackPage() {
                     gap: '14px',
                   }}
                 >
-                  <span style={{ fontSize: '2.25rem', flexShrink: 0 }}>
-                    {matchedShipment.mode === 'land' ? '🚚' : matchedShipment.mode === 'sea' ? '🚢' : '✈️'}
-                  </span>
+                  <div style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 10, background: 'rgba(34, 197, 94, 0.15)', display: 'grid', placeItems: 'center', color: '#16a34a' }}>
+                    {matchedShipment.mode === 'land' ? <Truck size={24} /> : matchedShipment.mode === 'sea' ? <Ship size={24} /> : <Plane size={24} />}
+                  </div>
                   <div>
-                    <strong style={{ display: 'block', fontSize: '1.05rem', color: '#15803d', fontWeight: 900, marginBottom: '2px' }}>
+                    <strong style={{ display: 'block', fontSize: '1.05rem', color: '#15803d', fontWeight: 500, marginBottom: '2px' }}>
                       SHIPMENT IN TRANSIT (ACTIVE GPS TELEMETRY)
                     </strong>
                     <span style={{ fontSize: '0.88rem', color: '#1f2937', fontWeight: 400, lineHeight: 1.4 }}>
@@ -1463,7 +1508,7 @@ function TrackPage() {
                 >
                   <span style={{ fontSize: '2.25rem', flexShrink: 0 }}>⏳</span>
                   <div>
-                    <strong style={{ display: 'block', fontSize: '1.05rem', color: '#92400e', fontWeight: 900, marginBottom: '2px' }}>
+                    <strong style={{ display: 'block', fontSize: '1.05rem', color: '#92400e', fontWeight: 500, marginBottom: '2px' }}>
                       ⏳ PENDING DISPATCH APPROVAL (STATIONARY AT ORIGIN)
                     </strong>
                     <span style={{ fontSize: '0.88rem', color: '#1f2937', fontWeight: 400, lineHeight: 1.4 }}>
@@ -1488,7 +1533,7 @@ function TrackPage() {
                 >
                   <span style={{ flexShrink: 0, display: 'inline-flex' }}><CheckCircle2 size={28} color='#10b981' strokeWidth={1.5} /></span>
                   <div>
-                    <strong style={{ display: 'block', fontSize: '1.05rem', color: '#166534', fontWeight: 900, marginBottom: '2px' }}>
+                    <strong style={{ display: 'block', fontSize: '1.05rem', color: '#166534', fontWeight: 500, marginBottom: '2px' }}>
                       CONSIGNMENT DELIVERED & RECEIVED
                     </strong>
                     <span style={{ fontSize: '0.88rem', color: '#1f2937', fontWeight: 400, lineHeight: 1.4 }}>
@@ -1526,7 +1571,7 @@ function TrackPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
                   {/* Sender Party */}
                   <div style={{ background: 'rgba(11, 17, 30, 0.65)', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(229, 229, 229, 0.1)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#059669', fontWeight: 900, letterSpacing: '0.05em', marginBottom: '8px', textTransform: 'uppercase' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#059669', fontWeight: 500, letterSpacing: '0.05em', marginBottom: '8px', textTransform: 'uppercase' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowUpRight size={13} color='#fca311' strokeWidth={1.5} /> SENDER / ORIGIN PARTY</span>
                     </div>
                     <strong style={{ display: 'block', fontSize: '1.15rem', color: '#ffffff', fontWeight: 400 }}>
@@ -1554,7 +1599,7 @@ function TrackPage() {
 
                   {/* Consignee Party */}
                   <div style={{ background: 'rgba(11, 17, 30, 0.65)', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(229, 229, 229, 0.1)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#0284c7', fontWeight: 900, letterSpacing: '0.05em', marginBottom: '8px', textTransform: 'uppercase' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#0284c7', fontWeight: 500, letterSpacing: '0.05em', marginBottom: '8px', textTransform: 'uppercase' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowDownLeft size={13} color='#fca311' strokeWidth={1.5} /> CONSIGNEE / RECEIVER PARTY</span>
                     </div>
                     <strong style={{ display: 'block', fontSize: '1.15rem', color: '#ffffff', fontWeight: 400 }}>
@@ -1659,11 +1704,11 @@ function TrackPage() {
               </div>
               
               <div style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '12px', padding: '1rem' }}>
-                <strong style={{ fontSize: '1.15rem', color: '#ffffff', fontWeight: 400, display: 'block' }}>
+                <strong style={{ fontSize: '1.15rem', color: '#0a182d', fontWeight: 500, display: 'block' }}>
                   {matchedShipment.carrier}
                 </strong>
                 <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 400 }}>
-                  {matchedShipment.serviceTier || 'STANDARD'} • {matchedShipment.mode === 'land' ? '🚚 OVERLAND ROAD' : matchedShipment.mode === 'sea' ? '🚢 OCEAN MARITIME' : '✈️ PRIORITY AIR'}
+                  {matchedShipment.serviceTier || 'STANDARD'} • {matchedShipment.mode === 'land' ? 'OVERLAND ROAD' : matchedShipment.mode === 'sea' ? 'OCEAN MARITIME' : 'PRIORITY AIR'}
                 </span>
               </div>
 
@@ -1684,44 +1729,42 @@ function TrackPage() {
               <dl style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.65rem', margin: 0, padding: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
                   <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Cargo Category</dt>
-                  <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>{matchedShipment.cargoType || 'Commercial Freight'}</dd>
+                  <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 500 }}>{matchedShipment.cargoType || 'Commercial Freight'}</dd>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
                   <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Shipping Modality</dt>
-                  <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>
-                    {matchedShipment.mode === 'land'
-                      ? '🚚 Overland Road Freight'
-                      : matchedShipment.mode === 'sea'
-                      ? '🚢 Ocean Container Vessel'
-                      : '✈️ Priority Air Linehaul'}
+                  <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 500 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      {matchedShipment.mode === 'land' ? <Truck size={14} color="#f37920" /> : matchedShipment.mode === 'sea' ? <Ship size={14} color="#f37920" /> : <Plane size={14} color="#f37920" />}
+                      {matchedShipment.mode === 'land' ? 'Overland Road Freight' : matchedShipment.mode === 'sea' ? 'Ocean Container Vessel' : 'Priority Air Linehaul'}
+                    </span>
                   </dd>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
                   <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Transport Scope</dt>
-                  <dd style={{ margin: 0, color: '#0284c7', fontSize: '0.88rem', fontWeight: 900 }}>
-                    {matchedShipment.transportScope === 'Domestic'
-                      ? '🏠 Domestic Overland'
-                      : matchedShipment.transportScope === 'Regional'
-                      ? '🌐 Regional Linehaul'
-                      : '🌍 International Transcontinental'}
+                  <dd style={{ margin: 0, color: '#0284c7', fontSize: '0.88rem', fontWeight: 500 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Globe size={14} color="#0284c7" />
+                      {matchedShipment.transportScope === 'Domestic' ? 'Domestic Overland' : matchedShipment.transportScope === 'Regional' ? 'Regional Linehaul' : 'International Transcontinental'}
+                    </span>
                   </dd>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
                   <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Assigned Driver / Captain</dt>
-                  <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>{matchedShipment.assignedDriver || 'Amina Bello'}</dd>
+                  <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 500 }}>{matchedShipment.assignedDriver || 'Amina Bello'}</dd>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
                   <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Vehicle / Fleet Unit</dt>
-                  <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900, fontFamily: 'monospace' }}>{matchedShipment.vehicleId || 'VEH-101'}</dd>
+                  <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 500, fontFamily: 'monospace' }}>{matchedShipment.vehicleId || 'VEH-101'}</dd>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
                   <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Consignment Weight</dt>
-                  <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>{matchedShipment.weightKg} KG ({matchedShipment.packageCount || 1} PKG)</dd>
+                  <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 500 }}>{matchedShipment.weightKg} KG ({matchedShipment.packageCount || 1} PKG)</dd>
                 </div>
                 {(matchedShipment.createdAt || matchedShipment.bookingDate) && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
                     <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Booking / Created Date</dt>
-                    <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>
+                    <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 500 }}>
                       {new Date(matchedShipment.createdAt || matchedShipment.bookingDate!).toLocaleString([], {
                         dateStyle: 'medium',
                         timeStyle: 'short',
@@ -1732,20 +1775,20 @@ function TrackPage() {
                 {matchedShipment.estimatedDistanceKm && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
                     <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Total Corridor Distance</dt>
-                    <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>{matchedShipment.estimatedDistanceKm.toLocaleString()} KM</dd>
+                    <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 500 }}>{matchedShipment.estimatedDistanceKm.toLocaleString()} KM</dd>
                   </div>
                 )}
                 {liveTelemetry && (
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
                       <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Distance Covered</dt>
-                      <dd style={{ margin: 0, color: '#16a34a', fontSize: '0.88rem', fontWeight: 900 }}>
+                      <dd style={{ margin: 0, color: '#16a34a', fontSize: '0.88rem', fontWeight: 500 }}>
                         {liveTelemetry.coveredKm.toLocaleString()} KM ({Math.round(liveTelemetry.progressPct)}%)
                       </dd>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
                       <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Distance Remaining</dt>
-                      <dd style={{ margin: 0, color: '#0284c7', fontSize: '0.88rem', fontWeight: 900 }}>
+                      <dd style={{ margin: 0, color: '#0284c7', fontSize: '0.88rem', fontWeight: 500 }}>
                         {liveTelemetry.remainingKm.toLocaleString()} KM ({Math.round(liveTelemetry.remainingPct)}%)
                       </dd>
                     </div>
@@ -2803,7 +2846,7 @@ function CreateShipmentPage() {
           <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}></div>
           <h2>Shipment Created Successfully!</h2>
           <p style={{ color: '#94a3b8' }}>Your new consignment has been registered with the carrier dispatch engine.</p>
-          <div style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: 'monospace', color: '#00d2ff', margin: '1rem 0' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 500, fontFamily: 'monospace', color: '#00d2ff', margin: '1rem 0' }}>
             {createdWaybill}
           </div>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1.5rem' }}>
