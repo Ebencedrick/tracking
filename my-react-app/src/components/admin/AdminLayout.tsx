@@ -1,6 +1,23 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useShipments } from '../../context/ShipmentContext'
+import {
+  LayoutDashboard,
+  MapPin,
+  Package,
+  CreditCard,
+  Mail,
+  MessageSquare,
+  Truck,
+  Settings,
+  LogOut,
+  ExternalLink,
+  Radio,
+  X,
+  Menu,
+  Send,
+  CheckCircle2,
+} from 'lucide-react'
 
 const siteLogo = '/brand-logo.jfif'
 
@@ -33,14 +50,14 @@ export function AdminLayout() {
   }
 
   const navItems = [
-    { to: '/admin', label: 'Dashboard', icon: '⊞', end: true },
-    { to: '/admin/tracking', label: 'Live Tracking', icon: '📍' },
-    { to: '/admin/shipments', label: 'Shipments & Bookings', icon: '📦' },
-    { to: '/admin/rates', label: 'Pricing & Tariffs', icon: '💳' },
-    { to: '/admin/inquiries', label: 'Emails & Inquiries', icon: '✉️' },
-    { to: '/admin/chats', label: 'Live Support Chats', icon: '💬' },
-    { to: '/admin/carriers', label: 'Fleet & Drivers', icon: '🪪' },
-    { to: '/admin/users', label: 'System Settings', icon: '⚙️' },
+    { to: '/admin', label: 'Dashboard', icon: <LayoutDashboard size={15} strokeWidth={1.5} />, end: true },
+    { to: '/admin/tracking', label: 'Live Tracking', icon: <MapPin size={15} strokeWidth={1.5} /> },
+    { to: '/admin/shipments', label: 'Shipments & Bookings', icon: <Package size={15} strokeWidth={1.5} /> },
+    { to: '/admin/rates', label: 'Pricing & Tariffs', icon: <CreditCard size={15} strokeWidth={1.5} /> },
+    { to: '/admin/inquiries', label: 'Emails & Inquiries', icon: <Mail size={15} strokeWidth={1.5} /> },
+    { to: '/admin/chats', label: 'Live Support Chats', icon: <MessageSquare size={15} strokeWidth={1.5} /> },
+    { to: '/admin/carriers', label: 'Fleet & Drivers', icon: <Truck size={15} strokeWidth={1.5} /> },
+    { to: '/admin/users', label: 'System Settings', icon: <Settings size={15} strokeWidth={1.5} /> },
   ]
 
   const closeMobileMenu = () => {
@@ -58,7 +75,7 @@ export function AdminLayout() {
           aria-label="Toggle Navigation Menu"
           aria-expanded={isMobileMenuOpen}
         >
-          {isMobileMenuOpen ? '✕' : '☰'}
+          {isMobileMenuOpen ? <X size={18} strokeWidth={1.5} /> : <Menu size={18} strokeWidth={1.5} />}
         </button>
 
         <div className="cmd-mobile-brand">
@@ -143,12 +160,12 @@ export function AdminLayout() {
         {/* Bottom Nav Links */}
         <div className="cmd-sidebar-footer">
           <Link to="/" className="cmd-nav-item" onClick={closeMobileMenu}>
-            <span className="cmd-nav-icon">↗</span>
+            <span className="cmd-nav-icon"><ExternalLink size={15} strokeWidth={1.5} /></span>
             <span>Public Web Portal</span>
           </Link>
 
           <Link to="/login" className="cmd-nav-item sign-out" onClick={closeMobileMenu}>
-            <span className="cmd-nav-icon">🚪</span>
+            <span className="cmd-nav-icon"><LogOut size={15} strokeWidth={1.5} /></span>
             <span>Sign Out</span>
           </Link>
         </div>
@@ -165,7 +182,6 @@ export function AdminLayout() {
         />
       </div>
 
-
       {/* Broadcast Notice Modal */}
       {isBroadcastModalOpen && (
         <div className="cmd-modal-overlay" onClick={() => setIsBroadcastModalOpen(false)}>
@@ -173,13 +189,14 @@ export function AdminLayout() {
             <div className="cmd-modal-header">
               <h3>Broadcast Operations Notice</h3>
               <button type="button" className="cmd-modal-close" onClick={() => setIsBroadcastModalOpen(false)}>
-                ✕
+                <X size={16} strokeWidth={1.5} />
               </button>
             </div>
 
             {broadcastSuccess ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#10b981', fontWeight: 700 }}>
-                ✓ {broadcastSuccess}
+              <div style={{ padding: '2rem', textAlign: 'center', color: '#10b981', fontWeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <CheckCircle2 size={18} strokeWidth={1.5} />
+                <span>{broadcastSuccess}</span>
               </div>
             ) : (
               <form onSubmit={handleSendBroadcast}>
@@ -213,8 +230,9 @@ export function AdminLayout() {
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="cmd-btn cmd-btn-navy">
-                    ✉ Transmit Broadcast
+                  <button type="submit" className="cmd-btn cmd-btn-navy" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <Send size={14} strokeWidth={1.5} />
+                    <span>Transmit Broadcast</span>
                   </button>
                 </div>
               </form>
@@ -230,21 +248,21 @@ export function AdminLayout() {
             <div className="cmd-modal-header">
               <h3>Global Satellite Telemetry Radar</h3>
               <button type="button" className="cmd-modal-close" onClick={() => setIsRadarModalOpen(false)}>
-                ✕
+                <X size={16} strokeWidth={1.5} />
               </button>
             </div>
 
             <div
               style={{
                 height: '420px',
-                background: 'radial-gradient(circle at center, #111d38 0%, #080d1a 100%)',
+                background: 'radial-gradient(circle at center, #0a182d 0%, #040915 100%)',
                 borderRadius: '12px',
                 position: 'relative',
                 overflow: 'hidden',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '1px solid #1e293b',
+                border: '1px solid rgba(0, 82, 180, 0.25)',
               }}
             >
               <div
@@ -252,32 +270,34 @@ export function AdminLayout() {
                   position: 'absolute',
                   inset: 0,
                   backgroundImage:
-                    'linear-gradient(rgba(0, 210, 255, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 210, 255, 0.08) 1px, transparent 1px)',
+                    'linear-gradient(rgba(0, 82, 180, 0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 82, 180, 0.12) 1px, transparent 1px)',
                   backgroundSize: '40px 40px',
                 }}
               />
 
-              <div style={{ position: 'absolute', left: '15%', top: '38%', color: '#38bdf8', fontWeight: 800, fontSize: '0.8rem' }}>
-                📍 ORD (Chicago)
+              <div style={{ position: 'absolute', left: '15%', top: '38%', color: '#38bdf8', fontWeight: 400, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <MapPin size={12} strokeWidth={1.5} /> ORD (Chicago)
               </div>
-              <div style={{ position: 'absolute', left: '25%', top: '42%', color: '#38bdf8', fontWeight: 800, fontSize: '0.8rem' }}>
-                📍 JFK (New York)
+              <div style={{ position: 'absolute', left: '25%', top: '42%', color: '#38bdf8', fontWeight: 400, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <MapPin size={12} strokeWidth={1.5} /> JFK (New York)
               </div>
-              <div style={{ position: 'absolute', left: '50%', top: '32%', color: '#38bdf8', fontWeight: 800, fontSize: '0.8rem' }}>
-                📍 LHR (London)
+              <div style={{ position: 'absolute', left: '50%', top: '32%', color: '#38bdf8', fontWeight: 400, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <MapPin size={12} strokeWidth={1.5} /> LHR (London)
               </div>
-              <div style={{ position: 'absolute', left: '58%', top: '36%', color: '#38bdf8', fontWeight: 800, fontSize: '0.8rem' }}>
-                📍 FRA (Frankfurt)
+              <div style={{ position: 'absolute', left: '58%', top: '36%', color: '#38bdf8', fontWeight: 400, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <MapPin size={12} strokeWidth={1.5} /> FRA (Frankfurt)
               </div>
-              <div style={{ position: 'absolute', left: '72%', top: '48%', color: '#38bdf8', fontWeight: 800, fontSize: '0.8rem' }}>
-                📍 DXB (Dubai)
+              <div style={{ position: 'absolute', left: '72%', top: '48%', color: '#38bdf8', fontWeight: 400, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <MapPin size={12} strokeWidth={1.5} /> DXB (Dubai)
               </div>
 
-              <div style={{ color: '#ffffff', textAlign: 'center', zIndex: 10, background: 'rgba(15, 23, 42, 0.85)', padding: '1.25rem 2rem', borderRadius: '12px', border: '1px solid #38bdf8' }}>
-                <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>🛰️</div>
-                <strong style={{ fontSize: '1.1rem', display: 'block' }}>SpaceLink Satellite Telemetry Link Active</strong>
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                  4,000ms continuous GPS vector triangulation across all active airways & maritime corridors.
+              <div style={{ color: '#ffffff', textAlign: 'center', zIndex: 10, background: 'rgba(10, 24, 45, 0.92)', padding: '1.25rem 2rem', borderRadius: '12px', border: '1px solid rgba(0, 82, 180, 0.35)' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.4rem', color: '#38bdf8' }}>
+                  <Radio size={24} strokeWidth={1.5} />
+                </div>
+                <strong style={{ fontSize: '1rem', display: 'block', fontWeight: 400 }}>SpaceLink Satellite Telemetry Link Active</strong>
+                <span style={{ fontSize: '0.78rem', color: '#8fa0ba', fontWeight: 300 }}>
+                  Continuous GPS vector triangulation across all active airways & maritime corridors.
                 </span>
               </div>
             </div>

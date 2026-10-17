@@ -25,6 +25,7 @@ import {
   MAP_TILE_PROVIDERS,
   type MapTileKey,
 } from '../utils/mapApis'
+import { ALT_70568_884_ROUTE } from '../data/atlastrackRoute'
 
 function getVehicleIconSvg(mode: string = 'land') {
   if (mode === 'air') {
@@ -65,12 +66,31 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
   const vehicleMarkerRef = useRef<L.Marker | null>(null)
 
   const [activeTileKey] = useState<MapTileKey>('satellite')
-  const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>(() => {
+
+  const initialRoute = useMemo<[number, number][]>(() => {
+    if (shipment.waybill === 'ALT-70568-884') {
+      return ALT_70568_884_ROUTE
+    }
     if (shipment.routePolyline && shipment.routePolyline.length >= 2) {
       return shipment.routePolyline
     }
-    return []
-  })
+    const startCoord: [number, number] = [
+      shipment.origin.lat || 40.6413,
+      shipment.origin.lng || -73.7781,
+    ]
+    const endCoord: [number, number] = [
+      shipment.destination.lat || 51.47,
+      shipment.destination.lng || -0.4543,
+    ]
+    return generateCurvedFlightArc(startCoord, endCoord, 80)
+  }, [shipment.waybill, shipment.routePolyline, shipment.origin, shipment.destination])
+
+  const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>(initialRoute)
+
+  useEffect(() => {
+    setRouteCoordinates(initialRoute)
+  }, [initialRoute])
+
   const [showMobileDetails, setShowMobileDetails] = useState(false)
 
   // Calculate base metrics
@@ -461,15 +481,16 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
       setDynamicEtaString(shipment.eta || telemetry.etaString)
 
       // 2. Interpolate exact physical vehicle position along route geometry
-      if (routeCoordinates && routeCoordinates.length >= 2) {
+      const activeRoute = (routeCoordinates && routeCoordinates.length >= 2) ? routeCoordinates : initialRoute
+      if (activeRoute && activeRoute.length >= 2) {
         const fraction = pct / 100
-        const interp = interpolatePositionAlongRoute(routeCoordinates, fraction)
+        const interp = interpolatePositionAlongRoute(activeRoute, fraction)
 
         setLiveCoords({ lat: interp.lat, lng: interp.lng })
         setBearingAngle(interp.bearingAngle)
         setBearingCardinal(interp.bearingCardinal)
 
-        // Update Vehicle Marker Position & Bearing
+        // Update Vehicle Marker Position & Bearing with smooth gliding
         if (vehicleMarkerRef.current) {
           vehicleMarkerRef.current.setLatLng([interp.lat, interp.lng])
           const rotElement = document.getElementById('vehicle-icon-rotator')
@@ -478,7 +499,7 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           }
         }
 
-        // Update Polylines dynamically
+        // Update Polylines dynamically along real curves
         if (coveredPolylineRef.current) {
           coveredPolylineRef.current.setLatLngs(interp.coveredCoordinates as L.LatLngTuple[])
         }
@@ -689,7 +710,7 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
               onClick={() => setShowMobileDetails(false)}
               style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '13px', cursor: 'pointer' }}
             >
-              ✕
+              ×
             </button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11px', fontWeight: 300 }}>

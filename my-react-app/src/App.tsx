@@ -11,7 +11,33 @@ import {
   useParams,
 } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
-import { Plane, Ship, Truck } from 'lucide-react'
+import {
+  Plane,
+  Ship,
+  Truck,
+  Package,
+  ShieldCheck,
+  Zap,
+  Globe,
+  Radio,
+  Search,
+  Calendar,
+  Printer,
+  MapPin,
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle,
+  CheckCircle2,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Phone,
+  Camera,
+  Check,
+  Sparkles,
+  Clock,
+  ArrowRight,
+  Lock,
+} from 'lucide-react'
 import { ShipmentProvider, useShipments } from './context/ShipmentContext'
 import type { ShippingMode, Shipment } from './types'
 import { ClientLiveMap } from './components/ClientLiveMap'
@@ -70,6 +96,8 @@ const serviceCards = [
     features: ['Priority air network', 'Door-to-door coordination', 'Customs milestone updates'],
     link: '/ship?mode=air',
     tone: 'image-air',
+    image: '/images/air-freight.jpg',
+    tag: 'B777-F Air Express',
   },
   {
     mode: 'sea',
@@ -81,6 +109,8 @@ const serviceCards = [
     features: ['FCL and LCL options', 'Port-to-door coordination', 'Export documentation support'],
     link: '/ship?mode=sea',
     tone: 'image-ocean',
+    image: '/images/ocean-freight.jpg',
+    tag: 'Triple-E Maritime Lift',
   },
   {
     mode: 'land',
@@ -92,6 +122,8 @@ const serviceCards = [
     features: ['Scheduled linehaul', 'Temperature-control options', 'Regional delivery coordination'],
     link: '/ship?mode=land',
     tone: 'image-road',
+    image: '/images/fleet-truck.jpg',
+    tag: 'Expedited Linehaul Fleet',
   },
 ]
 
@@ -173,8 +205,8 @@ function PublicLayout() {
     <div className="site-shell">
       <header className="topbar">
         <div className="brand-wrap">
-          <Link to="/" className="brand-mark" aria-label="Northstar Freight home">
-            <img src={siteLogo} alt="Northstar Freight logo" className="brand-logo" />
+          <Link to="/" className="brand-mark" aria-label="Global Prime Logistics home">
+            <img src={siteLogo} alt="Global Prime Logistics logo" className="brand-logo" />
           </Link>
         </div>
 
@@ -229,7 +261,7 @@ function PublicLayout() {
         <div className="footer-grid section-block">
           <div>
             <div className="brand-mark footer-brand">
-              <img src={siteLogo} alt="Northstar Freight logo" className="brand-logo brand-logo-footer" />
+              <img src={siteLogo} alt="Global Prime Logistics logo" className="brand-logo brand-logo-footer" />
             </div>
             <p>
               Precision supply chain visibility, real-time asset tracking, and multi-modal freight coordination for global operations.
@@ -267,7 +299,7 @@ function PublicLayout() {
         </div>
 
         <div className="footer-bottom section-block">
-          <span>© 2026 Northstar Freight</span>
+          <span>© 2026 Global Prime Logistics</span>
           <div>
             <Link to="/policies">Privacy Policy</Link>
             <Link to="/policies#terms">Terms</Link>
@@ -288,7 +320,7 @@ function DashboardLayout() {
     <div className="dashboard-shell">
       <aside className="dashboard-sidebar">
         <div className="dashboard-brand">
-          <img src={siteLogo} alt="Northstar Freight logo" className="brand-logo brand-logo-dashboard" />
+          <img src={siteLogo} alt="Global Prime Logistics logo" className="brand-logo brand-logo-dashboard" />
         </div>
 
         <nav className="dashboard-nav" aria-label="Dashboard navigation">
@@ -603,7 +635,7 @@ function ShipPage() {
     <section className="section-block page-shell ship-page">
       <section className="ship-hero" aria-labelledby="ship-hero-title">
         <div className="ship-hero-copy">
-          <p className="eyebrow">Northstar shipment desk</p>
+          <p className="eyebrow">Global Prime Logistics shipment desk</p>
           <h1 id="ship-hero-title">Plan your next delivery.</h1>
           <p>Choose a route, add shipment details, and review your request in a few clear steps.</p>
         </div>
@@ -1075,7 +1107,7 @@ function TrackPage() {
 
       {!requestedWaybill && (
         <div className="tracking-empty card" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}><Package size={44} color='#fca311' strokeWidth={1.2} /></div>
           <strong style={{ fontSize: '1.25rem', color: '#f8fafc', display: 'block', marginBottom: '0.5rem' }}>
             Consignment Tracking & Live Telemetry Portal
           </strong>
@@ -1096,18 +1128,18 @@ function TrackPage() {
               color: '#64748b',
             }}
           >
-            <span>🔒 256-Bit Encrypted Tracking</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><ShieldCheck size={13} color='#fca311' strokeWidth={1.5} /> 256-Bit Encrypted Tracking</span>
             <span>•</span>
-            <span>⚡ 10-Second Auto-Refresh Polling</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><Zap size={13} color='#fca311' strokeWidth={1.5} /> 10-Second Auto-Refresh Polling</span>
             <span>•</span>
-            <span>🌐 Global Customs Multi-Gateway</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><Globe size={13} color='#fca311' strokeWidth={1.5} /> Global Customs Multi-Gateway</span>
           </div>
         </div>
       )}
 
       {requestedWaybill && isFetchingFromDb && !matchedShipment && (
         <div className="card" style={{ padding: '2.5rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📡</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}><Radio size={36} color='#fca311' strokeWidth={1.2} /></div>
           <strong style={{ fontSize: '1.1rem', color: '#f8fafc', display: 'block' }}>
             Querying Live Tracking Registry...
           </strong>
@@ -1119,7 +1151,7 @@ function TrackPage() {
 
       {requestedWaybill && !isFetchingFromDb && !matchedShipment && (
         <div className="tracking-not-found card" role="status" style={{ padding: '2.5rem', textAlign: 'center' }}>
-          <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.75rem' }}>🔍</span>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}><Search size={36} color='#fca311' strokeWidth={1.2} /></div>
           <strong style={{ fontSize: '1.15rem', color: '#f8fafc', display: 'block' }}>
             No Active Consignment Found for "{requestedWaybill}"
           </strong>
@@ -1141,17 +1173,17 @@ function TrackPage() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                 <p className="eyebrow" style={{ margin: 0 }}>Verified Freight Consignment</p>
-                <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(2, 132, 199, 0.15)', color: '#38bdf8', fontWeight: 600 }}>
+                <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(2, 132, 199, 0.15)', color: '#38bdf8', fontWeight: 400 }}>
                   {matchedShipment.transportScope || 'International'}
                 </span>
-                <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 600 }}>
-                  🛡️ Official Consignment Verified
+                <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 400 }}>
+                  Official Consignment Verified
                 </span>
               </div>
               <h2>{matchedShipment.waybill.toUpperCase()}</h2>
               {(matchedShipment.createdAt || matchedShipment.bookingDate) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '0.82rem', color: '#94a3b8' }}>
-                  <span>📅 Booking / Creation Time:</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><Calendar size={12} color='#fca311' strokeWidth={1.5} /> Booking Time:</span>
                   <strong style={{ color: '#f1f5f9' }}>
                     {new Date(matchedShipment.createdAt || matchedShipment.bookingDate!).toLocaleString([], {
                       dateStyle: 'medium',
@@ -1175,7 +1207,7 @@ function TrackPage() {
                 style={{ background: 'rgba(255,255,255,0.06)' }}
                 onClick={() => setPrintModalOpen(true)}
               >
-                🏷️ Print Label
+                Print Label
               </button>
             </div>
           </div>
@@ -1201,7 +1233,7 @@ function TrackPage() {
                 borderLeft: '4px solid #10b981',
               }}
             >
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 ⏱️ Hours & Time Covered
               </span>
               <strong style={{ display: 'block', fontSize: '1.2rem', color: '#f8fafc', marginTop: '4px' }}>
@@ -1222,8 +1254,8 @@ function TrackPage() {
                 borderLeft: '4px solid #38bdf8',
               }}
             >
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                ⏳ Time Remaining
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Time Remaining
               </span>
               <strong style={{ display: 'block', fontSize: '1.2rem', color: '#38bdf8', marginTop: '4px' }}>
                 {matchedShipment.isMovementStopped ? 'Paused on Hold' : liveTelemetry?.hoursRemainingStr || (matchedShipment.status === 'delivered' ? '0h 00m (Arrived)' : 'Calculating...')}
@@ -1244,10 +1276,10 @@ function TrackPage() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  📍 Progress & Distance
+                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Progress & Distance
                 </span>
-                <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 800 }}>
+                <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 400 }}>
                   {liveTelemetry ? `${Math.round(liveTelemetry.remainingPct)}% to go` : ''}
                 </span>
               </div>
@@ -1271,8 +1303,8 @@ function TrackPage() {
                 borderLeft: '4px solid #818cf8',
               }}
             >
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                📡 Live Telemetry State
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Live Telemetry State
               </span>
               <strong style={{ display: 'block', fontSize: '1.2rem', color: matchedShipment.isMovementStopped ? '#ef4444' : '#818cf8', marginTop: '4px' }}>
                 {matchedShipment.isMovementStopped ? '0 km/h · Halted' : liveTelemetry?.speedDisplay || '80 km/h · Normal Driving Speed'}
@@ -1377,12 +1409,12 @@ function TrackPage() {
                     gap: '14px',
                   }}
                 >
-                  <span style={{ fontSize: '2.25rem', flexShrink: 0 }}>🛑</span>
+                  <span style={{ flexShrink: 0, display: 'inline-flex' }}><AlertCircle size={28} color='#ea580c' strokeWidth={1.5} /></span>
                   <div>
                     <strong style={{ display: 'block', fontSize: '1.05rem', color: '#991b1b', fontWeight: 900, marginBottom: '2px' }}>
-                      🛑 SHIPMENT MOVEMENT STOPPED / DISPATCH HOLD ACTIVE
+                      SHIPMENT MOVEMENT STOPPED / DISPATCH HOLD ACTIVE
                     </strong>
-                    <span style={{ fontSize: '0.88rem', color: '#1f2937', fontWeight: 600, lineHeight: 1.4 }}>
+                    <span style={{ fontSize: '0.88rem', color: '#1f2937', fontWeight: 400, lineHeight: 1.4 }}>
                       This consignment has been temporarily halted by Dispatch Operations. Live vehicle coordinates are frozen at the current location until movement is resumed by admin.
                     </span>
                   </div>
@@ -1407,9 +1439,9 @@ function TrackPage() {
                   </span>
                   <div>
                     <strong style={{ display: 'block', fontSize: '1.05rem', color: '#15803d', fontWeight: 900, marginBottom: '2px' }}>
-                      ▶️ SHIPMENT IN TRANSIT (ACTIVE GPS TELEMETRY)
+                      SHIPMENT IN TRANSIT (ACTIVE GPS TELEMETRY)
                     </strong>
-                    <span style={{ fontSize: '0.88rem', color: '#1f2937', fontWeight: 600, lineHeight: 1.4 }}>
+                    <span style={{ fontSize: '0.88rem', color: '#1f2937', fontWeight: 400, lineHeight: 1.4 }}>
                       Consignment is actively moving along the authorized corridor towards destination hub. Live telemetry and speed are synchronized.
                     </span>
                   </div>
@@ -1434,7 +1466,7 @@ function TrackPage() {
                     <strong style={{ display: 'block', fontSize: '1.05rem', color: '#92400e', fontWeight: 900, marginBottom: '2px' }}>
                       ⏳ PENDING DISPATCH APPROVAL (STATIONARY AT ORIGIN)
                     </strong>
-                    <span style={{ fontSize: '0.88rem', color: '#1f2937', fontWeight: 600, lineHeight: 1.4 }}>
+                    <span style={{ fontSize: '0.88rem', color: '#1f2937', fontWeight: 400, lineHeight: 1.4 }}>
                       Consignment booking is officially confirmed in the logistics system. The vehicle will commence active GPS movement once the operations board approves it to In Transit.
                     </span>
                   </div>
@@ -1454,12 +1486,12 @@ function TrackPage() {
                     gap: '14px',
                   }}
                 >
-                  <span style={{ fontSize: '2.25rem', flexShrink: 0 }}>✅</span>
+                  <span style={{ flexShrink: 0, display: 'inline-flex' }}><CheckCircle2 size={28} color='#10b981' strokeWidth={1.5} /></span>
                   <div>
                     <strong style={{ display: 'block', fontSize: '1.05rem', color: '#166534', fontWeight: 900, marginBottom: '2px' }}>
-                      ✅ CONSIGNMENT DELIVERED & RECEIVED
+                      CONSIGNMENT DELIVERED & RECEIVED
                     </strong>
-                    <span style={{ fontSize: '0.88rem', color: '#1f2937', fontWeight: 600, lineHeight: 1.4 }}>
+                    <span style={{ fontSize: '0.88rem', color: '#1f2937', fontWeight: 400, lineHeight: 1.4 }}>
                       All linehaul milestones completed. Final receipt signed at destination gateway.
                     </span>
                   </div>
@@ -1479,70 +1511,70 @@ function TrackPage() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.15rem', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.85rem' }}>
                   <div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 400, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       Official Routing Credentials
                     </span>
-                    <h3 style={{ margin: '2px 0 0', fontSize: '1.25rem', color: '#000000', fontWeight: 900 }}>
+                    <h3 style={{ margin: '2px 0 0', fontSize: '1.25rem', color: '#ffffff', fontWeight: 400 }}>
                       Sender & Consignee Information
                     </h3>
                   </div>
-                  <span style={{ fontSize: '0.75rem', padding: '4px 12px', borderRadius: '20px', background: '#f1f5f9', color: '#0f172a', fontWeight: 800, border: '1px solid #cbd5e1' }}>
+                  <span style={{ fontSize: '0.75rem', padding: '4px 12px', borderRadius: '20px', background: '#f1f5f9', color: '#0f172a', fontWeight: 400, border: '1px solid #cbd5e1' }}>
                     Verified Parties
                   </span>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
                   {/* Sender Party */}
-                  <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1.5px solid #cbd5e1' }}>
+                  <div style={{ background: 'rgba(11, 17, 30, 0.65)', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(229, 229, 229, 0.1)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#059669', fontWeight: 900, letterSpacing: '0.05em', marginBottom: '8px', textTransform: 'uppercase' }}>
-                      <span>📤</span> SENDER / ORIGIN PARTY
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowUpRight size={13} color='#fca311' strokeWidth={1.5} /> SENDER / ORIGIN PARTY</span>
                     </div>
-                    <strong style={{ display: 'block', fontSize: '1.15rem', color: '#000000', fontWeight: 900 }}>
+                    <strong style={{ display: 'block', fontSize: '1.15rem', color: '#ffffff', fontWeight: 400 }}>
                       {matchedShipment.senderName || 'Apex International Logistics'}
                     </strong>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px', fontSize: '0.88rem' }}>
                       <div>
-                        <span style={{ color: '#475569', fontSize: '0.78rem', fontWeight: 700, display: 'block' }}>Origin Location:</span>
-                        <strong style={{ color: '#000000', fontWeight: 800 }}>{matchedShipment.origin.name}</strong> ({matchedShipment.origin.code})
+                        <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 300, display: 'block' }}>Origin Location:</span>
+                        <strong style={{ color: '#ffffff', fontWeight: 400 }}>{matchedShipment.origin.name}</strong> ({matchedShipment.origin.code})
                       </div>
                       {matchedShipment.senderEmail && (
                         <div>
-                          <span style={{ color: '#475569', fontSize: '0.78rem', fontWeight: 700, display: 'block' }}>Sender Email:</span>
-                          <strong style={{ color: '#000000', fontWeight: 700 }}>{matchedShipment.senderEmail}</strong>
+                          <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 300, display: 'block' }}>Sender Email:</span>
+                          <strong style={{ color: '#e5e5e5', fontWeight: 400 }}>{matchedShipment.senderEmail}</strong>
                         </div>
                       )}
                       {matchedShipment.senderPhone && (
                         <div>
-                          <span style={{ color: '#475569', fontSize: '0.78rem', fontWeight: 700, display: 'block' }}>Sender Phone:</span>
-                          <strong style={{ color: '#000000', fontWeight: 700 }}>📞 {matchedShipment.senderPhone}</strong>
+                          <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 300, display: 'block' }}>Sender Phone:</span>
+                          <strong style={{ color: '#e5e5e5', fontWeight: 400 }}>{matchedShipment.senderPhone}</strong>
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* Consignee Party */}
-                  <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1.5px solid #cbd5e1' }}>
+                  <div style={{ background: 'rgba(11, 17, 30, 0.65)', padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(229, 229, 229, 0.1)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#0284c7', fontWeight: 900, letterSpacing: '0.05em', marginBottom: '8px', textTransform: 'uppercase' }}>
-                      <span>📥</span> CONSIGNEE / RECEIVER PARTY
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowDownLeft size={13} color='#fca311' strokeWidth={1.5} /> CONSIGNEE / RECEIVER PARTY</span>
                     </div>
-                    <strong style={{ display: 'block', fontSize: '1.15rem', color: '#000000', fontWeight: 900 }}>
+                    <strong style={{ display: 'block', fontSize: '1.15rem', color: '#ffffff', fontWeight: 400 }}>
                       {matchedShipment.receiverName || matchedShipment.clientName || 'Source Cards TCG'}
                     </strong>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px', fontSize: '0.88rem' }}>
                       <div>
-                        <span style={{ color: '#475569', fontSize: '0.78rem', fontWeight: 700, display: 'block' }}>Destination Hub:</span>
-                        <strong style={{ color: '#000000', fontWeight: 800 }}>{matchedShipment.destination.name}</strong> ({matchedShipment.destination.code})
+                        <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 300, display: 'block' }}>Destination Hub:</span>
+                        <strong style={{ color: '#ffffff', fontWeight: 400 }}>{matchedShipment.destination.name}</strong> ({matchedShipment.destination.code})
                       </div>
                       {(matchedShipment.receiverEmail || matchedShipment.clientEmail) && (
                         <div>
-                          <span style={{ color: '#475569', fontSize: '0.78rem', fontWeight: 700, display: 'block' }}>Receiver Email:</span>
-                          <strong style={{ color: '#000000', fontWeight: 700 }}>{matchedShipment.receiverEmail || matchedShipment.clientEmail}</strong>
+                          <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 300, display: 'block' }}>Receiver Email:</span>
+                          <strong style={{ color: '#e5e5e5', fontWeight: 400 }}>{matchedShipment.receiverEmail || matchedShipment.clientEmail}</strong>
                         </div>
                       )}
                       {matchedShipment.receiverPhone && (
                         <div>
-                          <span style={{ color: '#475569', fontSize: '0.78rem', fontWeight: 700, display: 'block' }}>Receiver Phone:</span>
-                          <strong style={{ color: '#000000', fontWeight: 700 }}>📞 {matchedShipment.receiverPhone}</strong>
+                          <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 300, display: 'block' }}>Receiver Phone:</span>
+                          <strong style={{ color: '#e5e5e5', fontWeight: 400 }}>{matchedShipment.receiverPhone}</strong>
                         </div>
                       )}
                     </div>
@@ -1563,7 +1595,7 @@ function TrackPage() {
                   }}
                 >
                   <strong style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>
-                    ⚠️ Operational Exception Notice
+                    Operational Exception Notice
                   </strong>
                   <span style={{ fontSize: '0.82rem' }}>
                     {matchedShipment.statusNote || 'Cargo undergoing secondary transit verification.'}
@@ -1590,7 +1622,7 @@ function TrackPage() {
                       <div className="milestone-copy">
                         <strong>{milestone.title}</strong>
                         <span>{milestone.detail}</span>
-                        <small>📍 {milestone.location}</small>
+                        <small>{milestone.location}</small>
                       </div>
                       <time>{milestone.time}</time>
                     </li>
@@ -1614,23 +1646,23 @@ function TrackPage() {
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.75rem' }}>
                 <div>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 400, color: '#0284c7', textTransform: 'uppercase' }}>
                     Consignment Profile
                   </span>
-                  <h4 style={{ margin: '2px 0 0', fontSize: '1.15rem', color: '#000000', fontWeight: 900 }}>
+                  <h4 style={{ margin: '2px 0 0', fontSize: '1.15rem', color: '#ffffff', fontWeight: 400 }}>
                     Specifications
                   </h4>
                 </div>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', background: '#0f172a', color: '#ffffff' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 400, padding: '3px 8px', borderRadius: '6px', background: '#0f172a', color: '#ffffff' }}>
                   {matchedShipment.carrierCode}
                 </span>
               </div>
               
               <div style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '12px', padding: '1rem' }}>
-                <strong style={{ fontSize: '1.15rem', color: '#000000', fontWeight: 900, display: 'block' }}>
+                <strong style={{ fontSize: '1.15rem', color: '#ffffff', fontWeight: 400, display: 'block' }}>
                   {matchedShipment.carrier}
                 </strong>
-                <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 800 }}>
+                <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 400 }}>
                   {matchedShipment.serviceTier || 'STANDARD'} • {matchedShipment.mode === 'land' ? '🚚 OVERLAND ROAD' : matchedShipment.mode === 'sea' ? '🚢 OCEAN MARITIME' : '✈️ PRIORITY AIR'}
                 </span>
               </div>
@@ -1643,19 +1675,19 @@ function TrackPage() {
                   style={{ width: '100%', height: '160px', objectFit: 'cover' }}
                 />
                 <div style={{ padding: '6px 10px', background: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#ffffff' }}>
-                  <span style={{ fontWeight: 700 }}>📸 CARGO VERIFICATION PHOTO</span>
-                  <span style={{ color: '#4ade80', fontWeight: 800 }}>✓ INSPECTED</span>
+                  <span style={{ fontWeight: 400, display: 'inline-flex', alignItems: 'center', gap: '5px' }}><Camera size={13} color='#fca311' strokeWidth={1.5} /> CARGO VERIFICATION PHOTO</span>
+                  <span style={{ color: '#4ade80', fontWeight: 400, display: 'inline-flex', alignItems: 'center', gap: '3px' }}><Check size={12} strokeWidth={2} /> INSPECTED</span>
                 </div>
               </div>
 
               {/* Cargo & Driver Summary (No Pricing / No Declared Value) */}
               <dl style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.65rem', margin: 0, padding: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
-                  <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Cargo Category</dt>
+                  <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Cargo Category</dt>
                   <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>{matchedShipment.cargoType || 'Commercial Freight'}</dd>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
-                  <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Shipping Modality</dt>
+                  <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Shipping Modality</dt>
                   <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>
                     {matchedShipment.mode === 'land'
                       ? '🚚 Overland Road Freight'
@@ -1665,7 +1697,7 @@ function TrackPage() {
                   </dd>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
-                  <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Transport Scope</dt>
+                  <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Transport Scope</dt>
                   <dd style={{ margin: 0, color: '#0284c7', fontSize: '0.88rem', fontWeight: 900 }}>
                     {matchedShipment.transportScope === 'Domestic'
                       ? '🏠 Domestic Overland'
@@ -1675,20 +1707,20 @@ function TrackPage() {
                   </dd>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
-                  <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Assigned Driver / Captain</dt>
+                  <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Assigned Driver / Captain</dt>
                   <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>{matchedShipment.assignedDriver || 'Amina Bello'}</dd>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
-                  <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Vehicle / Fleet Unit</dt>
+                  <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Vehicle / Fleet Unit</dt>
                   <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900, fontFamily: 'monospace' }}>{matchedShipment.vehicleId || 'VEH-101'}</dd>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
-                  <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Consignment Weight</dt>
+                  <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Consignment Weight</dt>
                   <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>{matchedShipment.weightKg} KG ({matchedShipment.packageCount || 1} PKG)</dd>
                 </div>
                 {(matchedShipment.createdAt || matchedShipment.bookingDate) && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
-                    <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Booking / Created Date</dt>
+                    <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Booking / Created Date</dt>
                     <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>
                       {new Date(matchedShipment.createdAt || matchedShipment.bookingDate!).toLocaleString([], {
                         dateStyle: 'medium',
@@ -1699,20 +1731,20 @@ function TrackPage() {
                 )}
                 {matchedShipment.estimatedDistanceKm && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
-                    <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Total Corridor Distance</dt>
+                    <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Total Corridor Distance</dt>
                     <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 900 }}>{matchedShipment.estimatedDistanceKm.toLocaleString()} KM</dd>
                   </div>
                 )}
                 {liveTelemetry && (
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
-                      <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Distance Covered</dt>
+                      <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Distance Covered</dt>
                       <dd style={{ margin: 0, color: '#16a34a', fontSize: '0.88rem', fontWeight: 900 }}>
                         {liveTelemetry.coveredKm.toLocaleString()} KM ({Math.round(liveTelemetry.progressPct)}%)
                       </dd>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
-                      <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 700 }}>Distance Remaining</dt>
+                      <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Distance Remaining</dt>
                       <dd style={{ margin: 0, color: '#0284c7', fontSize: '0.88rem', fontWeight: 900 }}>
                         {liveTelemetry.remainingKm.toLocaleString()} KM ({Math.round(liveTelemetry.remainingPct)}%)
                       </dd>
@@ -1728,15 +1760,15 @@ function TrackPage() {
                   size={110}
                   level="M"
                 />
-                <span style={{ fontSize: '0.72rem', color: '#0f172a', marginTop: '6px', fontWeight: 800 }}>
+                <span style={{ fontSize: '0.72rem', color: '#0f172a', marginTop: '6px', fontWeight: 400 }}>
                   SCAN FOR MOBILE LIVE SATELLITE TELEMETRY
                 </span>
               </div>
 
               <div style={{ padding: '0.85rem', background: '#f1f5f9', borderRadius: '10px', border: '1px solid #cbd5e1', textAlign: 'center' }}>
-                <strong style={{ display: 'block', fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>Operations Control Desk</strong>
+                <strong style={{ display: 'block', fontSize: '0.88rem', color: '#0f172a', fontWeight: 400 }}>Operations Control Desk</strong>
                 <span style={{ fontSize: '0.78rem', color: '#475569', display: 'block', margin: '2px 0 6px' }}>24/7 dedicated freight coordinator support.</span>
-                <Link to={`/contact?waybill=${encodeURIComponent(matchedShipment.waybill)}`} style={{ color: '#0284c7', fontWeight: 800, fontSize: '0.82rem', textDecoration: 'none' }}>
+                <Link to={`/contact?waybill=${encodeURIComponent(matchedShipment.waybill)}`} style={{ color: '#0284c7', fontWeight: 400, fontSize: '0.82rem', textDecoration: 'none' }}>
                   Contact Dispatch Desk →
                 </Link>
               </div>
@@ -1768,7 +1800,7 @@ function ServicesPage() {
     <section className="section-block page-shell services-page">
       <section className="ship-hero services-hero" aria-labelledby="services-hero-title">
         <div className="ship-hero-copy">
-          <p className="eyebrow">Northstar freight services</p>
+          <p className="eyebrow">Global Prime Logistics freight services</p>
           <h1 id="services-hero-title">The right route for every shipment.</h1>
           <p>Compare air, ocean, and ground services, then start a request with your preferred transport mode.</p>
         </div>
@@ -2196,7 +2228,7 @@ function ContactPage() {
     <div className="support-page">
       <section className="support-hero" aria-labelledby="support-title">
         <div>
-          <p className="eyebrow">Northstar Freight Global Support</p>
+          <p className="eyebrow">Global Prime Logistics Global Support</p>
           <h1 id="support-title">Talk to the operations desk.</h1>
           <p>Get help with a shipment in progress, plan a new route, or clarify cargo-handling requirements.</p>
         </div>
@@ -2360,7 +2392,7 @@ function PoliciesPage() {
       <header className="policy-heading">
         <p className="eyebrow">Legal information</p>
         <h1>Privacy and service terms.</h1>
-        <p>How shipment information is used and the conditions that apply when arranging freight through Northstar.</p>
+        <p>How shipment information is used and the conditions that apply when arranging freight through Global Prime Logistics.</p>
         <span className="policy-draft-note">Draft policy copy · review before launch</span>
       </header>
 
@@ -2376,7 +2408,7 @@ function PoliciesPage() {
           <article id="privacy" className="policy-section" aria-labelledby="privacy-title">
             <p className="policy-section-kicker">01 / PRIVACY</p>
             <h2 id="privacy-title">Privacy notice</h2>
-            <p>Northstar uses the information you provide to arrange and support freight services. This can include contact details, shipment references, routing information, cargo details, and messages sent to operations.</p>
+            <p>Global Prime Logistics uses the information you provide to arrange and support freight services. This can include contact details, shipment references, routing information, cargo details, and messages sent to operations.</p>
 
             <h3>How information is used</h3>
             <ul>
@@ -2768,7 +2800,7 @@ function CreateShipmentPage() {
     return (
       <section className="dashboard-page">
         <div className="card" style={{ padding: '2.5rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎉</div>
+          <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}></div>
           <h2>Shipment Created Successfully!</h2>
           <p style={{ color: '#94a3b8' }}>Your new consignment has been registered with the carrier dispatch engine.</p>
           <div style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: 'monospace', color: '#00d2ff', margin: '1rem 0' }}>
@@ -2891,7 +2923,7 @@ function CreateShipmentPage() {
               }
             }}
           >
-            {step === steps.length - 1 ? '⚡ Confirm & Book Consignment' : 'Continue'}
+            {step === steps.length - 1 ? 'Confirm & Book Consignment' : 'Continue'}
           </button>
         </div>
       </div>

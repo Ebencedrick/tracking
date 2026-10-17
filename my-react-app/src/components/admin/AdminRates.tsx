@@ -22,10 +22,10 @@ export function AdminRates() {
 
         <div className="cmd-header-actions">
           <Link to="/admin/inquiries" className="cmd-btn cmd-btn-white">
-            ✉ Client Quotations
+            Client Quotations
           </Link>
           <Link to="/admin/chats" className="cmd-btn cmd-btn-navy">
-            💬 Live Support Desk
+            Live Support Desk
           </Link>
         </div>
       </div>
@@ -44,7 +44,7 @@ export function AdminRates() {
           boxShadow: '0 4px 16px rgba(2, 132, 199, 0.08)',
         }}
       >
-        <span style={{ fontSize: '2rem' }}>📧</span>
+        <span style={{ fontSize: '2rem' }}></span>
         <div>
           <strong style={{ color: '#0369a1', fontSize: '0.95rem', display: 'block' }}>
             Direct Manual Tariff & Consignment Billing Protocol:
@@ -64,7 +64,7 @@ export function AdminRates() {
             <span className="cmd-stat-subtext">Global Multi-Modal</span>
           </div>
           <div className="cmd-stat-icon-box gray">
-            🌐
+            
           </div>
         </div>
 
@@ -75,7 +75,7 @@ export function AdminRates() {
             <span className="cmd-stat-subtext">DHL & FedEx Airframes</span>
           </div>
           <div className="cmd-stat-icon-box blue">
-            ✈️
+            
           </div>
         </div>
 
@@ -86,7 +86,7 @@ export function AdminRates() {
             <span className="cmd-stat-subtext">Maersk Line Fleet</span>
           </div>
           <div className="cmd-stat-icon-box green">
-            🚢
+            
           </div>
         </div>
 
@@ -97,7 +97,7 @@ export function AdminRates() {
             <span className="cmd-stat-subtext">Pre-Clearance Standard</span>
           </div>
           <div className="cmd-stat-icon-box red">
-            🛂
+            
           </div>
         </div>
       </div>
@@ -108,7 +108,7 @@ export function AdminRates() {
         <div className="cmd-card">
           <div className="cmd-card-header">
             <h2 className="cmd-card-title">
-              <span className="cmd-card-title-icon">📋</span>
+              <span className="cmd-card-title-icon"></span>
               Authorized Carrier Partners & Coverage Corridors
             </h2>
           </div>
@@ -128,7 +128,7 @@ export function AdminRates() {
                   <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '0.85rem 0.6rem', fontWeight: 800, color: '#0f172a' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>🏢</span>
+                        <span></span>
                         <div>
                           <div>{c.name}</div>
                           <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Code: {c.code}</span>
@@ -153,7 +153,7 @@ export function AdminRates() {
         <div className="cmd-card">
           <div className="cmd-card-header">
             <h2 className="cmd-card-title">
-              <span className="cmd-card-title-icon">🛡️</span>
+              <span className="cmd-card-title-icon"></span>
               Consignment Intake Protocols
             </h2>
           </div>

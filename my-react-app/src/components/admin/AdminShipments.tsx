@@ -121,7 +121,7 @@ export function AdminShipments() {
       {/* Toast */}
       {toastMessage && (
         <div className="shipment-toast">
-          ✓ {toastMessage}
+          {toastMessage}
         </div>
       )}
 
@@ -206,7 +206,7 @@ export function AdminShipments() {
                     </span>
 
                     <span className="shipment-badge-mode">
-                      🌍 International
+                      International
                     </span>
 
                     {s.status === 'pending' ? (
@@ -247,10 +247,10 @@ export function AdminShipments() {
                 </div>
 
                 <div className="shipment-card-route-line">
-                  <span className="shipment-pin-red">📍</span>
+                  <span className="shipment-pin-red"></span>
                   <span className="shipment-route-origin">{s.origin.name}</span>
                   <span className="shipment-route-arrow">→</span>
-                  <span className="shipment-hub-icon">🏁</span>
+                  <span className="shipment-hub-icon"></span>
                   <span className="shipment-route-dest">{s.destination.name}</span>
                 </div>
 
@@ -262,7 +262,7 @@ export function AdminShipments() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ fontSize: '0.75rem', fontWeight: 800, color: s.isMovementStopped ? '#b91c1c' : '#0284c7', textTransform: 'uppercase' }}>
-                            {s.isMovementStopped ? '🛑 MOVEMENT STOPPED (HOLD)' : s.status === 'delivered' ? '✅ DELIVERED' : s.status === 'pending' ? '⏳ PENDING DISPATCH' : '▶ IN TRANSIT'}
+                            {s.isMovementStopped ? 'HOLD (STOPPED)' : s.status === 'delivered' ? 'DELIVERED' : s.status === 'pending' ? '⏳ PENDING DISPATCH' : '▶ IN TRANSIT'}
                           </span>
                           <span style={{ fontSize: '0.72rem', color: '#64748b' }}>• {metrics.speedDisplay}</span>
                         </div>
@@ -354,7 +354,7 @@ export function AdminShipments() {
                     className="shipment-action-btn reassign"
                     onClick={() => handleOpenReassign(s)}
                   >
-                    <span>👤+</span>
+                    <span>+ Assign</span>
                     <span>Reassign Driver</span>
                   </button>
 
@@ -364,7 +364,7 @@ export function AdminShipments() {
                     className="shipment-action-btn edit"
                     style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
                   >
-                    <span>✏️</span>
+                    <span>Edit</span>
                     <span>Edit Information</span>
                   </Link>
 

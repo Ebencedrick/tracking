@@ -4,6 +4,20 @@ import L from 'leaflet'
 import { useShipments } from '../../context/ShipmentContext'
 import type { Shipment, ShippingMode, ShipmentStatus } from '../../types'
 import { getShipmentProgressMetrics, getShipmentDistanceKm } from '../../utils/mapApis'
+import {
+  Building2,
+  TrendingUp,
+  Plane,
+  Ship,
+  Truck,
+  PauseCircle,
+  PlayCircle,
+  Save,
+  X,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
+} from 'lucide-react'
 
 const siteLogo = '/brand-logo.jfif'
 
@@ -106,7 +120,7 @@ export function AdminDashboard() {
       const vLat = s.currentLocation?.lat || s.origin.lat
       const vLng = s.currentLocation?.lng || s.origin.lng
       const isSelected = s.waybill === selectedAssetWaybill
-      const emoji = s.mode === 'air' ? '✈️' : s.mode === 'sea' ? '🚢' : '🚚'
+      const emoji = s.mode.toUpperCase()
 
       const customIcon = L.divIcon({
         className: 'dashboard-radar-marker',
@@ -149,7 +163,7 @@ export function AdminDashboard() {
       marker.bindPopup(`
         <div style="font-family: inherit; font-size: 12px; min-width: 180px;">
           <strong style="color: #0284c7; font-size: 13px;">${s.carrier} (${s.waybill})</strong><br>
-          <b>Corridor:</b> ${s.origin.code} ➔ ${s.destination.code}<br>
+          <b>Corridor:</b> ${s.origin.code} → ${s.destination.code}<br>
           <b>Position:</b> ${s.currentLocation?.name || 'In Corridor'}<br>
           <b>Status:</b> ${s.status.toUpperCase()} (${s.progressPct || 45}%)<br>
           <b>Driver:</b> ${s.assignedDriver || 'Linehaul Unit'}<br>
@@ -208,7 +222,7 @@ export function AdminDashboard() {
 
     showToast(
       nextStopped
-        ? `🛑 Movement stopped for ${s.waybill} (Cargo Hold active)`
+        ? `Movement stopped for ${s.waybill} (Cargo Hold active)`
         : `▶️ Movement resumed for ${s.waybill} (Active Transit)`
     )
   }
@@ -266,7 +280,7 @@ export function AdminDashboard() {
   // Quick Action 1: Ping SpaceLink Telemetry
   const handlePingTelemetry = () => {
     setIsSpaceLinkPinging(true)
-    showToast('📡 SpaceLink Global Telemetry ping broadcasted. 4 active transponders synchronized with MongoDB.')
+    showToast('SpaceLink Global Telemetry ping broadcasted. 4 active transponders synchronized with MongoDB.')
     addAuditLog(
       'Telemetry Ping Broadcast',
       'TELEMETRY',
@@ -359,10 +373,10 @@ export function AdminDashboard() {
             <span style={{ fontSize: '1.1rem', marginRight: '2px' }}>⊕</span> NEW CONSIGNMENT
           </Link>
           <button type="button" className="cmd-btn cmd-btn-navy" onClick={openBroadcastModal}>
-            <span>✉</span> BROADCAST NOTICE
+            <span>Transmit</span> BROADCAST NOTICE
           </button>
           <button type="button" className="cmd-btn cmd-btn-white" onClick={openRadarModal}>
-            <span>🗺</span> LIVE RADAR
+            <span>Radar</span> LIVE RADAR
           </button>
         </div>
       </div>
@@ -377,7 +391,7 @@ export function AdminDashboard() {
             <span className="cmd-stat-subtext">Recorded in MongoDB</span>
           </div>
           <div className="cmd-stat-icon-box gray" aria-hidden="true">
-            <span>📦</span>
+            
           </div>
         </div>
 
@@ -389,7 +403,7 @@ export function AdminDashboard() {
             <span className="cmd-stat-subtext">Live GPS Telemetry</span>
           </div>
           <div className="cmd-stat-icon-box blue" aria-hidden="true">
-            <span>🚚</span>
+            
           </div>
         </div>
 
@@ -413,7 +427,7 @@ export function AdminDashboard() {
             <span className="cmd-stat-subtext">Inspection / hold</span>
           </div>
           <div className="cmd-stat-icon-box red" aria-hidden="true">
-            <span>⚠️</span>
+            
           </div>
         </div>
       </div>
@@ -422,7 +436,7 @@ export function AdminDashboard() {
       <div className="cmd-card" style={{ marginBottom: '2rem' }}>
         <div className="cmd-card-header">
           <h3 className="cmd-card-title">
-            <span className="cmd-card-title-icon" aria-hidden="true">📑</span>
+            
             <span>Recent Freight Waybills & Consignments</span>
           </h3>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -479,7 +493,7 @@ export function AdminDashboard() {
                     {/* Origin Terminal */}
                     <td>
                       <div className="cmd-origin-cell">
-                        <span className="cmd-origin-pin" aria-hidden="true">📍</span>
+                        
                         <span>{s.origin.name}</span>
                       </div>
                     </td>
@@ -487,7 +501,7 @@ export function AdminDashboard() {
                     {/* Destination Hub */}
                     <td>
                       <div className="cmd-dest-cell">
-                        <span className="cmd-dest-hub-icon" aria-hidden="true">🏢</span>
+                        
                         <span>{s.destination.name}</span>
                       </div>
                     </td>
@@ -496,10 +510,10 @@ export function AdminDashboard() {
                     <td>
                       <div style={{ minWidth: '150px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                          <strong style={{ fontSize: '0.85rem', color: s.isMovementStopped ? '#ef4444' : s.status === 'delivered' ? '#10b981' : '#0284c7', fontWeight: 800 }}>
+                          <strong style={{ fontSize: '0.85rem', color: s.isMovementStopped ? '#ef4444' : s.status === 'delivered' ? '#10b981' : '#0284c7', fontWeight: 400 }}>
                             {metrics.pct}%
                           </strong>
-                          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 400 }}>
                             {metrics.coveredKm.toLocaleString()} / {metrics.totalKm.toLocaleString()} km
                           </span>
                         </div>
@@ -519,7 +533,7 @@ export function AdminDashboard() {
                           />
                         </div>
                         <span style={{ fontSize: '0.7rem', color: '#475569', display: 'block', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '170px' }}>
-                          📍 {s.currentLocation?.name || 'In Corridor'}
+                          {s.currentLocation?.name || 'In Corridor'}
                         </span>
                       </div>
                     </td>
@@ -531,15 +545,15 @@ export function AdminDashboard() {
                           {s.status === 'in_transit' ? 'In Transit' : s.status.replace('_', ' ')}
                         </span>
                         {s.isMovementStopped ? (
-                          <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: '#fee2e2', color: '#b91c1c' }}>
-                            🛑 HOLD
+                          <span style={{ fontSize: '0.7rem', fontWeight: 400, padding: '2px 6px', borderRadius: '4px', background: '#fee2e2', color: '#b91c1c' }}>
+                            HOLD
                           </span>
                         ) : s.status === 'pending' ? (
-                          <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: '#fef3c7', color: '#92400e' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 400, padding: '2px 6px', borderRadius: '4px', background: '#fef3c7', color: '#92400e' }}>
                             ⏳ STAGED
                           </span>
                         ) : (
-                          <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#dcfce7', color: '#15803d' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 400, padding: '2px 6px', borderRadius: '4px', background: '#dcfce7', color: '#15803d' }}>
                             ▶ {metrics.speedDisplay}
                           </span>
                         )}
@@ -569,7 +583,7 @@ export function AdminDashboard() {
                           }}
                           title={s.isMovementStopped ? 'Resume Movement' : 'Stop Movement (Hold)'}
                         >
-                          {s.isMovementStopped ? '▶ Resume' : '🛑 Stop'}
+                          {s.isMovementStopped ? 'Resume' : 'Stop'}
                         </button>
 
                         {/* Quick Update Button */}
@@ -580,7 +594,7 @@ export function AdminDashboard() {
                           style={{ background: '#0284c7', color: '#ffffff', border: 'none', cursor: 'pointer' }}
                           title="Live Fleet Updates & Telemetry"
                         >
-                          ⚡ Fleet Update
+                          Fleet Update
                         </button>
 
                         {/* Track Vector Link */}
@@ -605,7 +619,7 @@ export function AdminDashboard() {
         <div className="cmd-card-header" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <h3 className="cmd-card-title">
-              <span className="cmd-card-title-icon" aria-hidden="true">🛰️</span>
+              
               <span>Live Active Fleets & Telemetry Radar</span>
             </h3>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
@@ -628,7 +642,7 @@ export function AdminDashboard() {
               style={{ padding: '0.4rem 0.8rem', fontSize: '0.78rem' }}
               onClick={() => setMapModeFilter('air')}
             >
-              ✈️ Air Express ({shipments.filter((s) => s.mode === 'air').length})
+              Air Express ({shipments.filter((s) => s.mode === 'air').length})
             </button>
             <button
               type="button"
@@ -636,7 +650,7 @@ export function AdminDashboard() {
               style={{ padding: '0.4rem 0.8rem', fontSize: '0.78rem' }}
               onClick={() => setMapModeFilter('sea')}
             >
-              🚢 Ocean ({shipments.filter((s) => s.mode === 'sea').length})
+              Ocean ({shipments.filter((s) => s.mode === 'sea').length})
             </button>
             <button
               type="button"
@@ -644,7 +658,7 @@ export function AdminDashboard() {
               style={{ padding: '0.4rem 0.8rem', fontSize: '0.78rem' }}
               onClick={() => setMapModeFilter('land')}
             >
-              🚚 Overland ({shipments.filter((s) => s.mode === 'land').length})
+              Overland ({shipments.filter((s) => s.mode === 'land').length})
             </button>
           </div>
         </div>
@@ -678,7 +692,7 @@ export function AdminDashboard() {
                 borderRadius: '8px',
                 border: '1px solid rgba(56, 189, 248, 0.4)',
                 fontSize: '11px',
-                fontWeight: 700,
+                fontWeight: 400,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
@@ -709,7 +723,7 @@ export function AdminDashboard() {
               paddingRight: '4px',
             }}
           >
-            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', letterSpacing: '0.5px' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 400, color: '#94a3b8', letterSpacing: '0.5px' }}>
               CLICKABLE ACTIVE FLEETS ({mapShipments.length})
             </span>
 
@@ -733,14 +747,14 @@ export function AdminDashboard() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '1.1rem' }}>{s.mode === 'air' ? '✈️' : s.mode === 'sea' ? '🚢' : '🚚'}</span>
+                      <span style={{ fontSize: '0.85rem' }}>{s.mode.toUpperCase()}</span>
                       <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{s.waybill}</strong>
                     </div>
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <span
                         style={{
                           fontSize: '0.7rem',
-                          fontWeight: 700,
+                          fontWeight: 400,
                           padding: '2px 6px',
                           borderRadius: '4px',
                           background: s.status === 'in_transit' ? '#e0f2fe' : '#fef3c7',
@@ -753,7 +767,7 @@ export function AdminDashboard() {
                         <span
                           style={{
                             fontSize: '0.7rem',
-                            fontWeight: 800,
+                            fontWeight: 400,
                             padding: '2px 6px',
                             borderRadius: '4px',
                             background: '#fee2e2',
@@ -767,7 +781,7 @@ export function AdminDashboard() {
                   </div>
 
                   <div style={{ fontSize: '0.78rem', color: '#475569', marginBottom: '4px' }}>
-                    {s.origin.code} ➔ {s.destination.code} · <span style={{ color: '#64748b' }}>{s.carrier}</span>
+                    {s.origin.code} → {s.destination.code} · <span style={{ color: '#64748b' }}>{s.carrier}</span>
                   </div>
 
                   {/* Progress Bar & Distance */}
@@ -791,7 +805,7 @@ export function AdminDashboard() {
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
                     <span>Driver: <strong>{s.assignedDriver || 'Linehaul Operator'}</strong></span>
-                    <span style={{ color: s.isMovementStopped ? '#ef4444' : '#10b981', fontWeight: 700 }}>{metrics.speedDisplay}</span>
+                    <span style={{ color: s.isMovementStopped ? '#ef4444' : '#10b981', fontWeight: 400 }}>{metrics.speedDisplay}</span>
                   </div>
                 </div>
               )
@@ -814,7 +828,7 @@ export function AdminDashboard() {
         {/* Quick Action Suite */}
         <div className="cmd-card" style={{ padding: '1.5rem' }}>
           <h3 className="cmd-card-title" style={{ marginBottom: '0.5rem' }}>
-            <span className="cmd-card-title-icon" aria-hidden="true">⚡</span>
+            
             <span>Dispatch Control Actions</span>
           </h3>
           <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1.25rem' }}>
@@ -833,7 +847,7 @@ export function AdminDashboard() {
                 borderRadius: '8px',
                 padding: '0.85rem 1rem',
                 fontSize: '0.82rem',
-                fontWeight: 600,
+                fontWeight: 400,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -841,7 +855,7 @@ export function AdminDashboard() {
                 transition: 'background 0.2s',
               }}
             >
-              <span>{isSpaceLinkPinging ? '🔄' : '📡'}</span>
+              <span>Ping</span>
               <span>{isSpaceLinkPinging ? 'Pinging...' : 'Ping Telemetry'}</span>
             </button>
 
@@ -855,14 +869,14 @@ export function AdminDashboard() {
                 borderRadius: '8px',
                 padding: '0.85rem 1rem',
                 fontSize: '0.82rem',
-                fontWeight: 600,
+                fontWeight: 400,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
               }}
             >
-              <span>📋</span>
+              
               <span>Export Manifest</span>
             </button>
 
@@ -876,14 +890,14 @@ export function AdminDashboard() {
                 borderRadius: '8px',
                 padding: '0.85rem 1rem',
                 fontSize: '0.82rem',
-                fontWeight: 600,
+                fontWeight: 400,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
               }}
             >
-              <span>👤+</span>
+              
               <span>Auto-Assign Drivers</span>
             </button>
 
@@ -896,7 +910,7 @@ export function AdminDashboard() {
                 borderRadius: '8px',
                 padding: '0.85rem 1rem',
                 fontSize: '0.82rem',
-                fontWeight: 600,
+                fontWeight: 400,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -904,7 +918,7 @@ export function AdminDashboard() {
                 textDecoration: 'none',
               }}
             >
-              <span>💲</span>
+              
               <span>Tariff Schedules</span>
             </Link>
           </div>
@@ -914,13 +928,13 @@ export function AdminDashboard() {
         <div className="cmd-card" style={{ padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
             <h3 className="cmd-card-title">
-              <span className="cmd-card-title-icon" aria-hidden="true">⚠️</span>
+              
               <span>Active Advisories & Exceptions</span>
             </h3>
             <span
               style={{
                 fontSize: '0.72rem',
-                fontWeight: 800,
+                fontWeight: 400,
                 padding: '2px 8px',
                 borderRadius: '12px',
                 background: exceptionCount > 0 ? '#fee2e2' : '#dcfce7',
@@ -977,7 +991,7 @@ export function AdminDashboard() {
                             padding: '4px 8px',
                             borderRadius: '4px',
                             fontSize: '0.72rem',
-                            fontWeight: 600,
+                            fontWeight: 400,
                             cursor: 'pointer',
                           }}
                         >
@@ -994,11 +1008,11 @@ export function AdminDashboard() {
                           padding: '4px 8px',
                           borderRadius: '4px',
                           fontSize: '0.72rem',
-                          fontWeight: 700,
+                          fontWeight: 400,
                           cursor: 'pointer',
                         }}
                       >
-                        ✓ Resume
+                        Resume
                       </button>
                     </div>
                   </div>
@@ -1017,7 +1031,7 @@ export function AdminDashboard() {
                   fontSize: '0.85rem',
                 }}
               >
-                ✓ All global air, maritime, and overland corridors operating within normal parameters.
+                All global air, maritime, and overland corridors operating within normal parameters.
               </div>
             )}
           </div>
@@ -1036,19 +1050,19 @@ export function AdminDashboard() {
       >
         {/* Global Hub Utilization */}
         <div className="cmd-card" style={{ padding: '1.5rem' }}>
-          <h3 className="cmd-card-title" style={{ marginBottom: '0.5rem' }}>
-            <span className="cmd-card-title-icon" aria-hidden="true">🏢</span>
+          <h3 className="cmd-card-title" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Building2 size={16} strokeWidth={1.5} style={{ color: '#0052b4' }} />
             <span>Global Gateway Hub Utilization</span>
           </h3>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1.25rem' }}>
+          <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1.25rem', fontWeight: 300 }}>
             Available sorting capacity and volumetric tonnage metrics across primary regional gateways.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
-                <strong>New York (JFK Worldport)</strong>
-                <span style={{ color: '#0284c7', fontWeight: 700 }}>88% (35.2 Tons / 40.0 T)</span>
+                <span style={{ fontWeight: 400 }}>New York (JFK Worldport)</span>
+                <span style={{ color: '#0284c7', fontWeight: 400 }}>88% (35.2 Tons / 40.0 T)</span>
               </div>
               <div style={{ height: '7px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
                 <div style={{ width: '88%', height: '100%', background: '#0284c7', borderRadius: '4px' }} />
@@ -1057,8 +1071,8 @@ export function AdminDashboard() {
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
-                <strong>London (LHR World Cargo)</strong>
-                <span style={{ color: '#10b981', fontWeight: 700 }}>72% (28.8 Tons / 40.0 T)</span>
+                <span style={{ fontWeight: 400 }}>London (LHR World Cargo)</span>
+                <span style={{ color: '#10b981', fontWeight: 400 }}>72% (28.8 Tons / 40.0 T)</span>
               </div>
               <div style={{ height: '7px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
                 <div style={{ width: '72%', height: '100%', background: '#10b981', borderRadius: '4px' }} />
@@ -1067,8 +1081,8 @@ export function AdminDashboard() {
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
-                <strong>Frankfurt (FRA Cargo Hub)</strong>
-                <span style={{ color: '#ea580c', fontWeight: 700 }}>94% (37.6 Tons / 40.0 T)</span>
+                <span style={{ fontWeight: 400 }}>Frankfurt (FRA Cargo Hub)</span>
+                <span style={{ color: '#ea580c', fontWeight: 400 }}>94% (37.6 Tons / 40.0 T)</span>
               </div>
               <div style={{ height: '7px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
                 <div style={{ width: '94%', height: '100%', background: '#ea580c', borderRadius: '4px' }} />
@@ -1077,8 +1091,8 @@ export function AdminDashboard() {
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
-                <strong>Dubai (DXB Mega Terminal)</strong>
-                <span style={{ color: '#10b981', fontWeight: 700 }}>61% (24.4 Tons / 40.0 T)</span>
+                <span style={{ fontWeight: 400 }}>Dubai (DXB Mega Terminal)</span>
+                <span style={{ color: '#10b981', fontWeight: 400 }}>61% (24.4 Tons / 40.0 T)</span>
               </div>
               <div style={{ height: '7px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
                 <div style={{ width: '61%', height: '100%', background: '#10b981', borderRadius: '4px' }} />
@@ -1089,37 +1103,37 @@ export function AdminDashboard() {
 
         {/* Carrier SLA Reliability Index */}
         <div className="cmd-card" style={{ padding: '1.5rem' }}>
-          <h3 className="cmd-card-title" style={{ marginBottom: '0.5rem' }}>
-            <span className="cmd-card-title-icon" aria-hidden="true">📈</span>
+          <h3 className="cmd-card-title" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <TrendingUp size={16} strokeWidth={1.5} style={{ color: '#10b981' }} />
             <span>Carrier SLA & On-Time Performance</span>
           </h3>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1.25rem' }}>
+          <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1.25rem', fontWeight: 300 }}>
             30-day verified transit punctuality, customs clearance speed, and linehaul reliability index.
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
             <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#d97706' }}>DHL EXPRESS</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 400, color: '#d97706' }}>DHL EXPRESS</div>
               <strong style={{ fontSize: '1.3rem', color: '#0f172a', display: 'block', margin: '2px 0' }}>99.4%</strong>
-              <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>+0.3% vs target</span>
+              <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 400 }}>+0.3% vs target</span>
             </div>
 
             <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed' }}>FEDEX PRIORITY</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 400, color: '#7c3aed' }}>FEDEX PRIORITY</div>
               <strong style={{ fontSize: '1.3rem', color: '#0f172a', display: 'block', margin: '2px 0' }}>98.7%</strong>
-              <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>+0.2% vs target</span>
+              <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 400 }}>+0.2% vs target</span>
             </div>
 
             <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0284c7' }}>MAERSK INTERMODAL</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 400, color: '#0284c7' }}>MAERSK INTERMODAL</div>
               <strong style={{ fontSize: '1.3rem', color: '#0f172a', display: 'block', margin: '2px 0' }}>97.2%</strong>
-              <span style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 600 }}>On target (97.0%)</span>
+              <span style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 400 }}>On target (97.0%)</span>
             </div>
 
             <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#854d0e' }}>UPS WORLDWIDE</div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 400, color: '#854d0e' }}>UPS WORLDWIDE</div>
               <strong style={{ fontSize: '1.3rem', color: '#0f172a', display: 'block', margin: '2px 0' }}>99.1%</strong>
-              <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>+0.5% vs target</span>
+              <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 400 }}>+0.5% vs target</span>
             </div>
           </div>
         </div>
@@ -1171,15 +1185,21 @@ export function AdminDashboard() {
             >
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '1.2rem' }}>
-                    {editingShipment.mode === 'air' ? '✈️' : editingShipment.mode === 'sea' ? '🚢' : '🚚'}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', color: '#38bdf8' }}>
+                    {editingShipment.mode === 'air' ? (
+                      <Plane size={18} strokeWidth={1.5} />
+                    ) : editingShipment.mode === 'sea' ? (
+                      <Ship size={18} strokeWidth={1.5} />
+                    ) : (
+                      <Truck size={18} strokeWidth={1.5} />
+                    )}
                   </span>
-                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#ffffff', fontWeight: 800 }}>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#ffffff', fontWeight: 400 }}>
                     Fleet Controller // {editingShipment.waybill}
                   </h3>
                 </div>
-                <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                  {editingShipment.carrier} · {editingShipment.origin.code} ➔ {editingShipment.destination.code}
+                <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 300 }}>
+                  {editingShipment.carrier} · {editingShipment.origin.code} → {editingShipment.destination.code}
                 </span>
               </div>
 
@@ -1199,7 +1219,7 @@ export function AdminDashboard() {
                   justifyContent: 'center',
                 }}
               >
-                ✕
+                <X size={16} strokeWidth={1.5} />
               </button>
             </div>
 
@@ -1219,10 +1239,20 @@ export function AdminDashboard() {
                 }}
               >
                 <div>
-                  <strong style={{ fontSize: '0.9rem', color: quickForm.isMovementStopped ? '#991b1b' : '#166534', display: 'block' }}>
-                    {quickForm.isMovementStopped ? '🛑 Consignment Movement is STOPPED (Hold Active)' : '▶️ Consignment is IN MOTION (Transit Active)'}
-                  </strong>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  <div style={{ fontSize: '0.85rem', color: quickForm.isMovementStopped ? '#991b1b' : '#166534', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 400 }}>
+                    {quickForm.isMovementStopped ? (
+                      <>
+                        <PauseCircle size={16} strokeWidth={1.5} />
+                        <span>Consignment Movement is STOPPED (Hold Active)</span>
+                      </>
+                    ) : (
+                      <>
+                        <PlayCircle size={16} strokeWidth={1.5} />
+                        <span>Consignment is IN MOTION (Transit Active)</span>
+                      </>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 300 }}>
                     Toggle this switch to halt vector progression or release holding order.
                   </span>
                 </div>
@@ -1243,13 +1273,26 @@ export function AdminDashboard() {
                     borderRadius: '8px',
                     background: quickForm.isMovementStopped ? '#10b981' : '#ea580c',
                     color: '#ffffff',
-                    fontWeight: 700,
+                    fontWeight: 400,
                     fontSize: '0.8rem',
                     border: 'none',
                     cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
                   }}
                 >
-                  {quickForm.isMovementStopped ? '▶ Resume Movement' : '🛑 Stop Movement'}
+                  {quickForm.isMovementStopped ? (
+                    <>
+                      <PlayCircle size={14} strokeWidth={1.5} />
+                      <span>Resume Movement</span>
+                    </>
+                  ) : (
+                    <>
+                      <PauseCircle size={14} strokeWidth={1.5} />
+                      <span>Stop Movement</span>
+                    </>
+                  )}
                 </button>
               </div>
 
@@ -1275,7 +1318,7 @@ export function AdminDashboard() {
                     <label className="cmd-form-label" style={{ margin: 0 }}>
                       Progress Percentage ({quickForm.progressPct}%)
                     </label>
-                    <span style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 400 }}>
                       {Math.round((getShipmentDistanceKm(editingShipment) * quickForm.progressPct) / 100).toLocaleString()} / {getShipmentDistanceKm(editingShipment).toLocaleString()} KM
                     </span>
                   </div>
@@ -1385,8 +1428,9 @@ export function AdminDashboard() {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="cmd-btn cmd-btn-navy">
-                  💾 Save & Dispatch Live Updates
+                <button type="submit" className="cmd-btn cmd-btn-navy" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Save size={14} strokeWidth={1.5} />
+                  <span>Save & Dispatch Live Updates</span>
                 </button>
               </div>
             </form>

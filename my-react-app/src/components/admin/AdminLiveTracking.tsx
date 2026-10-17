@@ -462,7 +462,7 @@ export function AdminLiveTracking() {
     })
     showToast(
       nextStopped
-        ? `🛑 Halted movement telemetry for ${selectedShipment.waybill}`
+        ? `Halted movement telemetry for ${selectedShipment.waybill}`
         : `▶️ Resumed linehaul telemetry for ${selectedShipment.waybill}`
     )
   }
@@ -528,7 +528,7 @@ export function AdminLiveTracking() {
                     <div className="live-track-hud-route-row" style={{ fontWeight: 300 }}>
                       <span className="live-track-hud-corridor">
                         <span style={{ fontWeight: 400 }}>{selectedShipment.origin.name.split(',')[0]}</span> ({selectedShipment.origin.code})
-                        <span style={{ color: '#94a3b8', margin: '0 6px' }}>➔</span>
+                        <span style={{ color: '#94a3b8', margin: '0 6px' }}>→</span>
                         <span style={{ fontWeight: 400 }}>{selectedShipment.destination.name.split(',')[0]}</span> ({selectedShipment.destination.code})
                       </span>
                       <span className="live-track-hud-driver" style={{ color: '#94a3b8' }}>
@@ -671,7 +671,7 @@ export function AdminLiveTracking() {
             title="Open Live Active Fleets Panel"
             aria-label="Open Live Active Fleets Panel"
           >
-            <span className="floating-tab-icon">📋</span>
+            
             <span className="floating-tab-text">Active Fleets ({filteredShipments.length})</span>
             <span className="floating-tab-arrow">◀</span>
           </button>
@@ -698,7 +698,7 @@ export function AdminLiveTracking() {
                 title="Collapse Fleets Panel"
                 aria-label="Collapse Fleets Panel"
               >
-                ✕
+                ×
               </button>
             </div>
           </div>
@@ -724,7 +724,7 @@ export function AdminLiveTracking() {
                 className="live-track-search-clear"
                 onClick={() => setSearchQuery('')}
               >
-                ✕
+                ×
               </button>
             )}
           </div>
@@ -743,21 +743,21 @@ export function AdminLiveTracking() {
               className={`live-track-filter-pill ${modeFilter === 'air' ? 'active' : ''}`}
               onClick={() => setModeFilter('air')}
             >
-              ✈️ Air
+              Air
             </button>
             <button
               type="button"
               className={`live-track-filter-pill ${modeFilter === 'sea' ? 'active' : ''}`}
               onClick={() => setModeFilter('sea')}
             >
-              🚢 Sea
+              Sea
             </button>
             <button
               type="button"
               className={`live-track-filter-pill ${modeFilter === 'land' ? 'active' : ''}`}
               onClick={() => setModeFilter('land')}
             >
-              🚚 Land
+              Land
             </button>
           </div>
         </div>
@@ -814,7 +814,7 @@ export function AdminLiveTracking() {
                         }}
                         title={`Edit Fleet Telemetry & Driver for ${s.waybill}`}
                       >
-                        ✏️ Edit
+                        Edit
                       </button>
                     </div>
                   </div>
@@ -829,7 +829,7 @@ export function AdminLiveTracking() {
                     </div>
 
                     <div className="live-track-corridor-arrow">
-                      ➔
+                      →
                     </div>
 
                     <div className="live-track-corridor-node right">
@@ -873,11 +873,11 @@ export function AdminLiveTracking() {
                   {/* Card Row 3: Driver & Cargo */}
                   <div className="live-track-driver-row">
                     <span className="live-track-driver-tag">
-                      👤 {s.assignedDriver || 'Amina Bello'} ({s.vehicleId || 'VEH-101'})
+                      {s.assignedDriver || 'Amina Bello'} ({s.vehicleId || 'VEH-101'})
                     </span>
                     {s.isMovementStopped && (
                       <span className="live-track-card-hold-badge">
-                        ⏸️ HOLD
+                        HOLD
                       </span>
                     )}
                   </div>
@@ -888,10 +888,10 @@ export function AdminLiveTracking() {
                     return (
                       <div className="live-track-card-footer">
                         <span className="live-track-eta">
-                          ⏱️ ETA: <strong>{s.eta}</strong>
+                          ETA: <strong>{s.eta}</strong>
                         </span>
                         <span className="live-track-speed">
-                          ⚡ {cardMetrics.speedDisplay}
+                          {cardMetrics.speedDisplay}
                         </span>
                       </div>
                     )
@@ -948,14 +948,14 @@ export function AdminLiveTracking() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '1.2rem' }}>
-                    {editingShipment.mode === 'air' ? '✈️' : editingShipment.mode === 'sea' ? '🚢' : '🚚'}
+                    editingShipment.mode.toUpperCase()
                   </span>
-                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#ffffff', fontWeight: 800 }}>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#ffffff', fontWeight: 400 }}>
                     Live Fleet Controller // {editingShipment.waybill}
                   </h3>
                 </div>
                 <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                  {editingShipment.carrier} · {editingShipment.origin.code} ➔ {editingShipment.destination.code}
+                  {editingShipment.carrier} · {editingShipment.origin.code} → {editingShipment.destination.code}
                 </span>
               </div>
 
@@ -975,7 +975,7 @@ export function AdminLiveTracking() {
                   justifyContent: 'center',
                 }}
               >
-                ✕
+                ×
               </button>
             </div>
 
@@ -996,7 +996,7 @@ export function AdminLiveTracking() {
               >
                 <div>
                   <strong style={{ fontSize: '0.9rem', color: editForm.isMovementStopped ? '#991b1b' : '#166534', display: 'block' }}>
-                    {editForm.isMovementStopped ? '🛑 Consignment Movement is STOPPED (Hold Active)' : '▶️ Consignment is IN MOTION (Transit Active)'}
+                    {editForm.isMovementStopped ? 'Consignment Movement is STOPPED (Hold Active)' : 'Consignment is IN MOTION (Transit Active)'}
                   </strong>
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                     Toggle this switch to halt vector progression or release holding order.
@@ -1019,13 +1019,13 @@ export function AdminLiveTracking() {
                     borderRadius: '8px',
                     background: editForm.isMovementStopped ? '#10b981' : '#ea580c',
                     color: '#ffffff',
-                    fontWeight: 700,
+                    fontWeight: 400,
                     fontSize: '0.8rem',
                     border: 'none',
                     cursor: 'pointer',
                   }}
                 >
-                  {editForm.isMovementStopped ? '▶ Resume Movement' : '🛑 Stop Movement'}
+                  {editForm.isMovementStopped ? 'Resume Movement' : 'Stop Movement'}
                 </button>
               </div>
 
@@ -1157,7 +1157,7 @@ export function AdminLiveTracking() {
                   Cancel
                 </button>
                 <button type="submit" className="cmd-btn cmd-btn-navy">
-                  💾 Save & Dispatch Live Updates
+                  Save & Dispatch Live Updates
                 </button>
               </div>
             </form>

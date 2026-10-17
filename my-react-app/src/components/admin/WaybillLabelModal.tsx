@@ -123,7 +123,7 @@ export function WaybillLabelModal({ shipment, isOpen, onClose }: WaybillLabelMod
             Close
           </button>
           <button type="button" className="admin-quick-btn primary" onClick={handlePrint}>
-            🖨️ Print Waybill Label
+            Print Waybill Label
           </button>
         </div>
       </div>

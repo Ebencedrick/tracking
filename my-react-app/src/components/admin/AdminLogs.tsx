@@ -38,7 +38,7 @@ export function AdminLogs() {
         </div>
 
         <button type="button" className="admin-quick-btn" onClick={handleExportJSON}>
-          📥 Export Audit Log (JSON)
+          Export Audit Log (JSON)
         </button>
       </div>
 

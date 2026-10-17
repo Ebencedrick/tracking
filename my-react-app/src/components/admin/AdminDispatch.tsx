@@ -301,7 +301,7 @@ export function AdminDispatch() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
                 <button type="submit" className="admin-quick-btn primary" style={{ width: '100%', justifyContent: 'center' }}>
-                  🚀 Broadcast & Push Checkpoint
+                  Broadcast & Push Checkpoint
                 </button>
               </div>
             </form>
@@ -403,7 +403,7 @@ export function AdminDispatch() {
                     </div>
                     <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>{cp.detail}</div>
                     <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
-                      📍 {cp.location} {cp.lat && `(${cp.lat.toFixed(2)}°, ${cp.lng?.toFixed(2)}°)`}
+                      {cp.location} {cp.lat && `(${cp.lat.toFixed(2)}°, ${cp.lng?.toFixed(2)}°)`}
                     </div>
                   </div>
                 </div>

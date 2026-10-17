@@ -708,7 +708,7 @@ export function AdminCreateShipment() {
           </div>
 
           <div className="create-shipment-corridor-presets">
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#64748b' }}>
               Quick Presets:
             </span>
             <button
@@ -772,7 +772,7 @@ export function AdminCreateShipment() {
                 border: '1px solid rgba(2, 132, 199, 0.3)',
                 color: '#0284c7',
                 fontSize: '0.85rem',
-                fontWeight: 600,
+                fontWeight: 400,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
@@ -794,7 +794,7 @@ export function AdminCreateShipment() {
                   disabled={isGeocodingOrigin}
                   style={{
                     fontSize: '0.72rem',
-                    fontWeight: 700,
+                    fontWeight: 400,
                     padding: '3px 8px',
                     borderRadius: '6px',
                     background: '#0284c7',
@@ -860,7 +860,7 @@ export function AdminCreateShipment() {
                   disabled={isGeocodingDest}
                   style={{
                     fontSize: '0.72rem',
-                    fontWeight: 700,
+                    fontWeight: 400,
                     padding: '3px 8px',
                     borderRadius: '6px',
                     background: '#0284c7',
@@ -921,10 +921,10 @@ export function AdminCreateShipment() {
           <div className="create-shipment-map-wrapper">
             <div className="create-shipment-map-header" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <span style={{ fontSize: '1.2rem' }}>🗺️</span>
+                
                 <strong>Live Corridor Trajectory Mapping</strong>
-                <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 700 }}>
-                  ⚡ Live API Active
+                <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 400 }}>
+                  Live API Active
                 </span>
               </div>
 
@@ -939,7 +939,7 @@ export function AdminCreateShipment() {
                       style={{
                         padding: '3px 8px',
                         fontSize: '0.7rem',
-                        fontWeight: 700,
+                        fontWeight: 400,
                         border: 'none',
                         borderRadius: '4px',
                         cursor: 'pointer',
@@ -948,13 +948,13 @@ export function AdminCreateShipment() {
                         boxShadow: activeTileKey === k ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                       }}
                     >
-                      {k === 'voyager' ? '🗺️ Street' : k === 'satellite' ? '🛰️ Satellite' : '🌙 Radar'}
+                      {k === 'voyager' ? 'Street' : k === 'satellite' ? 'Satellite' : 'Tactical'}
                     </button>
                   ))}
                 </div>
 
                 <div className="create-shipment-distance-pill">
-                  <span>📍 Distance:</span>
+                  <span>Distance:</span>
                   <strong style={{ color: '#0284c7' }}>
                     {customDistance.toLocaleString()} km ({Math.round(customDistance * 0.621371).toLocaleString()} miles)
                   </strong>
@@ -1042,9 +1042,9 @@ export function AdminCreateShipment() {
                 value={transportScope}
                 onChange={(e) => setTransportScope(e.target.value as 'Domestic' | 'Regional' | 'International')}
               >
-                <option value="International">🌍 International / Transcontinental</option>
-                <option value="Regional">🌐 Regional Freight Linehaul</option>
-                <option value="Domestic">🏠 Domestic Overland Service</option>
+                <option value="International">International / Transcontinental</option>
+                <option value="Regional">Regional Freight Linehaul</option>
+                <option value="Domestic">Domestic Overland Service</option>
               </select>
             </div>
 
@@ -1055,9 +1055,9 @@ export function AdminCreateShipment() {
                 value={shippingMode}
                 onChange={(e) => setShippingMode(e.target.value as ShippingMode)}
               >
-                <option value="air">✈️ Priority Air Linehaul</option>
-                <option value="sea">🚢 Ocean Container FCL/LCL</option>
-                <option value="land">🚚 Overland Express Freight</option>
+                <option value="air">Priority Air Linehaul</option>
+                <option value="sea">Ocean Container FCL/LCL</option>
+                <option value="land">Overland Express Freight</option>
               </select>
             </div>
 
@@ -1070,9 +1070,9 @@ export function AdminCreateShipment() {
               >
                 <option value="pending">⏳ Pending Approval (Requires Admin Approval)</option>
                 <option value="in_transit">▶️ In Transit (Active GPS Telemetry)</option>
-                <option value="customs">🛂 Customs Clearance Hold</option>
-                <option value="delivered">✅ Delivered Receipt</option>
-                <option value="exception">⚠️ Transit Advisory / Exception</option>
+                <option value="customs">Customs Clearance Hold</option>
+                <option value="delivered">Delivered Receipt</option>
+                <option value="exception">Transit Advisory / Exception</option>
               </select>
             </div>
           </div>
@@ -1184,13 +1184,13 @@ export function AdminCreateShipment() {
                     border: 'none',
                     color: '#0284c7',
                     fontSize: '0.72rem',
-                    fontWeight: 700,
+                    fontWeight: 400,
                     cursor: 'pointer',
                     padding: '0 0 2px 0',
                     textDecoration: 'underline',
                   }}
                 >
-                  ⚡ Auto-Calculate
+                  Auto-Calculate
                 </button>
               </div>
               <input
@@ -1201,8 +1201,8 @@ export function AdminCreateShipment() {
                 placeholder="e.g. Sep 29, 04:28 PM"
                 required
               />
-              <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600, display: 'block', marginTop: '2px' }}>
-                ✨ {autoCalculatedEta.humanSummary} → {autoCalculatedEta.etaString}
+              <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 400, display: 'block', marginTop: '2px' }}>
+                {autoCalculatedEta.humanSummary} → {autoCalculatedEta.etaString}
               </span>
             </div>
           </div>
@@ -1243,7 +1243,7 @@ export function AdminCreateShipment() {
         {/* Section 6: Consignment Manifest Summary */}
         <div className="create-shipment-summary-card">
           <div className="create-shipment-summary-left">
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#64748b' }}>
               CONSIGNMENT DISPATCH MANIFEST
             </span>
             <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0284c7' }}>
@@ -1259,7 +1259,7 @@ export function AdminCreateShipment() {
               Cancel
             </Link>
             <button type="submit" className="cmd-btn cmd-btn-red" style={{ padding: '0.85rem 1.85rem' }}>
-              {isEditMode ? '💾 Update Freight Shipment' : '+ Create Freight Shipment'}
+              {isEditMode ? 'Update Freight Shipment' : '+ Create Freight Shipment'}
             </button>
           </div>
         </div>
@@ -1327,14 +1327,14 @@ export function AdminCreateShipment() {
                     fontSize: '0.72rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
-                    fontWeight: 800,
+                    fontWeight: 400,
                     opacity: 0.9,
                     display: 'block',
                   }}
                 >
                   Manifest Dispatched & Logged
                 </span>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '2px 0 0 0', color: '#ffffff' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 400, margin: '2px 0 0 0', color: '#ffffff' }}>
                   Shipment Created Successfully!
                 </h2>
               </div>
@@ -1356,7 +1356,7 @@ export function AdminCreateShipment() {
                 }}
                 aria-label="Close modal"
               >
-                ✕
+                ×
               </button>
             </div>
 
@@ -1373,7 +1373,7 @@ export function AdminCreateShipment() {
                   marginBottom: '1rem',
                 }}
               >
-                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 400, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Waybill Identification Number
                 </div>
                 <div
@@ -1404,7 +1404,7 @@ export function AdminCreateShipment() {
                       borderRadius: '7px',
                       padding: '0.45rem 1rem',
                       fontSize: '0.8rem',
-                      fontWeight: 700,
+                      fontWeight: 400,
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -1412,7 +1412,7 @@ export function AdminCreateShipment() {
                       transition: 'all 0.2s',
                     }}
                   >
-                    {isCopiedTracking ? '✓ Copied ID' : '📋 Copy Tracking Code'}
+                    {isCopiedTracking ? '✓ Copied ID' : 'Copy Tracking Code'}
                   </button>
 
                   <button
@@ -1430,19 +1430,19 @@ export function AdminCreateShipment() {
                       borderRadius: '7px',
                       padding: '0.45rem 1rem',
                       fontSize: '0.8rem',
-                      fontWeight: 700,
+                      fontWeight: 400,
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '0.4rem',
                     }}
                   >
-                    🔗 Copy Link
+                    Copy Link
                   </button>
                 </div>
 
                 {shareReceiptStatus && (
-                  <div style={{ marginTop: '6px', fontSize: '0.78rem', color: '#10b981', fontWeight: 700 }}>
+                  <div style={{ marginTop: '6px', fontSize: '0.78rem', color: '#10b981', fontWeight: 400 }}>
                     ✓ {shareReceiptStatus}
                   </div>
                 )}
@@ -1462,34 +1462,34 @@ export function AdminCreateShipment() {
                 }}
               >
                 <div>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 400 }}>
                     ORIGIN (START)
                   </span>
                   <strong style={{ color: '#0f172a', display: 'block', marginTop: '1px' }}>
-                    🟢 {createdShipmentModal.origin.name}
+                    {createdShipmentModal.origin.name}
                   </strong>
                 </div>
 
                 <div>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 400 }}>
                     DESTINATION (END)
                   </span>
                   <strong style={{ color: '#0f172a', display: 'block', marginTop: '1px' }}>
-                    🔴 {createdShipmentModal.destination.name}
+                    {createdShipmentModal.destination.name}
                   </strong>
                 </div>
 
                 <div>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 400 }}>
                     CARRIER & MODALITY
                   </span>
                   <strong style={{ color: '#0f172a', display: 'block', marginTop: '1px' }}>
-                    {createdShipmentModal.carrier} • {createdShipmentModal.mode === 'land' ? '🚚 LAND' : createdShipmentModal.mode === 'sea' ? '🚢 SEA' : '✈️ AIR'}
+                    {createdShipmentModal.carrier} • {createdShipmentModal.mode === 'land' ? 'LAND' : createdShipmentModal.mode === 'sea' ? 'SEA' : 'AIR'}
                   </strong>
                 </div>
 
                 <div>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 400 }}>
                     CONSIGNEE / RECIPIENT
                   </span>
                   <strong style={{ color: '#0f172a', display: 'block', marginTop: '1px' }}>
@@ -1498,7 +1498,7 @@ export function AdminCreateShipment() {
                 </div>
 
                 <div>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 400 }}>
                     CARGO / WEIGHT
                   </span>
                   <strong style={{ color: '#0f172a', display: 'block', marginTop: '1px' }}>
@@ -1507,7 +1507,7 @@ export function AdminCreateShipment() {
                 </div>
 
                 <div>
-                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 700 }}>
+                  <span style={{ color: '#64748b', display: 'block', fontSize: '0.7rem', fontWeight: 400 }}>
                     INITIAL STATUS
                   </span>
                   <strong style={{ color: createdShipmentModal.status === 'in_transit' ? '#0284c7' : '#d97706', display: 'block', marginTop: '1px' }}>
@@ -1526,14 +1526,14 @@ export function AdminCreateShipment() {
                   marginBottom: '1.25rem',
                 }}
               >
-                <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>
-                  📤 Share Digital Receipt & Tracking Link
+                <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 400, color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  Share Digital Receipt & Tracking Link
                 </span>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   {/* WhatsApp Share */}
                   <a
                     href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                      `📦 *Freight Consignment Receipt*\nWaybill: ${createdShipmentModal.waybill}\nOrigin: ${createdShipmentModal.origin.name}\nDestination: ${createdShipmentModal.destination.name}\nCarrier: ${createdShipmentModal.carrier} (${createdShipmentModal.mode.toUpperCase()})\nConsignee: ${createdShipmentModal.receiverName || createdShipmentModal.clientName}\n\nTrack Live Consignment:\n${window.location.origin}/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}`
+                      `*Freight Consignment Receipt*\nWaybill: ${createdShipmentModal.waybill}\nOrigin: ${createdShipmentModal.origin.name}\nDestination: ${createdShipmentModal.destination.name}\nCarrier: ${createdShipmentModal.carrier} (${createdShipmentModal.mode.toUpperCase()})\nConsignee: ${createdShipmentModal.receiverName || createdShipmentModal.clientName}\n\nTrack Live Consignment:\n${window.location.origin}/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1548,10 +1548,10 @@ export function AdminCreateShipment() {
                       borderRadius: '8px',
                       textDecoration: 'none',
                       fontSize: '0.8rem',
-                      fontWeight: 700,
+                      fontWeight: 400,
                     }}
                   >
-                    <span>💬</span> WhatsApp Receipt
+                    WhatsApp Receipt
                   </a>
 
                   {/* Email Share */}
@@ -1572,10 +1572,10 @@ export function AdminCreateShipment() {
                       borderRadius: '8px',
                       textDecoration: 'none',
                       fontSize: '0.8rem',
-                      fontWeight: 700,
+                      fontWeight: 400,
                     }}
                   >
-                    <span>✉️</span> Email Receipt
+                    Email Receipt
                   </a>
                 </div>
               </div>
@@ -1593,7 +1593,7 @@ export function AdminCreateShipment() {
                     color: '#ffffff',
                     borderRadius: '9px',
                     border: 'none',
-                    fontWeight: 700,
+                    fontWeight: 400,
                     fontSize: '0.84rem',
                     cursor: 'pointer',
                     display: 'flex',
@@ -1602,7 +1602,7 @@ export function AdminCreateShipment() {
                     gap: '0.4rem',
                   }}
                 >
-                  <span>🌐</span> Track Consignment Live
+                  Track Consignment Live
                 </button>
 
                 <button
@@ -1616,7 +1616,7 @@ export function AdminCreateShipment() {
                     color: '#0f172a',
                     borderRadius: '9px',
                     border: '1.5px solid #cbd5e1',
-                    fontWeight: 700,
+                    fontWeight: 400,
                     fontSize: '0.84rem',
                     cursor: 'pointer',
                     display: 'flex',
@@ -1625,7 +1625,7 @@ export function AdminCreateShipment() {
                     gap: '0.4rem',
                   }}
                 >
-                  <span>🖨️</span> Print Waybill / Label
+                  Print Waybill / Label
                 </button>
 
                 <button
@@ -1639,12 +1639,12 @@ export function AdminCreateShipment() {
                     color: '#475569',
                     borderRadius: '9px',
                     border: '1.5px solid #cbd5e1',
-                    fontWeight: 700,
+                    fontWeight: 400,
                     fontSize: '0.82rem',
                     cursor: 'pointer',
                   }}
                 >
-                  📋 View All Shipments
+                  View All Shipments
                 </button>
 
                 <button
@@ -1656,12 +1656,12 @@ export function AdminCreateShipment() {
                     color: '#0284c7',
                     borderRadius: '9px',
                     border: '1.5px solid #bae6fd',
-                    fontWeight: 700,
+                    fontWeight: 400,
                     fontSize: '0.82rem',
                     cursor: 'pointer',
                   }}
                 >
-                  ➕ Create Another
+                  Create Another
                 </button>
               </div>
             </div>

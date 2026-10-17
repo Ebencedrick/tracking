@@ -81,7 +81,7 @@ export function AdminInquiries() {
         replyMessage: reply,
         repliedAt: timestamp,
       })
-      showToast(`✓ Official response transmitted to ${selectedInquiry.senderEmail} and saved in MongoDB!`)
+      showToast(`Official response transmitted to ${selectedInquiry.senderEmail} and saved in MongoDB!`)
     } catch {
       showToast(`Response logged locally for ${selectedInquiry.senderEmail}`)
     }
@@ -113,7 +113,7 @@ export function AdminInquiries() {
       {/* Toast */}
       {toastMsg && (
         <div className="shipment-toast">
-          ✓ {toastMsg}
+          {toastMsg}
         </div>
       )}
 
@@ -140,7 +140,7 @@ export function AdminInquiries() {
             <span className="cmd-stat-subtext">MongoDB Atlas Active</span>
           </div>
           <div className="cmd-stat-icon-box gray">
-            📨
+            
           </div>
         </div>
 
@@ -153,7 +153,7 @@ export function AdminInquiries() {
             <span className="cmd-stat-subtext">Requires Agent Attention</span>
           </div>
           <div className="cmd-stat-icon-box red">
-            🔔
+            
           </div>
         </div>
 
@@ -179,7 +179,7 @@ export function AdminInquiries() {
             <span className="cmd-stat-subtext">Target &lt; 30 mins</span>
           </div>
           <div className="cmd-stat-icon-box green">
-            ⚡
+            
           </div>
         </div>
       </div>
@@ -345,7 +345,7 @@ export function AdminInquiries() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <span style={{ fontSize: '1.1rem' }}>📦</span>
+                    
                     <span style={{ fontSize: '0.82rem', color: '#475569' }}>
                       Linked Consignment Waybill: <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{selectedInquiry.waybillRef}</strong>
                     </span>
@@ -356,7 +356,7 @@ export function AdminInquiries() {
                     className="cmd-action-track"
                     style={{ fontSize: '0.8rem', padding: '0.35rem 0.85rem' }}
                   >
-                    Track Vector ➔
+                    Track Vector →
                   </Link>
                 </div>
               )}
@@ -437,7 +437,7 @@ export function AdminInquiries() {
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                   <button type="submit" className="cmd-btn cmd-btn-navy">
-                    ✉ Transmit Response
+                    Transmit Response
                   </button>
                 </div>
               </form>

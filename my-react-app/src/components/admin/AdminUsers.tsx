@@ -82,7 +82,7 @@ export function AdminUsers() {
   }
 
   const handleTestWebhook = () => {
-    showToast('Sent test ping [event: shipment.telemetry_updated] ➔ 200 OK')
+    showToast('Sent test ping [event: shipment.telemetry_updated] → 200 OK')
   }
 
   const filteredUsers = users.filter((u) => {
@@ -101,7 +101,7 @@ export function AdminUsers() {
       {/* Toast */}
       {toastMessage && (
         <div className="shipment-toast">
-          ✓ {toastMessage}
+          {toastMessage}
         </div>
       )}
 
@@ -135,7 +135,7 @@ export function AdminUsers() {
           onClick={() => setActiveTab('accounts')}
           style={{ padding: '0.65rem 1.25rem', fontSize: '0.88rem' }}
         >
-          👥 Shipper & Team Accounts ({users.length})
+          Shipper & Team Accounts ({users.length})
         </button>
 
         <button
@@ -144,7 +144,7 @@ export function AdminUsers() {
           onClick={() => setActiveTab('api')}
           style={{ padding: '0.65rem 1.25rem', fontSize: '0.88rem' }}
         >
-          🔑 API Keys & Webhook Integrations
+          API Keys & Webhook Integrations
         </button>
 
         <button
@@ -153,7 +153,7 @@ export function AdminUsers() {
           onClick={() => setActiveTab('platform')}
           style={{ padding: '0.65rem 1.25rem', fontSize: '0.88rem' }}
         >
-          ⚙️ Global Platform Settings
+          Global Platform Settings
         </button>
       </div>
 
@@ -169,7 +169,7 @@ export function AdminUsers() {
                 <span className="cmd-stat-subtext">Enterprise & Clients</span>
               </div>
               <div className="cmd-stat-icon-box gray">
-                👥
+                
               </div>
             </div>
 
@@ -195,7 +195,7 @@ export function AdminUsers() {
                 <span className="cmd-stat-subtext">Pre-Approved Linehaul</span>
               </div>
               <div className="cmd-stat-icon-box green">
-                💳
+                
               </div>
             </div>
 
@@ -208,7 +208,7 @@ export function AdminUsers() {
                 <span className="cmd-stat-subtext">{currentUser.role.toUpperCase()} Role</span>
               </div>
               <div className="cmd-stat-icon-box gray">
-                🛡️
+                
               </div>
             </div>
           </div>
@@ -307,7 +307,7 @@ export function AdminUsers() {
                             onClick={() => handleImpersonate(u.id)}
                             title="Impersonate this client in Shipper Portal"
                           >
-                            👁️ Preview Portal
+                            Preview Portal
                           </button>
 
                           <select
@@ -341,7 +341,7 @@ export function AdminUsers() {
           <div className="cmd-card">
             <div className="cmd-card-header">
               <h2 className="cmd-card-title">
-                <span className="cmd-card-title-icon">🔐</span>
+                <span className="cmd-card-title-icon"></span>
                 REST API Authentication Keys
               </h2>
             </div>
@@ -367,7 +367,7 @@ export function AdminUsers() {
                     className="cmd-btn cmd-btn-white"
                     onClick={() => copyToClipboard(apiKeyProd, 'Production API Key')}
                   >
-                    📋 Copy
+                    Copy
                   </button>
                 </div>
 
@@ -385,7 +385,7 @@ export function AdminUsers() {
                     className="cmd-btn cmd-btn-white"
                     onClick={() => setShowSecret(!showSecret)}
                   >
-                    {showSecret ? '🙈 Hide' : '👁️ Reveal'}
+                    {showSecret ? 'Hide' : 'Reveal'}
                   </button>
                 </div>
               </div>
@@ -401,7 +401,7 @@ export function AdminUsers() {
                   className="cmd-btn cmd-btn-navy"
                   onClick={() => showToast('Generated fresh API signing keys!')}
                 >
-                  🔄 Regenerate API Keys
+                  Regenerate API Keys
                 </button>
               </div>
             </div>
@@ -411,7 +411,7 @@ export function AdminUsers() {
           <div className="cmd-card">
             <div className="cmd-card-header">
               <h2 className="cmd-card-title">
-                <span className="cmd-card-title-icon">⚡</span>
+                <span className="cmd-card-title-icon"></span>
                 Automated Webhook Dispatcher
               </h2>
             </div>
@@ -458,7 +458,7 @@ export function AdminUsers() {
                   className="cmd-btn cmd-btn-white"
                   onClick={handleTestWebhook}
                 >
-                  📡 Send Test Webhook Ping
+                  Send Test Webhook Ping
                 </button>
 
                 <button
@@ -479,7 +479,7 @@ export function AdminUsers() {
         <div className="cmd-card" style={{ maxWidth: '840px' }}>
           <div className="cmd-card-header">
             <h2 className="cmd-card-title">
-              <span className="cmd-card-title-icon">⚙️</span>
+              <span className="cmd-card-title-icon"></span>
               Global Operations & Dispatch Automation Rules
             </h2>
           </div>
@@ -581,7 +581,7 @@ export function AdminUsers() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '2rem', paddingTop: '1.25rem', borderTop: '1px solid #f1f5f9' }}>
               <button type="submit" className="cmd-btn cmd-btn-red" style={{ padding: '0.75rem 1.75rem' }}>
-                💾 Save Global System Settings
+                Save Global System Settings
               </button>
             </div>
           </form>

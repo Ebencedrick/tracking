@@ -1,3 +1,4 @@
+import { MessageSquare, X, Send, Lock, Mail, Plane, ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { apiService } from '../services/api'
 import type { ChatSession, ChatMessage } from '../types'
@@ -227,8 +228,8 @@ export function LiveSupportChat() {
             boxShadow: '0 0 10px #10b981',
           }}
         />
-        <span>💬 24/7 Live Support</span>
-        {isOpen && <span style={{ marginLeft: '4px', fontSize: '0.8rem' }}>✕</span>}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><MessageSquare size={15} strokeWidth={1.8} /> 24/7 Live Support</span>
+        {isOpen && <span style={{ marginLeft: '4px', display: 'inline-flex' }}><X size={14} /></span>}
       </button>
 
       {/* Floating Chat Window Modal */}
@@ -243,11 +244,11 @@ export function LiveSupportChat() {
             height: '530px',
             maxHeight: 'calc(100vh - 120px)',
             zIndex: 9999,
-            background: 'rgba(15, 23, 42, 0.96)',
+            background: 'rgba(10, 24, 45, 0.96)',
             backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
             borderRadius: '16px',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(2, 132, 199, 0.2)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(243, 121, 32, 0.15)',
+            border: '1px solid rgba(0, 82, 180, 0.3)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -278,7 +279,7 @@ export function LiveSupportChat() {
                   fontSize: '1.1rem',
                 }}
               >
-                ✈️
+                
               </div>
               <div>
                 <strong style={{ fontSize: '0.92rem', color: '#f8fafc', display: 'block' }}>
@@ -321,7 +322,7 @@ export function LiveSupportChat() {
                   padding: '4px 6px',
                 }}
               >
-                ✕
+                
               </button>
             </div>
           </div>
@@ -340,7 +341,7 @@ export function LiveSupportChat() {
                 justifyContent: 'space-between',
               }}
             >
-              <span>📧 Connected Client ID: <strong>{userEmail}</strong></span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}><Mail size={12} color='#f37920' /> Connected Client ID: <strong>{userEmail}</strong></span>
               {waybillRef && <span style={{ fontFamily: 'monospace' }}>Ref: {waybillRef}</span>}
             </div>
           )}
@@ -362,7 +363,7 @@ export function LiveSupportChat() {
               }}
             >
               <div style={{ textAlign: 'center', marginBottom: '0.15rem' }}>
-                <span style={{ fontSize: '2rem' }}>💬</span>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}><MessageSquare size={32} color='#f37920' strokeWidth={1.2} /></div>
                 <h3 style={{ fontSize: '1.1rem', color: '#f8fafc', margin: '4px 0', fontWeight: 800 }}>
                   Client Support Verification
                 </h3>
@@ -465,11 +466,11 @@ export function LiveSupportChat() {
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  <span>💬</span>
-                  <span>Start Live Chat & Send Info ➔</span>
+                  <MessageSquare size={14} />
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>Start Live Chat & Send Info <Send size={13} /></span>
                 </button>
                 <span style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center' }}>
-                  🔒 Instant connection to active logistics dispatch controllers
+                  Instant connection to active logistics dispatch controllers
                 </span>
               </div>
             </form>
@@ -611,7 +612,7 @@ export function LiveSupportChat() {
                   }}
                 >
                   <span>Send</span>
-                  <span>➔</span>
+                  <Send size={14} />
                 </button>
               </form>
             </>

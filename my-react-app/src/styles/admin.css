@@ -4,41 +4,41 @@
    ========================================================================== */
 
 :root {
-  --cmd-sidebar-bg: #111625;
-  --cmd-sidebar-hover: rgba(255, 255, 255, 0.07);
-  --cmd-sidebar-active: #facc15;
-  --cmd-sidebar-active-text: #0f172a;
+  --cmd-sidebar-bg: #000000;
+  --cmd-sidebar-hover: rgba(252, 163, 17, 0.12);
+  --cmd-sidebar-active: #f37920;
+  --cmd-sidebar-active-text: #000000;
   --cmd-sidebar-text: #94a3b8;
-  --cmd-sidebar-text-bright: #f8fafc;
+  --cmd-sidebar-text-bright: #ffffff;
   
-  --cmd-main-bg: #f4f6fa;
-  --cmd-card-bg: #ffffff;
-  --cmd-card-border: #e2e8f0;
+  --cmd-main-bg: #060b14;
+  --cmd-card-bg: #0a182d;
+  --cmd-card-border: rgba(229, 229, 229, 0.12);
   
-  --cmd-text-heading: #0f172a;
-  --cmd-text-body: #334155;
-  --cmd-text-muted: #64748b;
-  --cmd-text-subtle: #94a3b8;
+  --cmd-text-heading: #ffffff;
+  --cmd-text-body: #e5e5e5;
+  --cmd-text-muted: #94a3b8;
+  --cmd-text-subtle: #64748b;
   
-  --cmd-red: #dc2626;
-  --cmd-red-hover: #b91c1c;
-  --cmd-red-light: #fee2e2;
-  --cmd-red-text: #991b1b;
+  --cmd-red: #ef4444;
+  --cmd-red-hover: #dc2626;
+  --cmd-red-light: rgba(239, 68, 68, 0.15);
+  --cmd-red-text: #fca5a5;
   
   --cmd-blue: #0284c7;
-  --cmd-blue-light: #e0f2fe;
-  --cmd-blue-text: #0369a1;
+  --cmd-blue-light: rgba(2, 132, 199, 0.15);
+  --cmd-blue-text: #38bdf8;
   
   --cmd-green: #10b981;
-  --cmd-green-light: #dcfce7;
-  --cmd-green-text: #15803d;
+  --cmd-green-light: rgba(16, 185, 129, 0.15);
+  --cmd-green-text: #6ee7b7;
   
-  --cmd-yellow: #facc15;
-  --cmd-yellow-light: #fef9c3;
-  --cmd-yellow-text: #854d0e;
+  --cmd-yellow: #f37920;
+  --cmd-yellow-light: rgba(252, 163, 17, 0.15);
+  --cmd-yellow-text: #f37920;
   
-  --cmd-navy-btn: #1e293b;
-  --cmd-navy-btn-hover: #0f172a;
+  --cmd-navy-btn: #0a182d;
+  --cmd-navy-btn-hover: #1f3154;
   
   --cmd-sidebar-width: 250px;
 }
@@ -102,7 +102,7 @@
 
 .cmd-brand-name {
   font-size: 0.92rem;
-  font-weight: 900;
+  font-weight: 400;
   color: #ffffff;
   letter-spacing: 0.04em;
   line-height: 1.2;
@@ -110,7 +110,7 @@
 
 .cmd-brand-status {
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 400;
   color: #10b981;
   display: flex;
   align-items: center;
@@ -136,7 +136,7 @@
   border-radius: 12px;
   padding: 0.85rem 1rem;
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   display: flex;
@@ -165,7 +165,7 @@
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 400;
   line-height: 1;
 }
 
@@ -186,7 +186,7 @@
   color: var(--cmd-sidebar-text);
   text-decoration: none;
   font-size: 0.88rem;
-  font-weight: 600;
+  font-weight: 400;
   transition: all 0.15s ease;
 }
 
@@ -199,7 +199,7 @@
 .cmd-nav-item.active {
   background-color: var(--cmd-sidebar-active);
   color: var(--cmd-sidebar-active-text);
-  font-weight: 800;
+  font-weight: 400;
   box-shadow: 0 4px 12px rgba(250, 204, 21, 0.3);
 }
 
@@ -219,7 +219,7 @@
 .cmd-nav-badge {
   margin-left: auto;
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 400;
   padding: 0.1rem 0.5rem;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.15);
@@ -287,7 +287,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 400;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: 0.08em;
   color: #059669;
@@ -312,7 +312,7 @@
 
 .cmd-title {
   font-size: 1.85rem;
-  font-weight: 900;
+  font-weight: 400;
   letter-spacing: -0.03em;
   color: var(--cmd-text-heading);
   margin: 0 0 0.4rem 0;
@@ -341,7 +341,7 @@
   padding: 0.75rem 1.25rem;
   border-radius: 10px;
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
@@ -431,7 +431,7 @@
 
 .cmd-stat-label {
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--cmd-text-muted);
@@ -440,7 +440,7 @@
 
 .cmd-stat-number {
   font-size: 2.1rem;
-  font-weight: 900;
+  font-weight: 400;
   line-height: 1;
   margin-bottom: 0.45rem;
   color: var(--cmd-text-heading);
@@ -452,7 +452,7 @@
 
 .cmd-stat-subtext {
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--cmd-text-subtle);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
@@ -520,7 +520,7 @@
   align-items: center;
   gap: 0.75rem;
   font-size: 1.15rem;
-  font-weight: 800;
+  font-weight: 400;
   color: var(--cmd-text-heading);
   margin: 0;
 }
@@ -532,7 +532,7 @@
 .cmd-card-link-red {
   color: var(--cmd-red);
   font-size: 0.85rem;
-  font-weight: 800;
+  font-weight: 400;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -559,7 +559,7 @@
 .cmd-table th {
   padding: 0.85rem 1rem;
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--cmd-text-muted);
@@ -593,7 +593,7 @@
 
 .cmd-waybill-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-weight: 800;
+  font-weight: 400;
   font-size: 0.92rem;
   color: var(--cmd-text-heading);
   text-decoration: none;
@@ -610,7 +610,7 @@
   padding: 0.2rem 0.55rem;
   border-radius: 6px;
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 400;
   background-color: var(--cmd-yellow-light);
   color: var(--cmd-yellow-text);
   border: 1px solid rgba(234, 179, 8, 0.3);
@@ -639,7 +639,7 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  font-weight: 600;
+  font-weight: 400;
   color: #334155;
 }
 
@@ -652,7 +652,7 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  font-weight: 600;
+  font-weight: 400;
   color: #334155;
   max-width: 320px;
 }
@@ -669,7 +669,7 @@
   padding: 0.35rem 0.85rem;
   border-radius: 20px;
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 400;
   text-transform: capitalize;
 }
 
@@ -701,7 +701,7 @@
 /* Actions Column */
 .cmd-action-track {
   color: var(--cmd-red);
-  font-weight: 800;
+  font-weight: 400;
   font-size: 0.85rem;
   text-decoration: none;
   display: inline-flex;
@@ -761,7 +761,7 @@
 
 .cmd-modal-header h3 {
   font-size: 1.3rem;
-  font-weight: 800;
+  font-weight: 400;
   margin: 0;
   color: #0f172a;
 }
@@ -794,7 +794,7 @@
 
 .cmd-form-label {
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 400;
   color: #475569;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -803,7 +803,7 @@
 .cmd-form-label {
   display: block;
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 400;
   color: #0f172a !important;
   margin-bottom: 0.35rem;
   letter-spacing: 0.01em;
@@ -866,7 +866,7 @@
 
 .admin-page-header h2 {
   font-size: 1.85rem;
-  font-weight: 900;
+  font-weight: 400;
   letter-spacing: -0.03em;
   color: var(--cmd-text-heading);
   margin: 0 0 0.4rem 0;
@@ -927,7 +927,7 @@
 
 .admin-card-header h3 {
   font-size: 1.15rem;
-  font-weight: 800;
+  font-weight: 400;
   color: var(--cmd-text-heading);
   margin: 0;
 }
@@ -948,7 +948,7 @@
 .admin-table th {
   padding: 0.85rem 1rem;
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--cmd-text-muted);
@@ -981,7 +981,7 @@
   padding: 0.6rem 1.1rem;
   border-radius: 8px;
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
   transition: all 0.15s ease;
   text-decoration: none;
@@ -1033,7 +1033,7 @@
   padding: 0.25rem 0.65rem;
   border-radius: 20px;
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 400;
   text-transform: capitalize;
 }
 
@@ -1084,7 +1084,7 @@
 
 .admin-form-label {
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 400;
   color: #475569;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1134,7 +1134,7 @@
 
 .admin-modal-header h3 {
   font-size: 1.3rem;
-  font-weight: 800;
+  font-weight: 400;
   margin: 0;
   color: #0f172a;
 }
@@ -1173,7 +1173,7 @@
   padding: 0.6rem 1.15rem;
   border-radius: 30px;
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 400;
   border: 1px solid #bbf7d0;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1227,7 +1227,7 @@
 
 .admin-packet-wb {
   color: #38bdf8;
-  font-weight: 800;
+  font-weight: 400;
   flex-shrink: 0;
 }
 
@@ -1310,7 +1310,7 @@
 .live-track-hud-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 1.05rem;
-  font-weight: 800;
+  font-weight: 400;
   color: #ffffff;
   letter-spacing: 0.02em;
 }
@@ -1334,7 +1334,7 @@
   background-color: #ea580c;
   color: #ffffff;
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 400;
   padding: 0.2rem 0.55rem;
   border-radius: 20px;
   letter-spacing: 0.04em;
@@ -1380,7 +1380,7 @@
 .live-track-tile-btn {
   padding: 3px 7px;
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 400;
   border: none;
   border-radius: 5px;
   cursor: pointer;
@@ -1409,7 +1409,7 @@
   padding: 0.42rem 0.75rem;
   border-radius: 8px;
   font-size: 0.76rem;
-  font-weight: 700;
+  font-weight: 400;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.18);
   color: #ffffff;
@@ -1466,7 +1466,7 @@
   background: rgba(2, 132, 199, 0.18);
   border-color: #38bdf8;
   color: #38bdf8;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .live-track-hud-btn.fleet-toggle-btn:hover {
@@ -1497,7 +1497,7 @@
   align-items: center;
   gap: 1.1rem;
   font-size: 0.74rem;
-  font-weight: 700;
+  font-weight: 400;
   color: #e2e8f0;
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
@@ -1548,7 +1548,7 @@
   gap: 0.65rem;
   cursor: pointer;
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.02em;
   transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1580,7 +1580,7 @@
   border: 1px solid #cbd5e1;
   color: #0284c7;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 400;
   padding: 2px 8px;
   border-radius: 6px;
   cursor: pointer;
@@ -1634,7 +1634,7 @@
   border: 1px solid #e2e8f0;
   color: #64748b;
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 400;
   width: 26px;
   height: 26px;
   border-radius: 6px;
@@ -1666,7 +1666,7 @@
 
 .live-track-title {
   font-size: 1.25rem;
-  font-weight: 900;
+  font-weight: 400;
   color: #0f172a;
   margin: 0;
   letter-spacing: -0.02em;
@@ -1674,7 +1674,7 @@
 
 .live-track-count-badge {
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 400;
   color: #0284c7;
   background-color: #e0f2fe;
   padding: 0.25rem 0.65rem;
@@ -1739,7 +1739,7 @@
   padding: 0.3rem 0.65rem;
   border-radius: 14px;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 400;
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
   color: #475569;
@@ -1828,7 +1828,7 @@
 .live-track-waybill {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.88rem;
-  font-weight: 800;
+  font-weight: 400;
   color: #0f172a;
   letter-spacing: -0.01em;
   display: block;
@@ -1837,7 +1837,7 @@
 .live-track-carrier-text {
   font-size: 0.72rem;
   color: #64748b;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 /* Corridor Box */
@@ -1867,7 +1867,7 @@
 .live-track-corridor-code {
   font-family: ui-monospace, monospace;
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 400;
   color: #10b981;
 }
 
@@ -1877,7 +1877,7 @@
 
 .live-track-corridor-city {
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 400;
   color: #334155;
   white-space: nowrap;
   overflow: hidden;
@@ -1887,7 +1887,7 @@
 .live-track-corridor-arrow {
   color: #94a3b8;
   font-size: 0.85rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 /* Driver & Hold Row */
@@ -1901,14 +1901,14 @@
 }
 
 .live-track-driver-tag {
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .live-track-card-hold-badge {
   background-color: #ea580c;
   color: #ffffff;
   font-size: 0.65rem;
-  font-weight: 800;
+  font-weight: 400;
   padding: 1px 6px;
   border-radius: 4px;
 }
@@ -1929,7 +1929,7 @@
 
 .live-track-speed {
   color: #0284c7;
-  font-weight: 800;
+  font-weight: 400;
   font-family: ui-monospace, monospace;
 }
 
@@ -1962,7 +1962,7 @@
 
 .shipment-mgmt-title {
   font-size: 1.85rem;
-  font-weight: 900;
+  font-weight: 400;
   color: #0f172a;
   margin: 0 0 0.35rem 0;
   letter-spacing: -0.02em;
@@ -1982,7 +1982,7 @@
   color: #ffffff;
   padding: 0.75rem 1.35rem;
   border-radius: 10px;
-  font-weight: 800;
+  font-weight: 400;
   font-size: 0.85rem;
   cursor: pointer;
   border: none;
@@ -2013,7 +2013,7 @@
 
 .shipment-section-title {
   font-size: 1.25rem;
-  font-weight: 900;
+  font-weight: 400;
   color: #0f172a;
   margin: 0;
   letter-spacing: -0.01em;
@@ -2030,7 +2030,7 @@
   padding: 0.45rem 1.1rem;
   border-radius: 20px;
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 400;
   border: 1px solid #cbd5e1;
   background: #ffffff;
   color: #334155;
@@ -2047,7 +2047,7 @@
   background-color: #0f172a;
   color: #ffffff;
   border-color: #0f172a;
-  font-weight: 800;
+  font-weight: 400;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
 }
 
@@ -2099,7 +2099,7 @@
 .shipment-card-waybill {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 1.15rem;
-  font-weight: 900;
+  font-weight: 400;
   color: #0f172a;
   letter-spacing: -0.01em;
 }
@@ -2110,7 +2110,7 @@
   padding: 0.2rem 0.65rem;
   border-radius: 6px;
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 400;
   background-color: #fef9c3;
   color: #854d0e;
   border: 1px solid rgba(234, 179, 8, 0.35);
@@ -2122,7 +2122,7 @@
   padding: 0.2rem 0.65rem;
   border-radius: 6px;
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 400;
   background-color: #e0f2fe;
   color: #0369a1;
   text-transform: uppercase;
@@ -2135,7 +2135,7 @@
   padding: 0.2rem 0.65rem;
   border-radius: 6px;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 400;
   background-color: #f3e8ff;
   color: #7e22ce;
 }
@@ -2147,7 +2147,7 @@
   padding: 0.2rem 0.75rem;
   border-radius: 20px;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 400;
   background-color: #fef3c7;
   color: #b45309;
   border: 1px solid #fde68a;
@@ -2166,7 +2166,7 @@
   padding: 0.2rem 0.65rem;
   border-radius: 6px;
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 400;
   background-color: #f1f5f9;
   color: #1e293b;
 }
@@ -2184,7 +2184,7 @@
   padding: 0.35rem 0.95rem;
   border-radius: 20px;
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 400;
   text-transform: capitalize;
 }
 
@@ -2213,7 +2213,7 @@
   background: #ffffff;
   color: #0284c7;
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 400;
   text-decoration: none;
   transition: all 0.15s ease;
 }
@@ -2227,12 +2227,12 @@
   font-size: 0.95rem;
   color: #334155;
   margin-bottom: 0.35rem;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .shipment-card-client-line strong {
   color: #0f172a;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .shipment-card-route-line {
@@ -2241,7 +2241,7 @@
   gap: 0.45rem;
   font-size: 0.88rem;
   color: #475569;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .shipment-pin-red {
@@ -2251,12 +2251,12 @@
 
 .shipment-route-origin {
   color: #1e293b;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .shipment-route-arrow {
   color: #94a3b8;
-  font-weight: 700;
+  font-weight: 400;
   margin: 0 0.15rem;
 }
 
@@ -2267,7 +2267,7 @@
 
 .shipment-route-dest {
   color: #1e293b;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .shipment-card-metrics-grid {
@@ -2294,7 +2294,7 @@
 
 .shipment-metric-label {
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 400;
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -2302,13 +2302,13 @@
 
 .shipment-metric-val {
   font-size: 0.88rem;
-  font-weight: 700;
+  font-weight: 400;
   color: #1e293b;
 }
 
 .shipment-metric-val.progress {
   color: #0284c7;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .shipment-card-actions-bar {
@@ -2326,7 +2326,7 @@
   padding: 0.55rem 1rem;
   border-radius: 8px;
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
   border: none;
   transition: all 0.15s ease;
@@ -2374,7 +2374,7 @@
   border: 1px solid #cbd5e1;
   background: #ffffff;
   font-size: 0.82rem;
-  font-weight: 600;
+  font-weight: 400;
   color: #0f172a;
   outline: none;
   cursor: pointer;
@@ -2421,7 +2421,7 @@
   border-radius: 10px;
   z-index: 1000;
   font-size: 0.88rem;
-  font-weight: 700;
+  font-weight: 400;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
   border: 1px solid #38bdf8;
 }
@@ -2471,7 +2471,7 @@
   gap: 0.35rem;
   color: #0284c7;
   font-size: 0.85rem;
-  font-weight: 800;
+  font-weight: 400;
   text-decoration: none;
   margin-bottom: 0.5rem;
   transition: color 0.15s ease;
@@ -2484,7 +2484,7 @@
 
 .create-shipment-title {
   font-size: 1.95rem;
-  font-weight: 900;
+  font-weight: 400;
   color: #0f172a;
   margin: 0 0 0.4rem 0;
   letter-spacing: -0.03em;
@@ -2537,13 +2537,13 @@
   align-items: center;
   justify-content: center;
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 400;
   flex-shrink: 0;
 }
 
 .create-shipment-card-title h3 {
   font-size: 1.25rem;
-  font-weight: 800;
+  font-weight: 400;
   color: #0f172a;
   margin: 0;
 }
@@ -2569,7 +2569,7 @@
 
 .create-shipment-subpanel-title {
   font-size: 0.95rem;
-  font-weight: 800;
+  font-weight: 400;
   color: #0f172a;
   margin: 0 0 1rem 0;
   padding-bottom: 0.5rem;
@@ -2594,7 +2594,7 @@
   border: 1px solid #cbd5e1;
   color: #334155;
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -2616,7 +2616,7 @@
 .create-shipment-loc-badge {
   display: inline-block;
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 400;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   margin-bottom: 1rem;
@@ -2661,7 +2661,7 @@
   background: #e0f2fe;
   color: #0369a1;
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .create-shipment-leaflet-map {
@@ -2755,7 +2755,7 @@
 .admin-modal-header h3 {
   margin: 0;
   font-size: 1.15rem;
-  font-weight: 800;
+  font-weight: 400;
   color: #ffffff !important;
   letter-spacing: -0.01em;
 }
@@ -2791,7 +2791,7 @@
 .admin-form-label {
   display: block;
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 400;
   color: #0f172a !important;
   margin-bottom: 0.4rem;
   text-transform: uppercase;
@@ -2807,7 +2807,7 @@
   padding: 0.75rem 1rem;
   color: #0f172a !important;
   font-size: 0.92rem;
-  font-weight: 600;
+  font-weight: 400;
   outline: none;
   width: 100%;
   box-sizing: border-box;
@@ -2841,7 +2841,7 @@
   padding: 0.65rem 1.25rem;
   border-radius: 8px;
   font-size: 0.88rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
   border: 1.5px solid #cbd5e1;
   background: #ffffff;
@@ -2922,7 +2922,7 @@
 
 .cmd-mobile-brand-title {
   font-size: 0.88rem;
-  font-weight: 900;
+  font-weight: 400;
   color: #ffffff;
   letter-spacing: 0.04em;
   line-height: 1.1;
@@ -2930,7 +2930,7 @@
 
 .cmd-mobile-brand-subtitle {
   font-size: 0.65rem;
-  font-weight: 800;
+  font-weight: 400;
   color: #10b981;
   display: flex;
   align-items: center;
@@ -2941,7 +2941,7 @@
   background-color: var(--cmd-red);
   color: #ffffff;
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.04em;
   padding: 0.45rem 0.85rem;
   border-radius: 8px;

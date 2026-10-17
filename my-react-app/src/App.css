@@ -1,11 +1,13 @@
 .site-shell {
   min-height: 100vh;
-  background-color: #dce9df;
+  background-color: #000000;
   background-image:
-    radial-gradient(ellipse at 12% 26%, rgba(164, 197, 174, 0.48), transparent 36%),
-    radial-gradient(ellipse at 86% 54%, rgba(218, 185, 139, 0.34), transparent 40%),
-    linear-gradient(180deg, #d4e4d9 0%, #efe3d3 38%, #d5e4da 72%, #eee0d1 100%);
-  color: #233238;
+    radial-gradient(ellipse at 15% 15%, rgba(10, 24, 45, 0.75), transparent 48%),
+    radial-gradient(ellipse at 85% 65%, rgba(252, 163, 17, 0.08), transparent 42%),
+    radial-gradient(ellipse at 40% 90%, rgba(10, 24, 45, 0.65), transparent 50%),
+    linear-gradient(180deg, #000000 0%, #060b14 35%, #000000 100%);
+  color: #e5e5e5;
+  font-weight: 300;
 }
 
 .topbar {
@@ -18,8 +20,8 @@
   gap: 1rem;
   min-height: 76px;
   padding: 0.75rem clamp(1rem, 3vw, 2.5rem);
-  background: #20353a;
-  border-bottom: 1px solid #34494d;
+  background: rgba(10, 24, 45, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(252, 163, 17, 0.18);
   box-shadow: 0 5px 18px rgba(17, 35, 39, 0.12);
 }
 
@@ -83,7 +85,7 @@
   border-radius: 5px;
   color: rgba(255, 255, 255, 0.82);
   font-size: 0.86rem;
-  font-weight: 600;
+  font-weight: 400;
   transition: 0.2s ease;
 }
 
@@ -104,7 +106,7 @@
   border-radius: 5px;
   padding: 0.65rem 0.95rem;
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
@@ -116,7 +118,7 @@
 }
 
 .button-primary {
-  background: #b75e29;
+  background: #f37920; color: #000000;
   color: white;
   box-shadow: 0 5px 14px rgba(115, 57, 26, 0.18);
 }
@@ -180,7 +182,7 @@
 
 .site-footer {
   margin-top: 3.5rem;
-  background: linear-gradient(145deg, #1d3034 0%, #263f3d 58%, #1d3034 100%);
+  background: linear-gradient(180deg, #070e1b 0%, #000000 100%); border-top: 1px solid rgba(252, 163, 17, 0.15);
   color: rgba(255, 255, 255, 0.86);
   padding: 2.75rem 0 1.25rem;
 }
@@ -269,7 +271,7 @@
 }
 
 .site-footer a:hover {
-  color: #f0b77f;
+  color: #f37920;
 }
 
 .footer-bottom > div {
@@ -343,7 +345,7 @@
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: #203638;
+  background: #000000;
 }
 
 .hero-panel::before {
@@ -351,7 +353,7 @@
   z-index: 0;
   inset: -1.5%;
   content: '';
-  background-image: linear-gradient(90deg, rgba(20, 36, 39, 0.9) 0%, rgba(20, 36, 39, 0.73) 44%, rgba(20, 36, 39, 0.12) 100%), url('https://images.unsplash.com/photo-1494412519320-aa613dfb7738?auto=format&fit=crop&w=2400&q=90');
+  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0.92) 0%, rgba(10, 24, 45, 0.85) 44%, rgba(10, 24, 45, 0.3) 100%), url('https://images.unsplash.com/photo-1494412519320-aa613dfb7738?auto=format&fit=crop&w=2400&q=90');
   background-position: center, center 55%;
   background-size: cover;
   animation: freight-drift 36s ease-in-out infinite alternate;
@@ -372,7 +374,7 @@
 }
 
 .hero-copy .eyebrow {
-  color: #f1b26a;
+  color: #f37920;
 }
 
 .hero-subtext,
@@ -400,8 +402,8 @@ textarea {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 0.73rem;
-  font-weight: 700;
-  color: #b75e29;
+  font-weight: 400;
+  color: #f37920;
 }
 
 .hero-copy {
@@ -469,13 +471,12 @@ textarea {
 
 .network-support {
   color: #9c4f26;
-  font-weight: 700;
+  font-weight: 400;
   text-decoration: none;
 }
 
 .carrier-pill {
-  background: #fff;
-  border: 1px solid #e0e6e3;
+  background: rgba(10, 24, 45, 0.6); border: 1px solid rgba(229, 229, 229, 0.12); color: #E5E5E5;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -541,9 +542,9 @@ textarea {
 
 .content-panel {
   padding: clamp(1.25rem, 3vw, 2.25rem);
-  border: 1px solid #ddd8c9;
+  border: 1px solid rgba(252, 163, 17, 0.2);
   border-radius: 8px;
-  background: linear-gradient(128deg, #f1ecdc 0%, #e3e8da 54%, #dbe7db 100%);
+  background: rgba(10, 24, 45, 0.65); border: 1px solid rgba(229, 229, 229, 0.12); backdrop-filter: blur(10px);
 }
 
 .panel-header {
@@ -563,9 +564,9 @@ textarea {
 }
 
 .panel-link {
-  color: #a95322;
+  color: #f37920;
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .service-grid {
@@ -575,8 +576,7 @@ textarea {
 }
 
 .info-card {
-  background: #fff;
-  border: 1px solid #e7e8e2;
+  background: rgba(10, 24, 45, 0.65); border: 1px solid rgba(229, 229, 229, 0.12); color: #E5E5E5;
   border-radius: 7px;
   overflow: hidden;
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.05);
@@ -632,9 +632,9 @@ textarea {
 .text-link {
   display: inline-block;
   margin-top: 1rem;
-  color: #a95322;
+  color: #f37920;
   font-size: 0.88rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .feature-split {
@@ -704,7 +704,7 @@ textarea {
   height: 2.5rem;
   border-radius: 6px;
   background: #f4e9df;
-  color: #a95322;
+  color: #f37920;
   font-size: 1.05rem;
 }
 
@@ -780,7 +780,7 @@ textarea {
   background: #eef8f1;
   color: #2d7651;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .status-live > span {
@@ -1181,7 +1181,7 @@ textarea {
   margin-bottom: 1.15rem;
   color: #b6cfca;
   font-size: 0.62rem;
-  font-weight: 700;
+  font-weight: 400;
   text-transform: uppercase;
 }
 
@@ -1230,7 +1230,7 @@ textarea {
 .enterprise-preview-route div span {
   color: #99b6ae;
   font-size: 0.52rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .enterprise-preview-route div strong {
@@ -1373,7 +1373,7 @@ textarea {
 
 .enterprise-contact-band .eyebrow {
   margin-bottom: 0.35rem;
-  color: #f0b77f;
+  color: #f37920;
 }
 
 .enterprise-contact-band h2 {
@@ -1441,7 +1441,7 @@ textarea {
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: #203638;
+  background: #000000;
   color: #fff;
 }
 
@@ -1563,12 +1563,12 @@ textarea {
   background: #f5f7f3;
   font-size: 0.7rem;
   font-style: normal;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .booking-steps .booking-step-active {
   color: #315a47;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .booking-steps .booking-step-active i {
@@ -1647,7 +1647,7 @@ textarea {
   background: #e4efe3;
   color: #477553;
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .contact-step-delivery .contact-step-icon {
@@ -1686,7 +1686,7 @@ textarea {
   background: rgba(255, 255, 255, 0.7);
   color: #68806d;
   font-size: 0.59rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.05em;
 }
 
@@ -1810,7 +1810,7 @@ textarea {
   background: #e8f0e9;
   color: #40674e;
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .booking-section-title h2 {
@@ -1905,7 +1905,7 @@ textarea {
   background: rgba(24, 38, 37, 0.48);
   color: #fff;
   font-size: 0.58rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.08em;
 }
 
@@ -1980,7 +1980,7 @@ textarea {
 .field-error {
   color: #b91c1c;
   font-size: 0.66rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .booking-field input,
@@ -2031,7 +2031,7 @@ textarea {
   background: rgba(255, 255, 255, 0.75);
   color: #8a7651;
   font-size: 0.62rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .dimension-fieldset {
@@ -2047,7 +2047,7 @@ textarea {
   padding: 0 0.35rem;
   color: #52675a;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .dimension-fieldset legend span {
@@ -2183,7 +2183,7 @@ textarea {
   background: #f8fbf7;
   color: #456b4d;
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .package-photo-grid {
@@ -2280,7 +2280,7 @@ textarea {
   background: #dcebdc;
   color: #4f7d57;
   font-size: 0.9rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .confirm-party-grid {
@@ -2319,7 +2319,7 @@ textarea {
 .confirm-party-grid span {
   color: #8a9790;
   font-size: 0.62rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .confirm-party-grid strong {
@@ -2368,7 +2368,7 @@ textarea {
 .confirm-shipment-specs span {
   color: #849087;
   font-size: 0.63rem;
-  font-weight: 700;
+  font-weight: 400;
   text-transform: uppercase;
 }
 
@@ -2447,7 +2447,7 @@ textarea {
   background: #e9f4e9;
   color: #3d7650;
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .booking-complete h2 {
@@ -2510,7 +2510,7 @@ textarea {
   background: #f8f2e8;
   color: #88683e;
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .summary-route {
@@ -2564,7 +2564,7 @@ textarea {
 .summary-route > div span {
   color: #8a9790;
   font-size: 0.59rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .summary-route > div strong {
@@ -2615,7 +2615,7 @@ textarea {
 .summary-carrier-label {
   color: #8c9a8e;
   font-size: 0.56rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.04em;
 }
 
@@ -2623,7 +2623,7 @@ textarea {
   margin-bottom: 0.45rem;
   color: #859188;
   font-size: 0.62rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.04em;
 }
 
@@ -2683,7 +2683,7 @@ textarea {
   margin-bottom: 0.45rem;
   color: #53665a;
   font-size: 0.69rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .summary-photos-heading strong {
@@ -2725,7 +2725,7 @@ textarea {
   background: #eef3eb;
   color: #57705c;
   font-size: 0.66rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .summary-route-line {
@@ -2980,7 +2980,7 @@ textarea {
   background: rgba(255, 255, 255, 0.55);
   color: #617368;
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
@@ -3047,7 +3047,7 @@ textarea {
   padding: 0.85rem 1rem;
   color: #2d4439;
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
   list-style: none;
 }
@@ -3139,7 +3139,7 @@ textarea {
   background: transparent;
   color: #9b552f;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
 }
 
@@ -3157,7 +3157,7 @@ textarea {
   background: #f8efe4;
   color: #815d3f;
   font-size: 0.62rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .policy-layout {
@@ -3181,14 +3181,14 @@ textarea {
   margin-bottom: 0.15rem;
   color: #849087;
   font-size: 0.6rem;
-  font-weight: 800;
+  font-weight: 400;
   text-transform: uppercase;
 }
 
 .policy-contents a {
   color: #4d6656;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 400;
   text-decoration: none;
 }
 
@@ -3363,7 +3363,7 @@ label {
   flex-direction: column;
   gap: 0.5rem;
   color: #334155;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 input,
@@ -3454,7 +3454,7 @@ textarea {
   gap: 0.38rem;
   color: #e3efea;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .tracking-search-control {
@@ -3528,7 +3528,7 @@ textarea {
   background: #e6efeb;
   color: #28615c;
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .tracking-empty > div:nth-child(2),
@@ -3586,7 +3586,7 @@ textarea {
 .tracking-empty-route div span {
   color: #8a978e;
   font-size: 0.5rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .tracking-empty-route div strong {
@@ -3632,7 +3632,7 @@ textarea {
   background: #fff;
   color: #476d50;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
 }
 
@@ -3803,7 +3803,7 @@ textarea {
 .tracking-route-stop > span {
   color: #89958c;
   font-size: 0.59rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.04em;
 }
 
@@ -3956,7 +3956,7 @@ textarea {
   background: #fff;
   color: #fff;
   font-size: 0.65rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .milestone-complete .milestone-indicator {
@@ -4003,7 +4003,7 @@ textarea {
 
 .milestone-current time {
   color: #477a68;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .tracking-detail-card {
@@ -4030,7 +4030,7 @@ textarea {
   background: #f8f4e9;
   color: #8b764e;
   font-size: 0.55rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .tracking-carrier-lockup {
@@ -4116,7 +4116,7 @@ textarea {
   margin-top: 0.25rem;
   color: #9b552f;
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 400;
   text-decoration: none;
 }
 
@@ -4277,7 +4277,7 @@ textarea {
   color: #63766a;
   font: inherit;
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.25;
   cursor: pointer;
   transition: color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
@@ -4333,9 +4333,9 @@ textarea {
   border: 1px solid rgba(255, 255, 255, 0.26);
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.1);
-  color: #f0b77f;
+  color: #f37920;
   font-size: 1.2rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .recommendation-copy {
@@ -4347,7 +4347,7 @@ textarea {
 .recommendation-copy span {
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.62rem;
-  font-weight: 700;
+  font-weight: 400;
   text-transform: uppercase;
 }
 
@@ -4427,7 +4427,7 @@ textarea {
   background: rgba(28, 44, 39, 0.42);
   color: #fff;
   font-size: 0.59rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.035em;
   backdrop-filter: blur(5px);
 }
@@ -4476,7 +4476,7 @@ textarea {
 .service-ideal-for span {
   color: #89948b;
   font-size: 0.55rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.045em;
 }
 
@@ -4643,7 +4643,7 @@ textarea {
   padding-bottom: 0.45rem;
   color: #b6ceca;
   font-size: 0.62rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.045em;
   text-transform: uppercase;
 }
@@ -4726,7 +4726,7 @@ textarea {
   background: color-mix(in srgb, var(--service-accent) 12%, white);
   color: var(--service-accent);
   font-size: 0.53rem;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .service-comparison-transit {
@@ -4815,7 +4815,7 @@ textarea {
   background: #fff;
   color: #5d7d62;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .services-note p {
@@ -4830,7 +4830,7 @@ textarea {
   flex: 0 0 auto;
   color: #9b552f;
   font-size: 0.69rem;
-  font-weight: 700;
+  font-weight: 400;
   text-decoration: none;
 }
 
@@ -5052,7 +5052,7 @@ textarea {
   border-bottom: 1px solid #e6ebe3;
   color: #45614e;
   font-size: 0.73rem;
-  font-weight: 700;
+  font-weight: 400;
   text-decoration: none;
 }
 
@@ -5106,7 +5106,7 @@ textarea {
 .support-form-required-note b,
 .support-required {
   color: #a85c39;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .support-form {
@@ -5127,7 +5127,7 @@ textarea {
   gap: 0.42rem;
   color: #3f5549;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.35;
 }
 
@@ -5356,7 +5356,7 @@ textarea {
   background: #ef4444;
   color: white;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .dashboard-page {
@@ -5430,7 +5430,7 @@ textarea {
   color: #1d4ed8;
   padding: 0.3rem 0.6rem;
   font-size: 0.65rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .map-panel {
@@ -5472,7 +5472,7 @@ textarea {
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
   color: white;
   font-size: 0.55rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .map-pin-nyc { left: 16%; top: 44%; background: #d97706; }
@@ -5600,7 +5600,7 @@ textarea {
   background: white;
   color: #4b5563;
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
 }
 
@@ -5629,14 +5629,14 @@ td {
 th {
   color: #475569;
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 400;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .table-link {
   color: #0f172a;
-  font-weight: 700;
+  font-weight: 400;
   text-decoration: none;
 }
 
@@ -5645,7 +5645,7 @@ th {
   border-radius: 999px;
   padding: 0.35rem 0.65rem;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .status-in_transit {
@@ -5865,7 +5865,7 @@ th {
   margin: 0;
   color: #1f2937;
   font-size: 0.74rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .create-shipment-card {
@@ -5876,7 +5876,7 @@ th {
 .step-indicator {
   color: #475569;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .wizard-progress {
@@ -5892,7 +5892,7 @@ th {
   color: #475569;
   padding: 0.7rem 0.8rem;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 400;
   cursor: pointer;
 }
 
@@ -5955,7 +5955,7 @@ th {
   gap: 0.45rem;
   color: #475569;
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .field-row input,
@@ -5977,7 +5977,7 @@ th {
 .rate-box span {
   color: #64748b;
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 400;
   text-transform: uppercase;
 }
 
@@ -6020,7 +6020,7 @@ th {
   background: #e2e8f0;
   color: #334155;
   font-size: 0.62rem;
-  font-weight: 800;
+  font-weight: 400;
   text-transform: uppercase;
 }
 
@@ -6068,7 +6068,7 @@ th {
 .account-list dd {
   color: #1f2937;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 400;
   text-align: right;
 }
 
@@ -6095,7 +6095,7 @@ th {
   background: #f8fafc;
   color: #334155;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .team-list li,
@@ -6107,7 +6107,7 @@ th {
 .invoice-list span {
   color: #0f172a;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .not-found {
@@ -6637,7 +6637,7 @@ th {
     color: #849087;
     content: attr(data-label);
     font-size: 0.58rem;
-    font-weight: 800;
+    font-weight: 400;
     text-transform: uppercase;
   }
 
@@ -7005,4 +7005,30 @@ th {
   .tracking-route-footer {
     font-size: 0.66rem;
   }
+}
+
+/* Global Prime Logistics Image Showcase & Smooth Hover Transitions */
+.gallery-card {
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.32s ease, box-shadow 0.32s ease !important;
+}
+
+.gallery-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(243, 121, 32, 0.45) !important;
+  box-shadow: 0 16px 36px -6px rgba(243, 121, 32, 0.22);
+}
+
+.gallery-card:hover .service-card-img-zoom,
+.service-card-hover:hover .service-card-img-zoom {
+  transform: scale(1.06);
+}
+
+.service-card-hover {
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.32s ease, box-shadow 0.32s ease !important;
+}
+
+.service-card-hover:hover {
+  transform: translateY(-3px);
+  border-color: rgba(0, 82, 180, 0.5) !important;
+  box-shadow: 0 14px 30px -4px rgba(0, 82, 180, 0.25);
 }
