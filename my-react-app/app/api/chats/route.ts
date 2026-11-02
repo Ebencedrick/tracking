@@ -8,7 +8,11 @@ export async function GET() {
   try {
     await connectToDatabase()
     const chats = await (ChatSession as any).find().sort({ updatedAt: -1 }).lean()
-    return NextResponse.json(chats)
+    return NextResponse.json(chats, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3, stale-while-revalidate=15',
+      },
+    })
   } catch (err: any) {
     return NextResponse.json({ error: 'Failed to fetch chats', details: err.message }, { status: 500 })
   }

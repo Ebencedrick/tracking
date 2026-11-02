@@ -31,8 +31,17 @@ export function AdminChats() {
 
   useEffect(() => {
     fetchChats()
-    const interval = setInterval(fetchChats, 3500)
-    return () => clearInterval(interval)
+    const handleVisibility = () => {
+      if (!document.hidden) fetchChats()
+    }
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchChats()
+    }, 15000)
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [activeChatId])
 
   const activeChat = chats.find((c) => c.id === activeChatId) || chats[0]

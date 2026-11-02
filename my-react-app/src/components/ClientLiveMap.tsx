@@ -12,6 +12,11 @@ import {
   Plane as PlaneIcon,
   Ship as ShipIcon,
   Truck as TruckIcon,
+  Copy as CopyIcon,
+  Pause as PauseIcon,
+  Play as PlayIcon,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react'
 import type { Shipment } from '../types'
 import {
@@ -24,6 +29,8 @@ import {
   NORMAL_SPEEDS,
   MAP_TILE_PROVIDERS,
   type MapTileKey,
+  getPersistedMapTile,
+  setPersistedMapTile,
 } from '../utils/mapApis'
 import { ALT_70568_884_ROUTE } from '../data/atlastrackRoute'
 
@@ -65,7 +72,27 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
   const remainingPolylineRef = useRef<L.Polyline | null>(null)
   const vehicleMarkerRef = useRef<L.Marker | null>(null)
 
-  const [activeTileKey] = useState<MapTileKey>('satellite')
+  const [activeTileKey, setActiveTileKeyState] = useState<MapTileKey>(getPersistedMapTile)
+  const [isHudMinimized, setIsHudMinimized] = useState(false)
+
+  const handleSelectTile = (key: MapTileKey) => {
+    setActiveTileKeyState(key)
+    setPersistedMapTile(key)
+  }
+
+  // Synchronize when map tile mode changes anywhere across admin or client
+  useEffect(() => {
+    const handleTileChanged = (e: Event) => {
+      const customEvent = e as CustomEvent<MapTileKey>
+      if (customEvent.detail && customEvent.detail !== activeTileKey) {
+        setActiveTileKeyState(customEvent.detail)
+      }
+    }
+    window.addEventListener('packagepilot_map_tile_changed', handleTileChanged)
+    return () => {
+      window.removeEventListener('packagepilot_map_tile_changed', handleTileChanged)
+    }
+  }, [activeTileKey])
 
   const initialRoute = useMemo<[number, number][]>(() => {
     if (shipment.waybill === 'ALT-70568-884') {
@@ -240,25 +267,25 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
       className: 'live-map-custom-marker-start',
       html: `
         <div style="
-          width: 12px;
-          height: 12px;
+          width: 10px;
+          height: 10px;
           background-color: #10b981;
           border: 1.5px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+          box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
           position: relative;
         ">
           <div class="live-map-pin-label" style="
             position: absolute;
-            top: -18px;
+            top: -16px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.92);
+            background: rgba(15, 23, 42, 0.88);
             color: #6ee7b7;
-            font-weight: 300;
-            font-size: 8.5px;
+            font-weight: 400;
+            font-size: 7.5px;
             letter-spacing: 0.04em;
-            padding: 1px 4px;
+            padding: 0.5px 3px;
             border-radius: 3px;
             white-space: nowrap;
             border: 1px solid rgba(52, 211, 153, 0.3);
@@ -266,8 +293,8 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           ">${shipment.origin.code || 'DEP'}</div>
         </div>
       `,
-      iconSize: [12, 12],
-      iconAnchor: [6, 6],
+      iconSize: [10, 10],
+      iconAnchor: [5, 5],
     })
 
     // Destination Marker (Destination Pin - Small & Clean)
@@ -275,25 +302,25 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
       className: 'live-map-custom-marker-dest',
       html: `
         <div style="
-          width: 12px;
-          height: 12px;
+          width: 10px;
+          height: 10px;
           background-color: #f43f5e;
           border: 1.5px solid #ffffff;
           border-radius: 50%;
-          box-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
+          box-shadow: 0 0 6px rgba(244, 63, 94, 0.6);
           position: relative;
         ">
           <div class="live-map-pin-label" style="
             position: absolute;
-            top: -18px;
+            top: -16px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.92);
+            background: rgba(15, 23, 42, 0.88);
             color: #fda4af;
-            font-weight: 300;
-            font-size: 8.5px;
+            font-weight: 400;
+            font-size: 7.5px;
             letter-spacing: 0.04em;
-            padding: 1px 4px;
+            padding: 0.5px 3px;
             border-radius: 3px;
             white-space: nowrap;
             border: 1px solid rgba(244, 63, 94, 0.3);
@@ -301,8 +328,8 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           ">${shipment.destination.code || 'ARR'}</div>
         </div>
       `,
-      iconSize: [12, 12],
-      iconAnchor: [6, 6],
+      iconSize: [10, 10],
+      iconAnchor: [5, 5],
     })
 
     L.marker(startCoord, { icon: startIcon })
@@ -327,48 +354,40 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
 
     // Realistic curved/road route coordinates (never a straight line)
     const rawCoords =
-      routeCoordinates.length >= 2
-        ? routeCoordinates
-        : (shipment.routePolyline && shipment.routePolyline.length >= 2
-            ? shipment.routePolyline
-            : generateCurvedFlightArc(startCoord, destCoord, 80))
+      shipment.waybill === 'ALT-70568-884'
+        ? ALT_70568_884_ROUTE
+        : shipment.routePolyline && shipment.routePolyline.length >= 2
+          ? shipment.routePolyline
+          : routeCoordinates.length >= 2
+            ? routeCoordinates
+            : generateCurvedFlightArc(startCoord, destCoord, 80)
 
-    const fraction = currentProgressPct / 100
+    const fraction = Math.min(1, Math.max(0, currentProgressPct / 100))
     const interp = interpolatePositionAlongRoute(rawCoords, fraction)
 
-    // Base corridor route line (subtle guiding track along the realistic curve)
-    const baseCorridorLine = L.polyline(rawCoords as L.LatLngTuple[], {
-      color: '#63d72a',
-      weight: 2,
-      opacity: 0.22,
+    // Full Continuous Route Corridor Polyline (Matching Admin Live Tracking: bold, high-visibility #0284c7 corridor)
+    const corridorLine = L.polyline(rawCoords as L.LatLngTuple[], {
+      color: shipment.isMovementStopped ? '#ea580c' : '#0284c7',
+      weight: 5,
+      opacity: 0.95,
       smoothFactor: 1.2,
+      dashArray: shipment.mode === 'air' ? '6, 6' : undefined,
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(map)
-    baseCorridorPolylineRef.current = baseCorridorLine
+    baseCorridorPolylineRef.current = corridorLine
 
-    // Covered path (solid vibrant AtlasTrack green along actual road/arc curve)
+    // Covered Progression Path (vibrant sky-blue overlay showing active live progress up to vehicle)
     const coveredLine = L.polyline(interp.coveredCoordinates as L.LatLngTuple[], {
-      color: shipment.isMovementStopped ? '#ea580c' : '#63d72a',
-      weight: 4,
-      opacity: 0.95,
+      color: shipment.isMovementStopped ? '#ea580c' : '#38bdf8',
+      weight: 5,
+      opacity: 0.98,
       smoothFactor: 1.2,
+      dashArray: shipment.mode === 'air' ? '6, 6' : undefined,
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(map)
     coveredPolylineRef.current = coveredLine
-
-    // Remaining path (dashed ahead along actual road/arc curve)
-    const remainingLine = L.polyline(interp.remainingCoordinates as L.LatLngTuple[], {
-      color: shipment.isMovementStopped ? '#ea580c' : '#63d72a',
-      weight: 3,
-      opacity: 0.55,
-      dashArray: '4, 8',
-      smoothFactor: 1.2,
-      lineCap: 'round',
-      lineJoin: 'round',
-    }).addTo(map)
-    remainingPolylineRef.current = remainingLine
 
     // Vehicle Marker Icon (Small, Crisp SVG, Smooth Rotation)
     const vehicleIcon = L.divIcon({
@@ -499,18 +518,33 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           }
         }
 
-        // Update Polylines dynamically along real curves
+        // Update live progression along the corridor
         if (coveredPolylineRef.current) {
           coveredPolylineRef.current.setLatLngs(interp.coveredCoordinates as L.LatLngTuple[])
-        }
-        if (remainingPolylineRef.current) {
-          remainingPolylineRef.current.setLatLngs(interp.remainingCoordinates as L.LatLngTuple[])
         }
       }
     }, 1000)
 
     return () => clearInterval(intervalId)
   }, [shipment, routeCoordinates, totalDistanceKm])
+
+  const [toastMessage, setToastMessage] = useState('')
+  const showToast = (msg: string) => {
+    setToastMessage(msg)
+    setTimeout(() => setToastMessage(''), 3000)
+  }
+
+  const handleCopyWaybill = (code?: string) => {
+    const target = code || shipment.waybill
+    navigator.clipboard.writeText(target)
+    showToast(`Copied waybill ${target} to clipboard!`)
+  }
+
+  const renderModeIcon = (m: string = 'land', size = 13) => {
+    if (m === 'air') return <PlaneIcon size={size} strokeWidth={1.5} />
+    if (m === 'sea') return <ShipIcon size={size} strokeWidth={1.5} />
+    return <TruckIcon size={size} strokeWidth={1.5} />
+  }
 
   const handleCenterVehicle = useCallback(() => {
     if (!mapInstanceRef.current) return
@@ -557,225 +591,174 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
         }}
       />
 
-      {/* ========================================================================= */}
-      {/* TOP DESKTOP HUD (Hidden on Mobile) */}
-      {/* ========================================================================= */}
-      <div className="live-map-desktop-top-hud">
-        {/* Left Telemetry Card */}
-        <div className="live-map-hud-pill">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span
-              style={{
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                backgroundColor: shipment.isMovementStopped ? '#ea580c' : '#10b981',
-                boxShadow: shipment.isMovementStopped ? '0 0 8px #ea580c' : '0 0 8px #10b981',
-              }}
-            />
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 400,
-                color: shipment.isMovementStopped ? '#fdba74' : '#6ee7b7',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-              }}
-            >
-              {shipment.isMovementStopped ? 'HOLD ACTIVE' : 'LIVE GPS'}
-            </span>
-          </div>
-
-          <span className="live-map-hud-divider">|</span>
-
-          <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: 300 }}>
-            <span style={{ color: '#94a3b8' }}>Speed:</span>{' '}
-            <span style={{ color: '#38bdf8', fontWeight: 400 }}>{liveSpeedDisplay}</span>
-          </div>
-
-          <span className="live-map-hud-divider">|</span>
-
-          <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: 300 }}>
-            <span style={{ color: '#94a3b8' }}>Heading:</span>{' '}
-            <span style={{ color: '#f1f5f9', fontWeight: 400 }}>{bearingCardinal}</span>
-          </div>
-
-          <span className="live-map-hud-divider">|</span>
-
-          <div style={{ fontSize: '11px', color: '#e2e8f0', fontWeight: 300 }}>
-            <span style={{ color: '#94a3b8' }}>Coords:</span>{' '}
-            <span style={{ color: '#f1f5f9', fontWeight: 400 }}>
-              {liveCoords.lat.toFixed(2)}°N, {liveCoords.lng.toFixed(2)}°E
-            </span>
-          </div>
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '70px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1050,
+            background: 'rgba(15, 23, 42, 0.95)',
+            color: '#38bdf8',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            borderRadius: '8px',
+            padding: '6px 14px',
+            fontSize: '11px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(8px)',
+            pointerEvents: 'none',
+          }}
+        >
+          ✓ {toastMessage}
         </div>
+      )}
 
-        {/* Right Controls: Satellite Badge & Fly Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#94a3b8', background: 'rgba(15, 23, 42, 0.92)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '6px', padding: '4px 8px', fontWeight: 300 }}>
-            <GlobeIcon size={11} strokeWidth={1.5} style={{ color: '#38bdf8' }} />
-            <span>Satellite</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleCenterVehicle}
-            className="live-map-action-btn"
-            title="Center Vehicle"
-          >
-            <CrosshairIcon size={11} strokeWidth={1.5} />
-            Center
-          </button>
-
-          <button
-            type="button"
-            onClick={handleFitCorridor}
-            className="live-map-action-btn"
-            title="Fit Entire Route Corridor"
-          >
-            <RouteIcon size={11} strokeWidth={1.5} />
-            Corridor
-          </button>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* TOP MOBILE HUD (Clean, Minimalist, Zero Screen Clutter) */}
-      {/* ========================================================================= */}
-      <div className="live-map-mobile-top-hud">
-        {/* Compact Mobile Live Pill */}
+      {/* Floating Top Telemetry HUD Bar (Compact & Sleek for Clear Map Visibility) */}
+      {isHudMinimized ? (
         <button
           type="button"
-          onClick={() => setShowMobileDetails((prev) => !prev)}
-          className="live-map-mobile-status-pill"
-          title="Tap for Live Specs"
+          onClick={() => setIsHudMinimized(false)}
+          className="live-track-hud-minimized-chip"
+          title="Click to expand telemetry controls"
         >
-          <span
-            style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              backgroundColor: shipment.isMovementStopped ? '#ea580c' : '#10b981',
-              boxShadow: shipment.isMovementStopped ? '0 0 6px #ea580c' : '0 0 6px #10b981',
-            }}
-          />
-          <span style={{ fontWeight: 400, color: shipment.isMovementStopped ? '#fdba74' : '#6ee7b7', fontSize: '10px' }}>
-            {shipment.isMovementStopped ? 'HOLD' : 'LIVE'}
+          <span className="live-track-dot green" style={{ width: '6px', height: '6px' }} />
+          <span className="live-track-hud-code" style={{ fontSize: '0.72rem' }}>
+            {shipment.waybill}
           </span>
-          <span style={{ color: 'rgba(255,255,255,0.3)' }}>•</span>
-          <span style={{ color: '#38bdf8', fontWeight: 300, display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10.5px' }}>
-            {shipment.mode === 'air' ? (
-              <PlaneIcon size={11} strokeWidth={1.5} />
-            ) : shipment.mode === 'sea' ? (
-              <ShipIcon size={11} strokeWidth={1.5} />
-            ) : (
-              <TruckIcon size={11} strokeWidth={1.5} />
-            )}
-            {shipment.isMovementStopped ? '0 km/h' : shipment.status === 'pending' ? 'Staged' : '80 km/h'}
+          <span style={{ fontSize: '0.68rem', color: '#38bdf8', fontWeight: 500 }}>
+            {Math.round(currentProgressPct)}%
           </span>
-          <InfoIcon size={10} strokeWidth={1.5} style={{ color: '#94a3b8', marginLeft: '2px' }} />
+          <span style={{ fontSize: '0.62rem', color: '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+            Controls <ChevronDown size={10} />
+          </span>
         </button>
+      ) : (
+        <div className="live-track-hud-bar compact">
+          <div className="live-track-hud-left">
+            <div className="live-track-hud-main-line">
+              <span className="live-track-hud-mode-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                {renderModeIcon(shipment.mode, 11)}
+              </span>
+              <span className="live-track-hud-code" style={{ fontSize: '0.74rem' }}>
+                {shipment.waybill}
+              </span>
+              <button
+                type="button"
+                className="live-track-hud-copy-btn"
+                onClick={() => handleCopyWaybill(shipment.waybill)}
+                title="Copy Waybill"
+              >
+                <CopyIcon size={9} strokeWidth={1.5} />
+              </button>
+              <span className={`cmd-status-pill ${shipment.status}`}>
+                {shipment.status.replace('_', ' ').toUpperCase()}
+              </span>
+              {shipment.isMovementStopped && (
+                <span className="live-track-stopped-badge">
+                  <PauseIcon size={8} strokeWidth={1.5} /> HOLD
+                </span>
+              )}
+              <span className="hud-sep">•</span>
+              <span className="live-track-hud-corridor">
+                {shipment.origin.code || shipment.origin.name.split(',')[0]}
+                <span style={{ color: '#94a3b8', margin: '0 3px' }}>→</span>
+                {shipment.destination.code || shipment.destination.name.split(',')[0]}
+              </span>
+              <span className="hud-sep">•</span>
+              <span style={{ color: shipment.isMovementStopped ? '#fca5a5' : '#38bdf8', fontSize: '0.68rem', fontWeight: 500 }}>
+                {Math.round(currentProgressPct)}% ({coveredDistanceKm.toLocaleString()} KM)
+              </span>
+            </div>
 
-        {/* Floating Quick Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <button
-            type="button"
-            onClick={handleCenterVehicle}
-            className="live-map-mobile-icon-btn"
-            title="Center Vehicle"
-          >
-            <CrosshairIcon size={13} strokeWidth={1.5} />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleFitCorridor}
-            className="live-map-mobile-icon-btn"
-            title="Fit Route Corridor"
-          >
-            <RouteIcon size={13} strokeWidth={1.5} />
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Detailed Specs Drawer Modal */}
-      {showMobileDetails && (
-        <div className="live-map-mobile-drawer">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 400, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <RadioIcon size={12} strokeWidth={1.5} /> Live Consignment Telemetry
-            </span>
-            <button
-              type="button"
-              onClick={() => setShowMobileDetails(false)}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '13px', cursor: 'pointer' }}
-            >
-              ×
-            </button>
+            {/* Hairline 2px progress bar */}
+            <div style={{ marginTop: '3px', width: '100%', height: '2px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${currentProgressPct}%`,
+                  height: '100%',
+                  background: shipment.isMovementStopped ? '#ef4444' : shipment.status === 'delivered' ? '#10b981' : '#38bdf8',
+                  borderRadius: '2px',
+                  transition: 'width 0.4s ease',
+                }}
+              />
+            </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11px', fontWeight: 300 }}>
-            <div><span style={{ color: '#94a3b8' }}>Speed:</span> <span style={{ color: '#f8fafc', fontWeight: 400 }}>{liveSpeedDisplay}</span></div>
-            <div><span style={{ color: '#94a3b8' }}>Heading:</span> <span style={{ color: '#f8fafc', fontWeight: 400 }}>{bearingCardinal}</span></div>
-            <div><span style={{ color: '#94a3b8' }}>Vehicle:</span> <span style={{ color: '#f8fafc', fontWeight: 400 }}>{shipment.vehicleId || 'Linehaul 101'}</span></div>
-            <div><span style={{ color: '#94a3b8' }}>Driver:</span> <span style={{ color: '#f8fafc', fontWeight: 400 }}>{shipment.assignedDriver || 'Assigned'}</span></div>
-            <div style={{ gridColumn: 'span 2' }}>
-              <span style={{ color: '#94a3b8' }}>Coords:</span> <span style={{ color: '#f8fafc', fontWeight: 400 }}>{liveCoords.lat.toFixed(4)}°N, {liveCoords.lng.toFixed(4)}°E</span>
+
+          <div className="live-track-hud-actions">
+            {/* Map Layer Switcher: Route / Satellite / Dark */}
+            <div className="live-track-tile-group compact">
+              <button
+                type="button"
+                onClick={() => handleSelectTile('voyager')}
+                className={`live-track-tile-btn ${activeTileKey === 'voyager' ? 'active' : ''}`}
+                title="Route Navigation Map"
+              >
+                <RouteIcon size={9} strokeWidth={1.5} /> Route
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectTile('satellite')}
+                className={`live-track-tile-btn ${activeTileKey === 'satellite' ? 'active' : ''}`}
+                title="Live Satellite Map"
+              >
+                <GlobeIcon size={9} strokeWidth={1.5} /> Sat
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectTile('dark')}
+                className={`live-track-tile-btn ${activeTileKey === 'dark' ? 'active' : ''}`}
+                title="Tactical Dark Radar Map"
+              >
+                <CompassIcon size={9} strokeWidth={1.5} /> Dark
+              </button>
+            </div>
+
+            {/* Map Telemetry Group */}
+            <div className="live-track-btn-group">
+              <button
+                type="button"
+                className="live-track-hud-btn"
+                onClick={handleCenterVehicle}
+                title="Focus map on Vehicle"
+              >
+                <CrosshairIcon size={9} strokeWidth={1.5} /> Vehicle
+              </button>
+              <button
+                type="button"
+                className="live-track-hud-btn"
+                onClick={handleFitCorridor}
+                title="Fit whole Route Corridor"
+              >
+                <RouteIcon size={9} strokeWidth={1.5} /> Route
+              </button>
+              <button
+                type="button"
+                className="live-track-hud-btn minimize"
+                onClick={() => setIsHudMinimized(true)}
+                title="Minimize overlay for 100% full clear map view"
+              >
+                <ChevronUp size={10} strokeWidth={1.5} />
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* BOTTOM PROGRESS & DISTANCE HUD (Responsive Desktop & Mobile) */}
-      {/* ========================================================================= */}
-      <div className="live-map-bottom-progress-hud">
-        {/* Top metrics row */}
-        <div className="live-map-progress-topline">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#38bdf8', fontSize: '11px', fontWeight: 400 }}>
-              {Math.round(currentProgressPct)}% Covered
-            </span>
-            <span style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
-            <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 300 }}>
-              {Math.max(0, 100 - Math.round(currentProgressPct))}% To Go
-            </span>
-            <span style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
-            <span style={{ color: '#34d399', fontSize: '11px', fontWeight: 300 }}>
-              {coveredDistanceKm.toLocaleString()} km covered
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#f8fafc', fontSize: '11px', fontWeight: 300 }}>
-              <span style={{ color: '#cbd5e1', fontWeight: 400 }}>{remainingDistanceKm.toLocaleString()} km to destination</span>
-            </span>
-            <span className="live-map-desktop-only" style={{ color: 'rgba(255,255,255,0.2)' }}>•</span>
-            <span className="live-map-desktop-only" style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 300 }}>
-              ETA: <span style={{ color: '#34d399', fontWeight: 400 }}>{dynamicEtaString}</span>
-            </span>
-          </div>
+      {/* Floating Bottom-Left Micro Legend (Unobtrusive) */}
+      <div className="live-track-legend compact">
+        <div className="live-track-legend-item">
+          <span className="live-track-dot green" />
+          <span>Origin</span>
         </div>
-
-        {/* Smooth Linear Progress Track */}
-        <div className="live-map-progress-track">
-          <div
-            className="live-map-progress-fill"
-            style={{
-              width: `${currentProgressPct}%`,
-              background: shipment.isMovementStopped
-                ? '#ea580c'
-                : 'linear-gradient(90deg, #0284c7, #38bdf8, #34d399)',
-            }}
-          />
+        <div className="live-track-legend-item">
+          <span className="live-track-dot blue" />
+          <span>Vehicle</span>
         </div>
-
-        {/* Mobile secondary info line */}
-        <div className="live-map-mobile-only live-map-mobile-bottom-footnote">
-          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontWeight: 300 }}>
-            <ClockIcon size={10} strokeWidth={1.5} style={{ color: '#34d399' }} />
-            ETA: <span style={{ color: '#34d399', fontWeight: 400 }}>{dynamicEtaString}</span>
-          </span>
-          <span style={{ fontWeight: 300 }}>{liveSpeedDisplay}</span>
+        <div className="live-track-legend-item">
+          <span className="live-track-dot red" />
+          <span>Destination</span>
         </div>
       </div>
 
@@ -795,162 +778,275 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           transition: none !important;
         }
 
-        /* Desktop Top HUD */
-        .live-map-desktop-top-hud {
+        /* Floating Top Telemetry HUD Bar (Compact & Sleek for Clear Map Visibility) */
+        .live-track-hud-bar.compact {
           position: absolute;
-          top: 10px;
-          left: 10px;
-          right: 10px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 8px;
-          z-index: 1000;
-          pointer-events: none;
-        }
-
-        .live-map-hud-pill {
-          background: rgba(15, 23, 42, 0.92);
+          top: 8px;
+          left: 8px;
+          right: 8px;
+          background: rgba(15, 23, 42, 0.88);
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
           border: 1px solid rgba(255, 255, 255, 0.12);
           border-radius: 8px;
-          padding: 5px 10px;
+          padding: 4px 8px;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+          z-index: 500;
           display: flex;
           align-items: center;
-          gap: 8px;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-          pointer-events: auto;
+          justify-content: space-between;
+          gap: 6px;
+          flex-wrap: wrap;
+          transition: all 0.2s ease;
         }
 
-        .live-map-hud-divider {
-          color: rgba(255, 255, 255, 0.2);
-        }
-
-        .live-map-layer-selector {
-          background: rgba(15, 23, 42, 0.92);
+        .live-track-hud-minimized-chip {
+          position: absolute;
+          top: 8px;
+          left: 8px;
+          background: rgba(15, 23, 42, 0.88);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.12);
+          -webkit-backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.15);
           border-radius: 6px;
-          padding: 2px;
-          display: flex;
-          gap: 2px;
-          pointer-events: auto;
-        }
-
-        .live-map-layer-btn {
-          background: transparent;
-          color: #94a3b8;
-          border: none;
-          border-radius: 4px;
-          padding: 3px 7px;
-          font-size: 10px;
-          font-weight: 300;
+          padding: 3px 8px;
+          z-index: 500;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
+          gap: 6px;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.35);
           transition: all 0.2s ease;
+          border: none;
         }
-
-        .live-map-layer-btn.active {
-          background: #0284c7;
-          color: #ffffff;
-          font-weight: 400;
-        }
-
-        .live-map-action-btn {
-          background: rgba(15, 23, 42, 0.92);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 6px;
-          padding: 4px 8px;
-          font-size: 10px;
-          font-weight: 300;
-          color: #f8fafc;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          pointer-events: auto;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-          transition: all 0.2s ease;
-        }
-
-        .live-map-action-btn:hover {
-          background: rgba(30, 41, 59, 0.96);
+        .live-track-hud-minimized-chip:hover {
+          background: rgba(30, 41, 59, 0.95);
           border-color: #38bdf8;
         }
 
-        /* Mobile Top HUD (Hidden on desktop) */
-        .live-map-mobile-top-hud {
-          display: none;
-        }
-
-        /* Mobile Drawer */
-        .live-map-mobile-drawer {
-          position: absolute;
-          top: 44px;
-          left: 8px;
-          right: 8px;
-          background: rgba(15, 23, 42, 0.96);
-          backdrop-filter: blur(12px);
-          border: 1px solid rgba(56, 189, 248, 0.3);
-          border-radius: 10px;
-          padding: 8px 10px;
-          z-index: 1001;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-          animation: fadeIn 0.2s ease;
-        }
-
-        /* Bottom Progress HUD */
-        .live-map-bottom-progress-hud {
-          position: absolute;
-          bottom: 10px;
-          left: 10px;
-          right: 10px;
-          background: rgba(15, 23, 42, 0.92);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 8px;
-          padding: 6px 12px;
-          z-index: 1000;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        .live-track-hud-left {
           display: flex;
           flex-direction: column;
-          gap: 5px;
+          gap: 2px;
+          min-width: 0;
         }
 
-        .live-map-progress-topline {
+        .live-track-hud-main-line {
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          gap: 5px;
           flex-wrap: wrap;
+        }
+
+        .hud-sep {
+          color: rgba(255, 255, 255, 0.2);
+          font-size: 0.65rem;
+        }
+
+        .live-track-hud-mode-icon {
+          font-size: 0.85rem;
+          color: #38bdf8;
+          display: inline-flex;
+          align-items: center;
+        }
+
+        .live-track-hud-code {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 0.74rem;
+          font-weight: 500;
+          color: #ffffff;
+          letter-spacing: 0.02em;
+        }
+
+        .live-track-hud-copy-btn {
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: #94a3b8;
+          border-radius: 4px;
+          padding: 1px 4px;
+          font-size: 0.65rem;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          transition: all 0.15s ease;
+        }
+        .live-track-hud-copy-btn:hover {
+          background: rgba(255, 255, 255, 0.2);
+          color: #ffffff;
+        }
+
+        .cmd-status-pill {
+          padding: 1px 5px;
+          border-radius: 8px;
+          font-size: 0.6rem;
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
+          font-weight: 500;
+        }
+
+        .cmd-status-pill.in_transit,
+        .cmd-status-pill.in-transit {
+          background: rgba(2, 132, 199, 0.25);
+          color: #38bdf8;
+          border: 1px solid rgba(56, 189, 248, 0.4);
+        }
+
+        .cmd-status-pill.delivered {
+          background: rgba(16, 185, 129, 0.25);
+          color: #34d399;
+          border: 1px solid rgba(52, 211, 153, 0.4);
+        }
+
+        .cmd-status-pill.pending {
+          background: rgba(234, 179, 8, 0.25);
+          color: #fde047;
+          border: 1px solid rgba(253, 224, 71, 0.4);
+        }
+
+        .cmd-status-pill.on_hold,
+        .cmd-status-pill.delayed {
+          background: rgba(239, 68, 68, 0.25);
+          color: #fca5a5;
+          border: 1px solid rgba(252, 165, 165, 0.4);
+        }
+
+        .live-track-stopped-badge {
+          background-color: #ea580c;
+          color: #ffffff;
+          font-size: 0.58rem;
+          font-weight: 500;
+          padding: 1px 4px;
+          border-radius: 10px;
+          letter-spacing: 0.03em;
+          animation: pulse-ring 2s infinite;
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+        }
+
+        .live-track-hud-corridor {
+          color: #cbd5e1;
+          font-size: 0.68rem;
+          font-weight: 400;
+        }
+
+        .live-track-hud-actions {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          flex-shrink: 0;
+        }
+
+        .live-track-tile-group.compact {
+          display: inline-flex;
+          background: rgba(15, 23, 42, 0.9);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 5px;
+          padding: 1px;
+          gap: 1px;
+        }
+
+        .live-track-tile-btn {
+          background: transparent;
+          color: #94a3b8;
+          border: none;
+          border-radius: 3px;
+          padding: 2px 5px;
+          font-size: 8.5px;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+          transition: all 0.15s ease;
+        }
+        .live-track-tile-btn:hover {
+          color: #ffffff;
+        }
+        .live-track-tile-btn.active {
+          background: #0284c7;
+          color: #ffffff;
+        }
+
+        .live-track-btn-group {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+        }
+
+        .live-track-hud-btn {
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 8.5px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: #e2e8f0;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+        }
+        .live-track-hud-btn:hover {
+          background: rgba(255, 255, 255, 0.2);
+          color: #ffffff;
+        }
+        .live-track-hud-btn.minimize {
+          padding: 2px 4px;
+          color: #94a3b8;
+        }
+
+        /* Floating Bottom-Left Micro Legend */
+        .live-track-legend.compact {
+          position: absolute;
+          bottom: 8px;
+          left: 8px;
+          background: rgba(15, 23, 42, 0.72);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border-radius: 5px;
+          padding: 2px 6px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+          z-index: 500;
+          display: flex;
+          flex-direction: row;
+          align-items: center;
           gap: 6px;
+          font-size: 0.6rem;
+          color: #cbd5e1;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          pointer-events: none;
         }
 
-        .live-map-progress-track {
-          height: 4px;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 999px;
-          overflow: hidden;
+        .live-track-legend-item {
+          display: flex;
+          align-items: center;
+          gap: 3px;
         }
 
-        .live-map-progress-fill {
-          height: 100%;
-          border-radius: 999px;
-          transition: width 0.6s ease-in-out;
+        .live-track-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          display: inline-block;
         }
 
-        .live-map-desktop-only {
-          display: inline;
+        .live-track-dot.green {
+          background-color: #10b981;
+          box-shadow: 0 0 4px rgba(16, 185, 129, 0.6);
         }
 
-        .live-map-mobile-only {
-          display: none;
+        .live-track-dot.blue {
+          background-color: #0284c7;
+          box-shadow: 0 0 4px rgba(2, 132, 199, 0.6);
         }
 
-        /* Leaflet Popup Styling - Clean & Thin */
+        .live-track-dot.red {
+          background-color: #ef4444;
+          box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
+        }
+
+        /* Leaflet Popup Styling */
         .leaflet-popup-content-wrapper {
           border-radius: 8px !important;
           box-shadow: 0 6px 20px rgba(0,0,0,0.4) !important;
@@ -961,129 +1057,29 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
           line-height: 1.45 !important;
         }
 
-        /* Responsive Media Queries for Mobile (< 768px) */
         @media (max-width: 768px) {
-          .client-live-map-wrapper {
-            height: 480px !important;
-            min-height: 440px !important;
+          .live-track-hud-bar.compact {
+            top: 4px;
+            left: 4px;
+            right: 4px;
+            padding: 3px 6px;
+            gap: 4px;
           }
 
-          .live-map-desktop-top-hud {
-            display: none !important;
+          .live-track-hud-code {
+            font-size: 0.7rem;
           }
 
-          .live-map-desktop-only {
-            display: none !important;
+          .live-track-hud-corridor {
+            font-size: 0.64rem;
           }
 
-          .live-map-mobile-only {
-            display: flex !important;
-          }
-
-          .live-map-mobile-top-hud {
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            right: 8px;
-            display: flex !important;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 1000;
-            pointer-events: none;
-          }
-
-          .live-map-mobile-status-pill {
-            background: rgba(15, 23, 42, 0.92);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 20px;
-            padding: 4px 8px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 10px;
-            font-weight: 300;
-            color: #f8fafc;
-            cursor: pointer;
-            pointer-events: auto;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-          }
-
-          .live-map-mobile-icon-btn {
-            background: rgba(15, 23, 42, 0.92);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 50%;
-            width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #cbd5e1;
-            cursor: pointer;
-            pointer-events: auto;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-          }
-
-          .live-map-mobile-layer-menu {
-            position: absolute;
-            top: 32px;
-            right: 0;
-            background: rgba(15, 23, 42, 0.96);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-            padding: 3px;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            z-index: 1002;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.6);
-            min-width: 90px;
-            pointer-events: auto;
-          }
-
-          .live-map-mobile-layer-menu button {
-            background: transparent;
-            color: #cbd5e1;
-            border: none;
-            border-radius: 4px;
-            padding: 5px 7px;
-            font-size: 10px;
-            font-weight: 300;
-            display: flex;
-            align-items: center;
-            text-align: left;
-            cursor: pointer;
-          }
-
-          .live-map-mobile-layer-menu button.active {
-            background: #0284c7;
-            color: #ffffff;
-            font-weight: 400;
-          }
-
-          .live-map-bottom-progress-hud {
-            bottom: 6px;
-            left: 6px;
-            right: 6px;
-            padding: 5px 8px;
-            border-radius: 6px;
-          }
-
-          .live-map-mobile-bottom-footnote {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 10px;
-            color: #94a3b8;
-            font-weight: 300;
-            margin-top: 1px;
-          }
-
-          .live-map-pin-label {
-            font-size: 7.5px !important;
-            padding: 1px 3px !important;
+          .live-track-legend.compact {
+            bottom: 4px;
+            left: 4px;
+            padding: 2px 5px;
+            font-size: 0.58rem;
+            gap: 4px;
           }
         }
 

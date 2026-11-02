@@ -71,7 +71,8 @@ export function LiveSupportChat() {
   useEffect(() => {
     if (!hasStarted || !userEmail) return
 
-    const interval = setInterval(() => {
+    const pollMessages = () => {
+      if (document.hidden) return
       apiService
         .getChats()
         .then((chats) => {
@@ -83,9 +84,15 @@ export function LiveSupportChat() {
           }
         })
         .catch(() => {})
-    }, 3500)
+    }
 
-    return () => clearInterval(interval)
+    const interval = setInterval(pollMessages, 10000)
+    document.addEventListener('visibilitychange', pollMessages)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', pollMessages)
+    }
   }, [hasStarted, sessionId, userEmail, messages.length])
 
   const handleStartChat = async (e: FormEvent) => {

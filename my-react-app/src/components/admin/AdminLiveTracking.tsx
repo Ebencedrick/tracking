@@ -14,6 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   List,
+  Globe,
+  Compass,
 } from 'lucide-react'
 import { useShipments } from '../../context/ShipmentContext'
 import type { Shipment, ShippingMode, ShipmentStatus } from '../../types'
@@ -24,6 +26,8 @@ import {
   fetchLiveRouteGeometry,
   generateCurvedFlightArc,
   getShipmentProgressMetrics,
+  getPersistedMapTile,
+  setPersistedMapTile,
 } from '../../utils/mapApis'
 
 function getAdminVehicleIconSvg(mode: string = 'land') {
@@ -67,7 +71,26 @@ export function AdminLiveTracking() {
   )
   const [labelModalWaybill, setLabelModalWaybill] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState('')
-  const [activeTileKey, setActiveTileKey] = useState<MapTileKey>('satellite')
+  const [activeTileKey, setActiveTileKeyState] = useState<MapTileKey>(getPersistedMapTile)
+
+  const handleSelectTile = (key: MapTileKey) => {
+    setActiveTileKeyState(key)
+    setPersistedMapTile(key)
+  }
+
+  // Sync when map tile is changed anywhere (admin or client)
+  useEffect(() => {
+    const handleTileChanged = (e: Event) => {
+      const customEvent = e as CustomEvent<MapTileKey>
+      if (customEvent.detail && customEvent.detail !== activeTileKey) {
+        setActiveTileKeyState(customEvent.detail)
+      }
+    }
+    window.addEventListener('packagepilot_map_tile_changed', handleTileChanged)
+    return () => {
+      window.removeEventListener('packagepilot_map_tile_changed', handleTileChanged)
+    }
+  }, [activeTileKey])
   const [isFleetSidebarOpen, setIsFleetSidebarOpen] = useState(true)
 
   // Invalidate map size when sidebar opens or closes
@@ -340,9 +363,9 @@ export function AdminLiveTracking() {
         mapInstanceRef.current.removeLayer(routeLayerRef.current)
       }
       const polyline = L.polyline(coords, {
-        color: selectedShipment.isMovementStopped ? '#ea580c' : '#63d72a',
-        weight: 4,
-        opacity: 0.92,
+        color: selectedShipment.isMovementStopped ? '#ea580c' : '#0284c7',
+        weight: 5,
+        opacity: 0.95,
         smoothFactor: 1.2,
         dashArray: selectedShipment.mode === 'air' ? '6, 6' : undefined,
         lineCap: 'round',
@@ -557,10 +580,75 @@ export function AdminLiveTracking() {
             </div>
 
             <div className="live-track-hud-actions">
-              {/* Map Tile: Satellite */}
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', color: '#cbd5e1', background: 'rgba(15, 23, 42, 0.92)', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '6px', padding: '4px 8px', fontWeight: 300 }}>
-                <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#38bdf8' }} />
-                <span>Satellite</span>
+              {/* Map Layer Switcher: Route / Satellite / Dark */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: 'rgba(15, 23, 42, 0.92)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '6px',
+                  padding: '2px',
+                  gap: '2px',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => handleSelectTile('voyager')}
+                  style={{
+                    background: activeTileKey === 'voyager' ? '#0284c7' : 'transparent',
+                    color: activeTileKey === 'voyager' ? '#ffffff' : '#94a3b8',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '3px 7px',
+                    fontSize: '10px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                  }}
+                  title="Route Navigation Map"
+                >
+                  <Route size={10} strokeWidth={1.5} /> Route
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectTile('satellite')}
+                  style={{
+                    background: activeTileKey === 'satellite' ? '#0284c7' : 'transparent',
+                    color: activeTileKey === 'satellite' ? '#ffffff' : '#94a3b8',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '3px 7px',
+                    fontSize: '10px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                  }}
+                  title="Live Satellite Map"
+                >
+                  <Globe size={10} strokeWidth={1.5} /> Satellite
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectTile('dark')}
+                  style={{
+                    background: activeTileKey === 'dark' ? '#0284c7' : 'transparent',
+                    color: activeTileKey === 'dark' ? '#ffffff' : '#94a3b8',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '3px 7px',
+                    fontSize: '10px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                  }}
+                  title="Tactical Dark Radar Map"
+                >
+                  <Compass size={10} strokeWidth={1.5} /> Dark
+                </button>
               </div>
 
               {/* Map Telemetry Group */}

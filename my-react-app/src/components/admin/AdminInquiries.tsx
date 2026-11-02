@@ -31,8 +31,17 @@ export function AdminInquiries() {
 
   useEffect(() => {
     fetchInquiries()
-    const interval = setInterval(fetchInquiries, 5000)
-    return () => clearInterval(interval)
+    const handleVisibility = () => {
+      if (!document.hidden) fetchInquiries()
+    }
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchInquiries()
+    }, 20000)
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [])
 
   const selectedInquiry = inquiries.find((i) => i.id === selectedInquiryId) || inquiries[0]

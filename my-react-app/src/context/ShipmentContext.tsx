@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useTransition } from 'react'
+import { createContext, useContext, useEffect, useState, useTransition } from 'react'
 import type {
   AuditLog,
   Carrier,
@@ -912,11 +912,26 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
     }
 
     syncWithCloudDatabase()
-    const pollInterval = setInterval(syncWithCloudDatabase, 6000)
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && !isCancelled) {
+        syncWithCloudDatabase()
+      }
+    }
+
+    // Gentle 40-second cloud sync only while tab is active in foreground
+    const pollInterval = setInterval(() => {
+      if (!document.hidden && !isCancelled) {
+        syncWithCloudDatabase()
+      }
+    }, 40000)
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
       isCancelled = true
       clearInterval(pollInterval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])
 

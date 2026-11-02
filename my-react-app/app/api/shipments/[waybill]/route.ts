@@ -34,7 +34,11 @@ export async function GET(request: Request, context: Params) {
       return NextResponse.json({ error: 'Shipment not found' }, { status: 404 })
     }
 
-    return NextResponse.json(shipment)
+    return NextResponse.json(shipment, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=59',
+      },
+    })
   } catch (err: any) {
     console.error('[API /api/shipments/[waybill] GET Error]:', err)
     return NextResponse.json(

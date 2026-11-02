@@ -26,11 +26,11 @@ export interface RouteGeometryResult {
 
 export const MAP_TILE_PROVIDERS = {
   voyager: {
-    name: 'Street Vector (English)',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-    subdomains: ['server', 'services'],
+    name: 'Route Navigation (Streets)',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    subdomains: ['a', 'b', 'c'],
     maxZoom: 19,
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   },
   satellite: {
     name: 'Live HD Satellite',
@@ -49,6 +49,27 @@ export const MAP_TILE_PROVIDERS = {
 } as const
 
 export type MapTileKey = keyof typeof MAP_TILE_PROVIDERS
+
+export const MAP_TILE_STORAGE_KEY = 'packagepilot_active_map_tile'
+
+export function getPersistedMapTile(): MapTileKey {
+  if (typeof window === 'undefined') return 'voyager'
+  try {
+    const saved = localStorage.getItem(MAP_TILE_STORAGE_KEY)
+    if (saved && (saved === 'voyager' || saved === 'satellite' || saved === 'dark')) {
+      return saved as MapTileKey
+    }
+  } catch {}
+  return 'voyager'
+}
+
+export function setPersistedMapTile(tileKey: MapTileKey): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(MAP_TILE_STORAGE_KEY, tileKey)
+    window.dispatchEvent(new CustomEvent('packagepilot_map_tile_changed', { detail: tileKey }))
+  } catch {}
+}
 
 const SERP_API_KEY =
   process.env.NEXT_PUBLIC_SERP_API_KEY ||

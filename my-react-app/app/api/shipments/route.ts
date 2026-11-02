@@ -36,7 +36,11 @@ export async function GET(request: Request) {
     }
 
     const shipments = await (Shipment as any).find(filter).sort({ createdAt: -1 }).lean()
-    return NextResponse.json(shipments)
+    return NextResponse.json(shipments, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=25',
+      },
+    })
   } catch (err: any) {
     console.error('[API /api/shipments GET Error]:', err)
     return NextResponse.json(

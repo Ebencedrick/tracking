@@ -8,7 +8,11 @@ export async function GET() {
   try {
     await connectToDatabase()
     const inquiries = await Inquiry.find().sort({ createdAt: -1 }).lean()
-    return NextResponse.json(inquiries)
+    return NextResponse.json(inquiries, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=25',
+      },
+    })
   } catch (err: any) {
     return NextResponse.json({ error: 'Failed to fetch inquiries', details: err.message }, { status: 500 })
   }

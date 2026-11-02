@@ -1005,12 +1005,18 @@ function ShipPage() {
 function TrackPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { getShipment, updateShipment } = useShipments()
-  const requestedWaybill = (searchParams.get('waybill') || searchParams.get('q'))?.trim() ?? ''
+  const rawWaybill = (searchParams.get('waybill') || searchParams.get('q'))?.trim()
+  const requestedWaybill = rawWaybill !== undefined && rawWaybill !== '' ? rawWaybill : 'PLOT-70955-JFD'
   const [waybillInput, setWaybillInput] = useState(requestedWaybill)
   const [shareStatus, setShareStatus] = useState('')
   const [printModalOpen, setPrintModalOpen] = useState(false)
   const [dbFetchedShipment, setDbFetchedShipment] = useState<Shipment | null>(null)
   const [isFetchingFromDb, setIsFetchingFromDb] = useState(false)
+
+  useEffect(() => {
+    const q = (searchParams.get('waybill') || searchParams.get('q'))?.trim()
+    if (q) setWaybillInput(q)
+  }, [searchParams])
   
   const localShipment = requestedWaybill ? getShipment(requestedWaybill) : undefined
   const matchedShipment = dbFetchedShipment || localShipment
@@ -1081,12 +1087,25 @@ function TrackPage() {
     // Call immediately on mount/waybill change
     fetchLiveDatabaseRecord()
 
-    // 5-Second Live Auto-Refresh Polling for instant tracking updates
-    const pollTimer = setInterval(fetchLiveDatabaseRecord, 5000)
+    const handleVisibilityChange = () => {
+      if (!document.hidden && !isCancelled) {
+        fetchLiveDatabaseRecord()
+      }
+    }
+
+    // 30-Second gentle sync only while tab is active in foreground
+    const pollTimer = setInterval(() => {
+      if (!document.hidden && !isCancelled) {
+        fetchLiveDatabaseRecord()
+      }
+    }, 30000)
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
       isCancelled = true
       clearInterval(pollTimer)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [requestedWaybill])
 
@@ -1149,6 +1168,38 @@ function TrackPage() {
         </label>
         <button type="submit" className="button button-primary">Track shipment</button>
       </form>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', margin: '-0.5rem 0 1.5rem', padding: '0 0.5rem' }}>
+        <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>Active Shipments:</span>
+        {[
+          { code: 'PLOT-70955-JFD', label: 'PLOT-70955-JFD (Air Priority)' },
+          { code: 'ALT-70568-884', label: 'ALT-70568-884 (Sea Freight)' },
+          { code: 'PLOT-99420-CT4', label: 'PLOT-99420-CT4 (Land Freight)' },
+          { code: 'PLOT-11280-FT2', label: 'PLOT-11280-FT2 (Express Linehaul)' },
+        ].map((item) => (
+          <button
+            key={item.code}
+            type="button"
+            onClick={() => {
+              setWaybillInput(item.code)
+              setSearchParams({ waybill: item.code })
+            }}
+            style={{
+              background: requestedWaybill === item.code ? 'rgba(2, 132, 199, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+              border: requestedWaybill === item.code ? '1px solid #0284c7' : '1px solid rgba(255, 255, 255, 0.12)',
+              color: requestedWaybill === item.code ? '#38bdf8' : '#94a3b8',
+              borderRadius: '6px',
+              padding: '4px 10px',
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              fontWeight: requestedWaybill === item.code ? 600 : 400,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
 
       {!requestedWaybill && (
         <div className="tracking-empty card" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
@@ -1392,7 +1443,7 @@ function TrackPage() {
                 Mode: <strong>{matchedShipment.mode.toUpperCase()}</strong> · Carrier: <strong>{matchedShipment.carrier}</strong>
               </span>
             </div>
-            <ClientLiveMap shipment={matchedShipment} height="clamp(260px, 35vh, 420px)" />
+            <ClientLiveMap shipment={matchedShipment} height="520px" />
           </div>
 
           <div className="tracking-result-grid">
@@ -2588,7 +2639,7 @@ function OverviewPage() {
           </div>
 
           <div style={{ marginTop: '1rem', borderRadius: '10px', overflow: 'hidden' }}>
-            {shipments[0] && <ClientLiveMap shipment={shipments[0]} height="260px" />}
+            {shipments[0] && <ClientLiveMap shipment={shipments[0]} height="380px" />}
           </div>
         </div>
 
@@ -2749,7 +2800,7 @@ function ShipmentDetailPage() {
           </div>
 
           <div className="detail-map-panel" style={{ margin: '1.25rem 0', borderRadius: '12px', overflow: 'hidden' }}>
-            <ClientLiveMap shipment={shipment} height="360px" />
+            <ClientLiveMap shipment={shipment} height="440px" />
           </div>
 
           <ul className="timeline">
