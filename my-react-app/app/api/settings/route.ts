@@ -11,7 +11,11 @@ export async function GET() {
     if (!settings) {
       settings = await (Settings as any).create({ key: 'global_config' })
     }
-    return NextResponse.json(settings)
+    return NextResponse.json(settings, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+      },
+    })
   } catch (err: any) {
     return NextResponse.json({ error: 'Failed to load settings', details: err.message }, { status: 500 })
   }

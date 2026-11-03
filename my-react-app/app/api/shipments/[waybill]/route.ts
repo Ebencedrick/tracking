@@ -19,16 +19,30 @@ export async function GET(request: Request, context: Params) {
     const escapedClean = cleanWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const escapedBare = bareWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-    const shipment = await (Shipment as any).findOne({
+    // Step 1: Indexed exact matches (sub-millisecond B-tree lookup)
+    let shipment = await (Shipment as any).findOne({
       $or: [
-        { waybill: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
-        { waybill: { $regex: new RegExp(`^PLOT-${escapedBare}$`, 'i') } },
-        { waybill: { $regex: new RegExp(`^NTS-${escapedBare}$`, 'i') } },
-        { waybill: { $regex: new RegExp(`${escapedBare}`, 'i') } },
-        { clientReference: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+        { waybill: cleanWaybill },
+        { waybill: cleanWaybill.toUpperCase() },
+        { waybill: `PLOT-${bareWaybill.toUpperCase()}` },
+        { waybill: `NTS-${bareWaybill.toUpperCase()}` },
+        { clientReference: cleanWaybill },
         { id: cleanWaybill },
       ],
     }).lean()
+
+    // Step 2: Fallback to case-insensitive regex only if exact index match yields nothing
+    if (!shipment) {
+      shipment = await (Shipment as any).findOne({
+        $or: [
+          { waybill: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`^PLOT-${escapedBare}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`^NTS-${escapedBare}$`, 'i') } },
+          { waybill: { $regex: new RegExp(`${escapedBare}`, 'i') } },
+          { clientReference: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
+        ],
+      }).lean()
+    }
 
     if (!shipment) {
       return NextResponse.json({ error: 'Shipment not found' }, { status: 404 })

@@ -8,7 +8,11 @@ export async function GET() {
   try {
     await connectToDatabase()
     const carriers = await (Carrier as any).find().sort({ name: 1 }).lean()
-    return NextResponse.json(carriers)
+    return NextResponse.json(carriers, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+      },
+    })
   } catch (err: any) {
     return NextResponse.json({ error: 'Failed to fetch carriers', details: err.message }, { status: 500 })
   }

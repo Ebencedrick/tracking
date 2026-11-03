@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, lazy, Suspense, type FormEvent } from 'react'
 import {
   BrowserRouter,
   Link,
@@ -40,24 +40,26 @@ import {
 } from 'lucide-react'
 import { ShipmentProvider, useShipments } from './context/ShipmentContext'
 import type { ShippingMode, Shipment } from './types'
-import { ClientLiveMap } from './components/ClientLiveMap'
 import { calculateRealtimeJourneyTelemetry } from './utils/mapApis'
 import { LiveSupportChat } from './components/LiveSupportChat'
 import { apiService } from './services/api'
 import { WaybillLabelModal } from './components/admin/WaybillLabelModal'
-import { AdminLayout } from './components/admin/AdminLayout'
-import { AdminDashboard } from './components/admin/AdminDashboard'
-import { AdminShipments } from './components/admin/AdminShipments'
-import { AdminDispatch } from './components/admin/AdminDispatch'
-import { AdminCarriers } from './components/admin/AdminCarriers'
-import { AdminRates } from './components/admin/AdminRates'
-import { AdminUsers } from './components/admin/AdminUsers'
-import { AdminTelemetry } from './components/admin/AdminTelemetry'
-import { AdminLogs } from './components/admin/AdminLogs'
-import { AdminInquiries } from './components/admin/AdminInquiries'
-import { AdminChats } from './components/admin/AdminChats'
-import { AdminLiveTracking } from './components/admin/AdminLiveTracking'
-import { AdminCreateShipment } from './components/admin/AdminCreateShipment'
+
+// Lazy-loaded heavy components for code splitting & minimal initial bundle
+const ClientLiveMap = lazy(() => import('./components/ClientLiveMap').then(m => ({ default: m.ClientLiveMap })))
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })))
+const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })))
+const AdminShipments = lazy(() => import('./components/admin/AdminShipments').then(m => ({ default: m.AdminShipments })))
+const AdminDispatch = lazy(() => import('./components/admin/AdminDispatch').then(m => ({ default: m.AdminDispatch })))
+const AdminCarriers = lazy(() => import('./components/admin/AdminCarriers').then(m => ({ default: m.AdminCarriers })))
+const AdminRates = lazy(() => import('./components/admin/AdminRates').then(m => ({ default: m.AdminRates })))
+const AdminUsers = lazy(() => import('./components/admin/AdminUsers').then(m => ({ default: m.AdminUsers })))
+const AdminTelemetry = lazy(() => import('./components/admin/AdminTelemetry').then(m => ({ default: m.AdminTelemetry })))
+const AdminLogs = lazy(() => import('./components/admin/AdminLogs').then(m => ({ default: m.AdminLogs })))
+const AdminInquiries = lazy(() => import('./components/admin/AdminInquiries').then(m => ({ default: m.AdminInquiries })))
+const AdminChats = lazy(() => import('./components/admin/AdminChats').then(m => ({ default: m.AdminChats })))
+const AdminLiveTracking = lazy(() => import('./components/admin/AdminLiveTracking').then(m => ({ default: m.AdminLiveTracking })))
+const AdminCreateShipment = lazy(() => import('./components/admin/AdminCreateShipment').then(m => ({ default: m.AdminCreateShipment })))
 
 const siteLogo = '/brand-logo.jfif'
 
@@ -164,7 +166,14 @@ function AppRoutes() {
       </Route>
 
       {/* Admin Operations Console */}
-      <Route path="/admin" element={<AdminLayout />}>
+      <Route
+        path="/admin"
+        element={
+          <Suspense fallback={<div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="loading-spinner" /></div>}>
+            <AdminLayout />
+          </Suspense>
+        }
+      >
         <Route index element={<AdminDashboard />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="tracking" element={<AdminLiveTracking />} />
@@ -1443,7 +1452,9 @@ function TrackPage() {
                 Mode: <strong>{matchedShipment.mode.toUpperCase()}</strong> · Carrier: <strong>{matchedShipment.carrier}</strong>
               </span>
             </div>
-            <ClientLiveMap shipment={matchedShipment} height="520px" />
+            <Suspense fallback={<div style={{ height: '520px', borderRadius: '14px', background: '#0a182d', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Loading interactive map telemetry...</div>}>
+              <ClientLiveMap shipment={matchedShipment} height="520px" />
+            </Suspense>
           </div>
 
           <div className="tracking-result-grid">
@@ -2639,7 +2650,11 @@ function OverviewPage() {
           </div>
 
           <div style={{ marginTop: '1rem', borderRadius: '10px', overflow: 'hidden' }}>
-            {shipments[0] && <ClientLiveMap shipment={shipments[0]} height="380px" />}
+            {shipments[0] && (
+              <Suspense fallback={<div style={{ height: '380px', background: '#0a182d', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Loading map...</div>}>
+                <ClientLiveMap shipment={shipments[0]} height="380px" />
+              </Suspense>
+            )}
           </div>
         </div>
 
@@ -2800,7 +2815,9 @@ function ShipmentDetailPage() {
           </div>
 
           <div className="detail-map-panel" style={{ margin: '1.25rem 0', borderRadius: '12px', overflow: 'hidden' }}>
-            <ClientLiveMap shipment={shipment} height="440px" />
+            <Suspense fallback={<div style={{ height: '440px', background: '#0a182d', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Loading map...</div>}>
+              <ClientLiveMap shipment={shipment} height="440px" />
+            </Suspense>
           </div>
 
           <ul className="timeline">

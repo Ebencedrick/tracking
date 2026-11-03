@@ -94,5 +94,9 @@ const ShipmentSchema = new mongoose.Schema(
   { timestamps: true, strict: false }
 )
 
+ShipmentSchema.index({ createdAt: -1 })
+ShipmentSchema.index({ clientReference: 1 })
+ShipmentSchema.index({ status: 1, createdAt: -1 })
+
 export const Shipment = mongoose.models.Shipment || mongoose.model('Shipment', ShipmentSchema)
 

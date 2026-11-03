@@ -42,11 +42,11 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
 
     mongoose.set('strictQuery', false)
     cached!.promise = mongoose.connect(MONGODB_URI, opts).then(async (m) => {
-      // Run seed logic if first time
-      try {
-        await serverConnectDB()
-      } catch (err) {
-        console.warn('[Database Initial Seed]:', err)
+      // In development or on fresh setup, seed in background without blocking the request
+      if (process.env.NODE_ENV !== 'production') {
+        serverConnectDB().catch((err) => {
+          console.warn('[Database Initial Seed]:', err?.message || err)
+        })
       }
       return m
     })
