@@ -44,7 +44,7 @@ export async function GET(request: Request) {
       .lean()
     return NextResponse.json(shipments, {
       headers: {
-        'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=25',
+        'Cache-Control': 'private, no-store',
       },
     })
   } catch (err: any) {

@@ -12,7 +12,7 @@ export async function GET(request: Request, context: Params) {
   try {
     await connectToDatabase()
     const { waybill } = await context.params
-    const summaryOnly = new URL(request.url).searchParams.get('summary') === '1'
+    const trackingOnly = new URL(request.url).searchParams.get('tracking') === '1'
     const rawWaybill = decodeURIComponent(waybill || '').trim()
     const cleanWaybill = rawWaybill.replace(/\s+/g, '')
     const bareWaybill = cleanWaybill.replace(/^[A-Za-z]{3,4}-/, '')
@@ -21,6 +21,41 @@ export async function GET(request: Request, context: Params) {
     const escapedBare = bareWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
     // Step 1: Indexed exact matches (sub-millisecond B-tree lookup)
+    const trackingFields = [
+      'id',
+      'waybill',
+      'carrier',
+      'carrierCode',
+      'mode',
+      'origin',
+      'destination',
+      'currentLocation',
+      'status',
+      'weightKg',
+      'packageCount',
+      'eta',
+      'createdAt',
+      'checkpoints.id',
+      'checkpoints.title',
+      'checkpoints.location',
+      'checkpoints.timestamp',
+      'checkpoints.time',
+      'checkpoints.completed',
+      'checkpoints.current',
+      'checkpoints.lat',
+      'checkpoints.lng',
+      'checkpoints.eventType',
+      'checkpoints.status',
+      'transportScope',
+      'cargoType',
+      'bookingDate',
+      'estimatedDistanceKm',
+      'progressPct',
+      'isMovementStopped',
+      'vehicleId',
+      'serviceTier',
+    ]
+
     let shipmentQuery = (Shipment as any).findOne({
       $or: [
         { waybill: cleanWaybill },
@@ -31,7 +66,7 @@ export async function GET(request: Request, context: Params) {
         { id: cleanWaybill },
       ],
     })
-    if (summaryOnly) shipmentQuery = shipmentQuery.select('-packageImageUrl')
+    if (trackingOnly) shipmentQuery = shipmentQuery.select(trackingFields.join(' '))
     let shipment = await shipmentQuery.lean()
 
     // Step 2: Fallback to case-insensitive regex only if exact index match yields nothing
@@ -45,7 +80,7 @@ export async function GET(request: Request, context: Params) {
           { clientReference: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
         ],
       })
-      if (summaryOnly) fallbackQuery = fallbackQuery.select('-packageImageUrl')
+      if (trackingOnly) fallbackQuery = fallbackQuery.select(trackingFields.join(' '))
       shipment = await fallbackQuery.lean()
     }
 
@@ -53,9 +88,48 @@ export async function GET(request: Request, context: Params) {
       return NextResponse.json({ error: 'Shipment not found' }, { status: 404 })
     }
 
+    if (trackingOnly) {
+      const { _id, id, ...trackingData } = shipment
+      const locationFields = ({ name, code, lat, lng }: Record<string, unknown> = {}) => ({
+        name,
+        code,
+        lat,
+        lng,
+      })
+      return NextResponse.json(
+        {
+          ...trackingData,
+          id: id || _id?.toString() || trackingData.waybill,
+          origin: locationFields(trackingData.origin),
+          destination: locationFields(trackingData.destination),
+          currentLocation: locationFields(trackingData.currentLocation),
+          checkpoints: (trackingData.checkpoints || []).map(
+            ({ id: checkpointId, title, location, timestamp, time, completed, current, lat, lng, eventType, status }: Record<string, unknown>) => ({
+              id: checkpointId,
+              title,
+              location,
+              timestamp,
+              time,
+              completed,
+              current,
+              lat,
+              lng,
+              eventType,
+              status,
+            })
+          ),
+        },
+        {
+          headers: {
+            'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+          },
+        }
+      )
+    }
+
     return NextResponse.json(shipment, {
       headers: {
-        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=59',
+        'Cache-Control': 'private, no-store',
       },
     })
   } catch (err: any) {

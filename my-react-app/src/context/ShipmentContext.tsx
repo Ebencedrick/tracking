@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useTransition } from 'react'
+import { useLocation } from 'react-router-dom'
 import type {
   AuditLog,
   Carrier,
@@ -796,6 +797,8 @@ const ShipmentContext = createContext<ShipmentContextType | undefined>(undefined
 
 export function ShipmentProvider({ children }: { children: React.ReactNode }) {
   const [, startTransition] = useTransition()
+  const { pathname } = useLocation()
+  const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/dashboard')
 
   const [shipments, setShipments] = useState<Shipment[]>(() => {
     try {
@@ -881,6 +884,8 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
 
   // Real-time synchronization with MongoDB Atlas backend across all devices
   useEffect(() => {
+    if (!isAdminRoute) return
+
     let isCancelled = false
 
     const syncWithCloudDatabase = async () => {
@@ -933,7 +938,7 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
       clearInterval(pollInterval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [])
+  }, [isAdminRoute])
 
   // Persist state to LocalStorage
   useEffect(() => {

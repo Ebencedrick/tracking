@@ -99,6 +99,37 @@ export interface Shipment {
   returnRoutePolyline?: [number, number][]
 }
 
+export type TrackingShipment = Pick<
+  Shipment,
+  | 'id'
+  | 'waybill'
+  | 'carrier'
+  | 'carrierCode'
+  | 'mode'
+  | 'origin'
+  | 'destination'
+  | 'status'
+  | 'weightKg'
+  | 'packageCount'
+  | 'eta'
+  | 'createdAt'
+  | 'checkpoints'
+> &
+  Partial<
+    Pick<
+      Shipment,
+      | 'currentLocation'
+      | 'transportScope'
+      | 'bookingDate'
+      | 'estimatedDistanceKm'
+      | 'progressPct'
+      | 'isMovementStopped'
+      | 'vehicleId'
+      | 'serviceTier'
+      | 'cargoType'
+    >
+  >
+
 
 export interface Carrier {
   id: string
@@ -206,4 +237,3 @@ export interface TariffSettings {
   brevoApiKey?: string
   emailFrom?: string
 }
-

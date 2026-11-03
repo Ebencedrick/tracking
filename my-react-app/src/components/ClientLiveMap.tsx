@@ -18,7 +18,7 @@ import {
   ChevronUp,
   ChevronDown,
 } from 'lucide-react'
-import type { Shipment } from '../types'
+import type { Shipment, TrackingShipment } from '../types'
 import {
   fetchLiveRouteGeometry,
   generateCurvedFlightArc,
@@ -58,7 +58,7 @@ function getVehicleIconSvg(mode: string = 'land') {
 }
 
 interface ClientLiveMapProps {
-  shipment: Shipment
+  shipment: Shipment | TrackingShipment
   height?: string
 }
 
@@ -465,7 +465,7 @@ export function ClientLiveMap({ shipment, height = '460px' }: ClientLiveMapProps
     // Hold State: Stationary
     if (shipment.isMovementStopped) {
       setLiveSpeedDisplay('0 km/h (Hold Active)')
-      setBearingCardinal(shipment.movementStopReason ? `Hold: ${shipment.movementStopReason}` : 'Stationary Hold')
+      setBearingCardinal('Stationary Hold')
       return
     }
 

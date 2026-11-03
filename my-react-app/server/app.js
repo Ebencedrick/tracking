@@ -84,6 +84,7 @@ router.get('/shipments/:waybill', async (req, res) => {
 
     const escapedClean = cleanWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const escapedBare = bareWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const trackingOnly = req.query.tracking === '1'
 
     let shipmentQuery = Shipment.findOne({
       $or: [
@@ -95,11 +96,88 @@ router.get('/shipments/:waybill', async (req, res) => {
         { id: cleanWaybill },
       ],
     })
-    if (req.query.summary === '1') shipmentQuery = shipmentQuery.select('-packageImageUrl')
+    if (trackingOnly) {
+      shipmentQuery = shipmentQuery.select([
+        'id',
+        'waybill',
+        'carrier',
+        'carrierCode',
+        'mode',
+        'origin',
+        'destination',
+        'currentLocation',
+        'status',
+        'weightKg',
+        'packageCount',
+        'eta',
+        'createdAt',
+        'checkpoints.id',
+        'checkpoints.title',
+        'checkpoints.location',
+        'checkpoints.timestamp',
+        'checkpoints.time',
+        'checkpoints.completed',
+        'checkpoints.current',
+        'checkpoints.lat',
+        'checkpoints.lng',
+        'checkpoints.eventType',
+        'checkpoints.status',
+        'transportScope',
+        'cargoType',
+        'bookingDate',
+        'estimatedDistanceKm',
+        'progressPct',
+        'isMovementStopped',
+        'vehicleId',
+        'serviceTier',
+      ].join(' '))
+    }
     const shipment = await shipmentQuery
 
     if (!shipment) {
       return res.status(404).json({ error: 'Shipment not found' })
+    }
+
+    if (trackingOnly) {
+      const data = shipment.toObject()
+      const toLocation = ({ name, code, lat, lng } = {}) => ({ name, code, lat, lng })
+      res.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120')
+      return res.json({
+        id: data.id || data._id.toString(),
+        waybill: data.waybill,
+        carrier: data.carrier,
+        carrierCode: data.carrierCode,
+        mode: data.mode,
+        origin: toLocation(data.origin),
+        destination: toLocation(data.destination),
+        currentLocation: toLocation(data.currentLocation),
+        status: data.status,
+        weightKg: data.weightKg,
+        packageCount: data.packageCount,
+        eta: data.eta,
+        createdAt: data.createdAt,
+        checkpoints: (data.checkpoints || []).map((checkpoint) => ({
+          id: checkpoint.id,
+          title: checkpoint.title,
+          location: checkpoint.location,
+          timestamp: checkpoint.timestamp,
+          time: checkpoint.time,
+          completed: checkpoint.completed,
+          current: checkpoint.current,
+          lat: checkpoint.lat,
+          lng: checkpoint.lng,
+          eventType: checkpoint.eventType,
+          status: checkpoint.status,
+        })),
+        transportScope: data.transportScope,
+        cargoType: data.cargoType,
+        bookingDate: data.bookingDate,
+        estimatedDistanceKm: data.estimatedDistanceKm,
+        progressPct: data.progressPct,
+        isMovementStopped: data.isMovementStopped,
+        vehicleId: data.vehicleId,
+        serviceTier: data.serviceTier,
+      })
     }
 
     res.json(shipment)

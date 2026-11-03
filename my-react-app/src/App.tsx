@@ -40,7 +40,7 @@ import {
   Lock,
 } from 'lucide-react'
 import { ShipmentProvider, useShipments } from './context/ShipmentContext'
-import type { ShippingMode, Shipment } from './types'
+import type { ShippingMode, Shipment, TrackingShipment } from './types'
 import { calculateRealtimeJourneyTelemetry } from './utils/mapApis'
 import { LiveSupportChat } from './components/LiveSupportChat'
 import { apiService } from './services/api'
@@ -132,11 +132,11 @@ const serviceCards = [
 
 function App() {
   return (
-    <ShipmentProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <ShipmentProvider>
         <AppRoutes />
-      </BrowserRouter>
-    </ShipmentProvider>
+      </ShipmentProvider>
+    </BrowserRouter>
   )
 }
 
@@ -1021,7 +1021,7 @@ function TrackPage() {
   const [waybillInput, setWaybillInput] = useState(requestedWaybill)
   const [shareStatus, setShareStatus] = useState('')
   const [printModalOpen, setPrintModalOpen] = useState(false)
-  const [dbFetchedShipment, setDbFetchedShipment] = useState<Shipment | null>(null)
+  const [dbFetchedShipment, setDbFetchedShipment] = useState<TrackingShipment | null>(null)
   const [isFetchingFromDb, setIsFetchingFromDb] = useState(false)
   const [isPhotoZoomOpen, setIsPhotoZoomOpen] = useState(false)
 
@@ -1057,18 +1057,13 @@ function TrackPage() {
     }
 
     let isCancelled = false
-    let includeImage = true
     setIsFetchingFromDb(true)
 
     const fetchLiveDatabaseRecord = async () => {
       try {
-        const fresh = await apiService.getShipment(requestedWaybill, { summary: !includeImage })
-        includeImage = false
+        const fresh = await apiService.getTrackingShipment(requestedWaybill)
         if (!isCancelled && fresh && fresh.waybill) {
-          setDbFetchedShipment((previous) => ({
-            ...fresh,
-            packageImageUrl: fresh.packageImageUrl ?? previous?.packageImageUrl,
-          }))
+          setDbFetchedShipment(fresh)
         }
       } catch {
         // Keep the locally cached shipment visible when the live lookup fails.
@@ -1645,25 +1640,13 @@ function TrackPage() {
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowUpRight size={13} color='#fca311' strokeWidth={1.5} /> SENDER / ORIGIN PARTY</span>
                     </div>
                     <strong style={{ display: 'block', fontSize: '1.15rem', color: '#ffffff', fontWeight: 400 }}>
-                      {matchedShipment.senderName || 'Apex International Logistics'}
+                      Origin Dispatch Center
                     </strong>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px', fontSize: '0.88rem' }}>
                       <div>
                         <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 300, display: 'block' }}>Origin Location:</span>
                         <strong style={{ color: '#ffffff', fontWeight: 400 }}>{matchedShipment.origin.name}</strong> ({matchedShipment.origin.code})
                       </div>
-                      {matchedShipment.senderEmail && (
-                        <div>
-                          <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 300, display: 'block' }}>Sender Email:</span>
-                          <strong style={{ color: '#e5e5e5', fontWeight: 400 }}>{matchedShipment.senderEmail}</strong>
-                        </div>
-                      )}
-                      {matchedShipment.senderPhone && (
-                        <div>
-                          <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 300, display: 'block' }}>Sender Phone:</span>
-                          <strong style={{ color: '#e5e5e5', fontWeight: 400 }}>{matchedShipment.senderPhone}</strong>
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -1673,25 +1656,13 @@ function TrackPage() {
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><ArrowDownLeft size={13} color='#fca311' strokeWidth={1.5} /> CONSIGNEE / RECEIVER PARTY</span>
                     </div>
                     <strong style={{ display: 'block', fontSize: '1.15rem', color: '#ffffff', fontWeight: 400 }}>
-                      {matchedShipment.receiverName || matchedShipment.clientName || 'Source Cards TCG'}
+                      Destination Receiving Center
                     </strong>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px', fontSize: '0.88rem' }}>
                       <div>
                         <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 300, display: 'block' }}>Destination Hub:</span>
                         <strong style={{ color: '#ffffff', fontWeight: 400 }}>{matchedShipment.destination.name}</strong> ({matchedShipment.destination.code})
                       </div>
-                      {(matchedShipment.receiverEmail || matchedShipment.clientEmail) && (
-                        <div>
-                          <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 300, display: 'block' }}>Receiver Email:</span>
-                          <strong style={{ color: '#e5e5e5', fontWeight: 400 }}>{matchedShipment.receiverEmail || matchedShipment.clientEmail}</strong>
-                        </div>
-                      )}
-                      {matchedShipment.receiverPhone && (
-                        <div>
-                          <span style={{ color: '#9ca3af', fontSize: '0.78rem', fontWeight: 300, display: 'block' }}>Receiver Phone:</span>
-                          <strong style={{ color: '#e5e5e5', fontWeight: 400 }}>{matchedShipment.receiverPhone}</strong>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1713,7 +1684,7 @@ function TrackPage() {
                     Operational Exception Notice
                   </strong>
                   <span style={{ fontSize: '0.82rem' }}>
-                    {matchedShipment.statusNote || 'Cargo undergoing secondary transit verification.'}
+                    Cargo undergoing secondary transit verification.
                   </span>
                 </div>
               )}
@@ -1811,8 +1782,8 @@ function TrackPage() {
                   }}
                 >
                   <img
-                    src={matchedShipment.packageImageUrl || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80'}
-                    alt="Verified Consignment Cargo"
+                    src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80"
+                    alt="Cargo reference"
                     style={{
                       width: '100%',
                       height: '100%',
@@ -1937,7 +1908,7 @@ function TrackPage() {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontSize: '0.88rem', fontWeight: 600 }}>
                         <Camera size={14} color="#38bdf8" />
-                        <span>Consignment Inspection Photo ({matchedShipment.waybill})</span>
+                        <span>Cargo reference image ({matchedShipment.waybill})</span>
                       </div>
                       <button
                         type="button"
@@ -1960,8 +1931,8 @@ function TrackPage() {
                       </button>
                     </div>
                     <img
-                      src={matchedShipment.packageImageUrl || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=90'}
-                      alt="Verified Cargo Manifest High Definition"
+                      src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=90"
+                      alt="Cargo reference"
                       style={{
                         width: '100%',
                         maxHeight: 'calc(85vh - 60px)',
@@ -2000,7 +1971,7 @@ function TrackPage() {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
                   <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Assigned Driver / Captain</dt>
-                  <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 500 }}>{matchedShipment.assignedDriver || 'Amina Bello'}</dd>
+                  <dd style={{ margin: 0, color: '#000000', fontSize: '0.88rem', fontWeight: 500 }}>Dispatch team</dd>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' }}>
                   <dt style={{ color: '#475569', fontSize: '0.82rem', fontWeight: 400 }}>Vehicle / Fleet Unit</dt>

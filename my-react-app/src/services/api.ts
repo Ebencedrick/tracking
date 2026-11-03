@@ -1,4 +1,4 @@
-import type { Shipment, Carrier, InquiryMessage, ChatSession, TariffSettings } from '../types'
+import type { Shipment, TrackingShipment, Carrier, InquiryMessage, ChatSession, TariffSettings } from '../types'
 
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL
 const API_BASE = RAW_API_URL ? `${RAW_API_URL.replace(/\/$/, '')}/api` : '/api'
@@ -11,9 +11,14 @@ export const apiService = {
     return res.json()
   },
 
-  async getShipment(waybill: string, options: { summary?: boolean } = {}): Promise<Shipment> {
-    const query = options.summary ? '?summary=1' : ''
-    const res = await fetch(`${API_BASE}/shipments/${encodeURIComponent(waybill)}${query}`)
+  async getShipment(waybill: string): Promise<Shipment> {
+    const res = await fetch(`${API_BASE}/shipments/${encodeURIComponent(waybill)}`)
+    if (!res.ok) throw new Error('Shipment not found')
+    return res.json()
+  },
+
+  async getTrackingShipment(waybill: string): Promise<TrackingShipment> {
+    const res = await fetch(`${API_BASE}/shipments/${encodeURIComponent(waybill)}?tracking=1`)
     if (!res.ok) throw new Error('Shipment not found')
     return res.json()
   },
