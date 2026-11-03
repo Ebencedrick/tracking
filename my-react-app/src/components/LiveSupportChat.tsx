@@ -55,13 +55,10 @@ export function LiveSupportChat() {
     if (!hasStarted || !userEmail) return
 
     apiService
-      .getChats()
+      .getChat(sessionId)
       .then((chats) => {
-        const found = chats.find(
-          (c) => c.id === sessionId || (c.clientEmail && c.clientEmail.toLowerCase() === userEmail.toLowerCase())
-        )
-        if (found && found.messages && found.messages.length > 0) {
-          setMessages(found.messages)
+        if (chats.messages && chats.messages.length > 0) {
+          setMessages(chats.messages)
         }
       })
       .catch(() => {})
@@ -74,19 +71,16 @@ export function LiveSupportChat() {
     const pollMessages = () => {
       if (document.hidden) return
       apiService
-        .getChats()
+        .getChat(sessionId)
         .then((chats) => {
-          const current = chats.find(
-            (c) => c.id === sessionId || (c.clientEmail && c.clientEmail.toLowerCase() === userEmail.toLowerCase())
-          )
-          if (current && current.messages && current.messages.length > messages.length) {
-            setMessages(current.messages)
+          if (chats.messages && chats.messages.length > messages.length) {
+            setMessages(chats.messages)
           }
         })
         .catch(() => {})
     }
 
-    const interval = setInterval(pollMessages, 10000)
+    const interval = setInterval(pollMessages, 30000)
     document.addEventListener('visibilitychange', pollMessages)
 
     return () => {

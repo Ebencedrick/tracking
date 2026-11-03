@@ -127,6 +127,25 @@ export function AdminCreateShipment() {
     existingShipment?.packageImageUrl ||
       'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80'
   )
+  const loadedImageForWaybill = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!editWaybill || existingShipment?.packageImageUrl || loadedImageForWaybill.current === editWaybill) return
+
+    let isCancelled = false
+    apiService.getShipment(editWaybill).then((shipment) => {
+      loadedImageForWaybill.current = editWaybill
+      if (!isCancelled && shipment.packageImageUrl) {
+        setImagePreview(shipment.packageImageUrl)
+      }
+    }).catch((error: unknown) => {
+      console.error(`Failed to load the image for shipment ${editWaybill}:`, error)
+    })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [editWaybill, existingShipment?.packageImageUrl])
 
   // Carrier, Scope, and Status
   const [carrierName, setCarrierName] = useState(existingShipment?.carrier || carriers[0]?.name || 'DHL Express')

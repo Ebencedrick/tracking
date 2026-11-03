@@ -37,7 +37,11 @@ export async function GET(request: Request) {
       ]
     }
 
-    const shipments = await (Shipment as any).find(filter).sort({ createdAt: -1 }).lean()
+    const shipments = await (Shipment as any)
+      .find(filter)
+      .select('-packageImageUrl')
+      .sort({ createdAt: -1 })
+      .lean()
     return NextResponse.json(shipments, {
       headers: {
         'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=25',

@@ -36,7 +36,7 @@ export function AdminInquiries() {
     }
     const interval = setInterval(() => {
       if (!document.hidden) fetchInquiries()
-    }, 20000)
+    }, 60000)
     document.addEventListener('visibilitychange', handleVisibility)
     return () => {
       clearInterval(interval)

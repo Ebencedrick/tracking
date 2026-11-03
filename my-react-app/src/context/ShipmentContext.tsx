@@ -919,12 +919,12 @@ export function ShipmentProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Gentle 40-second cloud sync only while tab is active in foreground
+    // Refresh cloud shipments every two minutes only while the tab is active.
     const pollInterval = setInterval(() => {
       if (!document.hidden && !isCancelled) {
         syncWithCloudDatabase()
       }
-    }, 40000)
+    }, 120000)
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
 

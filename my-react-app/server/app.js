@@ -68,7 +68,7 @@ router.get('/shipments', async (req, res) => {
       ]
     }
 
-    const shipments = await Shipment.find(filter).sort({ createdAt: -1 })
+    const shipments = await Shipment.find(filter).select('-packageImageUrl').sort({ createdAt: -1 })
     res.json(shipments)
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch shipments', details: err.message })
@@ -85,7 +85,7 @@ router.get('/shipments/:waybill', async (req, res) => {
     const escapedClean = cleanWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const escapedBare = bareWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-    const shipment = await Shipment.findOne({
+    let shipmentQuery = Shipment.findOne({
       $or: [
         { waybill: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
         { waybill: { $regex: new RegExp(`^PLOT-${escapedBare}$`, 'i') } },
@@ -95,6 +95,8 @@ router.get('/shipments/:waybill', async (req, res) => {
         { id: cleanWaybill },
       ],
     })
+    if (req.query.summary === '1') shipmentQuery = shipmentQuery.select('-packageImageUrl')
+    const shipment = await shipmentQuery
 
     if (!shipment) {
       return res.status(404).json({ error: 'Shipment not found' })

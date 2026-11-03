@@ -36,7 +36,7 @@ export function AdminChats() {
     }
     const interval = setInterval(() => {
       if (!document.hidden) fetchChats()
-    }, 15000)
+    }, 60000)
     document.addEventListener('visibilitychange', handleVisibility)
     return () => {
       clearInterval(interval)

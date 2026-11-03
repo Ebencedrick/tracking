@@ -11,8 +11,9 @@ export const apiService = {
     return res.json()
   },
 
-  async getShipment(waybill: string): Promise<Shipment> {
-    const res = await fetch(`${API_BASE}/shipments/${encodeURIComponent(waybill)}`)
+  async getShipment(waybill: string, options: { summary?: boolean } = {}): Promise<Shipment> {
+    const query = options.summary ? '?summary=1' : ''
+    const res = await fetch(`${API_BASE}/shipments/${encodeURIComponent(waybill)}${query}`)
     if (!res.ok) throw new Error('Shipment not found')
     return res.json()
   },
@@ -96,6 +97,12 @@ export const apiService = {
   async getChats(): Promise<ChatSession[]> {
     const res = await fetch(`${API_BASE}/chats`)
     if (!res.ok) throw new Error('Failed to fetch chats')
+    return res.json()
+  },
+
+  async getChat(id: string): Promise<ChatSession> {
+    const res = await fetch(`${API_BASE}/chats/${encodeURIComponent(id)}`)
+    if (!res.ok) throw new Error('Failed to fetch chat')
     return res.json()
   },
 

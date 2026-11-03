@@ -1015,7 +1015,7 @@ function ShipPage() {
 
 function TrackPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { getShipment, updateShipment } = useShipments()
+  const { getShipment } = useShipments()
   const rawWaybill = (searchParams.get('waybill') || searchParams.get('q'))?.trim()
   const requestedWaybill = rawWaybill !== undefined && rawWaybill !== '' ? rawWaybill : 'PLOT-70955-JFD'
   const [waybillInput, setWaybillInput] = useState(requestedWaybill)
@@ -1057,40 +1057,21 @@ function TrackPage() {
     }
 
     let isCancelled = false
+    let includeImage = true
     setIsFetchingFromDb(true)
 
     const fetchLiveDatabaseRecord = async () => {
       try {
-        const fresh = await apiService.getShipment(requestedWaybill)
+        const fresh = await apiService.getShipment(requestedWaybill, { summary: !includeImage })
+        includeImage = false
         if (!isCancelled && fresh && fresh.waybill) {
-          setDbFetchedShipment(fresh)
-          // Keep context synchronized
-          updateShipment(fresh.waybill, fresh)
+          setDbFetchedShipment((previous) => ({
+            ...fresh,
+            packageImageUrl: fresh.packageImageUrl ?? previous?.packageImageUrl,
+          }))
         }
       } catch {
-        // Fallback: search across all shipments in MongoDB
-        try {
-          const all = await apiService.getShipments()
-          if (!isCancelled && Array.isArray(all)) {
-            const clean = requestedWaybill.trim().toUpperCase()
-            const bare = clean.replace(/^[A-Z]{3,4}-/, '')
-            const found = all.find(
-              (s) =>
-                (s.waybill && (
-                  s.waybill.toUpperCase() === clean ||
-                  s.waybill.toUpperCase().replace(/^[A-Z]{3,4}-/, '') === bare ||
-                  s.waybill.toUpperCase().replace(/^PLOT-/, 'NTS-') === clean ||
-                  s.waybill.toUpperCase().replace(/^NTS-/, 'PLOT-') === clean
-                )) ||
-                (s.clientReference && s.clientReference.toUpperCase() === clean) ||
-                s.id === clean
-            )
-            if (found && found.waybill) {
-              setDbFetchedShipment(found)
-              updateShipment(found.waybill, found)
-            }
-          }
-        } catch {}
+        // Keep the locally cached shipment visible when the live lookup fails.
       } finally {
         if (!isCancelled) setIsFetchingFromDb(false)
       }
@@ -1105,12 +1086,12 @@ function TrackPage() {
       }
     }
 
-    // 30-Second gentle sync only while tab is active in foreground
+    // Refresh lightweight tracking data only while the tab is active.
     const pollTimer = setInterval(() => {
       if (!document.hidden && !isCancelled) {
         fetchLiveDatabaseRecord()
       }
-    }, 30000)
+    }, 60000)
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
 

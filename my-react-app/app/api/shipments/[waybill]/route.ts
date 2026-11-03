@@ -12,6 +12,7 @@ export async function GET(request: Request, context: Params) {
   try {
     await connectToDatabase()
     const { waybill } = await context.params
+    const summaryOnly = new URL(request.url).searchParams.get('summary') === '1'
     const rawWaybill = decodeURIComponent(waybill || '').trim()
     const cleanWaybill = rawWaybill.replace(/\s+/g, '')
     const bareWaybill = cleanWaybill.replace(/^[A-Za-z]{3,4}-/, '')
@@ -20,7 +21,7 @@ export async function GET(request: Request, context: Params) {
     const escapedBare = bareWaybill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
     // Step 1: Indexed exact matches (sub-millisecond B-tree lookup)
-    let shipment = await (Shipment as any).findOne({
+    let shipmentQuery = (Shipment as any).findOne({
       $or: [
         { waybill: cleanWaybill },
         { waybill: cleanWaybill.toUpperCase() },
@@ -29,11 +30,13 @@ export async function GET(request: Request, context: Params) {
         { clientReference: cleanWaybill },
         { id: cleanWaybill },
       ],
-    }).lean()
+    })
+    if (summaryOnly) shipmentQuery = shipmentQuery.select('-packageImageUrl')
+    let shipment = await shipmentQuery.lean()
 
     // Step 2: Fallback to case-insensitive regex only if exact index match yields nothing
     if (!shipment) {
-      shipment = await (Shipment as any).findOne({
+      let fallbackQuery = (Shipment as any).findOne({
         $or: [
           { waybill: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
           { waybill: { $regex: new RegExp(`^PLOT-${escapedBare}$`, 'i') } },
@@ -41,7 +44,9 @@ export async function GET(request: Request, context: Params) {
           { waybill: { $regex: new RegExp(`${escapedBare}`, 'i') } },
           { clientReference: { $regex: new RegExp(`^${escapedClean}$`, 'i') } },
         ],
-      }).lean()
+      })
+      if (summaryOnly) fallbackQuery = fallbackQuery.select('-packageImageUrl')
+      shipment = await fallbackQuery.lean()
     }
 
     if (!shipment) {
