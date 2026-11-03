@@ -20,10 +20,24 @@ import {
 } from 'lucide-react'
 
 const siteLogo = '/brand-logo.jfif'
+const ADMIN_BUSINESS_EMAIL = 'info@globallprimelogistics.com'
+const ADMIN_PASSWORD = '675Amiri$$'
 
 export function AdminLayout() {
   const navigate = useNavigate()
   const { addAuditLog } = useShipments()
+
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return sessionStorage.getItem('gpl_admin_auth') === 'true' || localStorage.getItem('gpl_admin_auth') === 'true'
+  })
+
+  const [authEmail, setAuthEmail] = useState('')
+  const [authPassword, setAuthPassword] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [authLoading, setAuthLoading] = useState(false)
 
   // Mobile Menu State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -38,6 +52,30 @@ export function AdminLayout() {
 
   // Live Radar Modal
   const [isRadarModalOpen, setIsRadarModalOpen] = useState(false)
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    setAuthLoading(true)
+    setAuthError('')
+
+    const cleanEmail = authEmail.trim().toLowerCase()
+    if (cleanEmail === ADMIN_BUSINESS_EMAIL.toLowerCase() && authPassword === ADMIN_PASSWORD) {
+      sessionStorage.setItem('gpl_admin_auth', 'true')
+      localStorage.setItem('gpl_admin_auth', 'true')
+      setIsAuthenticated(true)
+      addAuditLog('ADMIN_LOGIN', 'SECURITY', `Dispatch operator authenticated with master credentials (${cleanEmail})`, 'info')
+    } else {
+      setAuthError('Access Denied: Invalid operator credentials. Please provide the authorized business email and password.')
+    }
+    setAuthLoading(false)
+  }
+
+  const handleSignOut = () => {
+    sessionStorage.removeItem('gpl_admin_auth')
+    localStorage.removeItem('gpl_admin_auth')
+    setIsAuthenticated(false)
+    addAuditLog('ADMIN_LOGOUT', 'SECURITY', 'Operator signed out of terminal session', 'info')
+  }
 
   const handleSendBroadcast = (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,6 +100,208 @@ export function AdminLayout() {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false)
+  }
+
+  // Render High-Security Login Screen if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #070d19 0%, #0a182d 50%, #0d213f 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px 16px',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '430px',
+            background: 'rgba(15, 23, 42, 0.88)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px',
+            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.6)',
+            padding: '2.5rem 2rem',
+            color: '#ffffff',
+          }}
+        >
+          {/* Brand Header */}
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '54px',
+                height: '54px',
+                borderRadius: '14px',
+                background: '#0284c7',
+                marginBottom: '1rem',
+                overflow: 'hidden',
+                boxShadow: '0 0 25px rgba(2, 132, 199, 0.45)',
+              }}
+            >
+              <img src={siteLogo} alt="Global Prime Logistics" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 6px 0', letterSpacing: '-0.02em', color: '#f8fafc' }}>
+              Operations Command Terminal
+            </h1>
+            <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>
+              Global Prime Logistics Dispatch Authorization
+            </p>
+          </div>
+
+          {authError && (
+            <div
+              style={{
+                background: 'rgba(239, 68, 68, 0.14)',
+                border: '1px solid rgba(239, 68, 68, 0.45)',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                marginBottom: '1.25rem',
+                fontSize: '0.8rem',
+                color: '#fca5a5',
+                lineHeight: 1.45,
+              }}
+            >
+              ⚠️ {authError}
+            </div>
+          )}
+
+          <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  color: '#94a3b8',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  marginBottom: '6px',
+                }}
+              >
+                Business Email Address
+              </label>
+              <input
+                type="email"
+                required
+                value={authEmail}
+                onChange={(e) => setAuthEmail(e.target.value)}
+                placeholder="info@globallprimelogistics.com"
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '12px 14px',
+                  borderRadius: '9px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#ffffff',
+                  fontSize: '0.88rem',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  color: '#94a3b8',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  marginBottom: '6px',
+                }}
+              >
+                Security Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '12px 50px 12px 14px',
+                    borderRadius: '9px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#ffffff',
+                    fontSize: '0.88rem',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#38bdf8',
+                    cursor: 'pointer',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={authLoading}
+              style={{
+                marginTop: '0.5rem',
+                width: '100%',
+                padding: '13px',
+                borderRadius: '9px',
+                background: '#0284c7',
+                border: 'none',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 16px rgba(2, 132, 199, 0.4)',
+              }}
+            >
+              <span>Authenticate & Open Console</span>
+              <span>→</span>
+            </button>
+          </form>
+
+          <div
+            style={{
+              textAlign: 'center',
+              marginTop: '1.75rem',
+              paddingTop: '1.25rem',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            }}
+          >
+            <Link to="/" style={{ color: '#38bdf8', fontSize: '0.8rem', textDecoration: 'none' }}>
+              ← Return to Public Tracking Portal
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -164,10 +404,18 @@ export function AdminLayout() {
             <span>Public Web Portal</span>
           </Link>
 
-          <Link to="/login" className="cmd-nav-item sign-out" onClick={closeMobileMenu}>
+          <button
+            type="button"
+            className="cmd-nav-item sign-out"
+            style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer' }}
+            onClick={() => {
+              closeMobileMenu()
+              handleSignOut()
+            }}
+          >
             <span className="cmd-nav-icon"><LogOut size={15} strokeWidth={1.5} /></span>
             <span>Sign Out</span>
-          </Link>
+          </button>
         </div>
       </aside>
 

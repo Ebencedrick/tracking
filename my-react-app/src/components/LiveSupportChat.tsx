@@ -36,7 +36,7 @@ export function LiveSupportChat() {
     {
       id: 'welcome-1',
       sender: 'system',
-      text: 'Welcome to Package Pilot Global Dispatch Support. Please identify with your email address to connect.',
+      text: 'Welcome to Global Prime Logistics Dispatch Support. Please identify with your email address to connect (Operations Desk: info@globallprimelogistics.com).',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ])

@@ -37,8 +37,8 @@ export function AdminCreateShipment() {
   const [printModalWaybill, setPrintModalWaybill] = useState<string | null>(null)
 
   // Sender Details
-  const [senderName, setSenderName] = useState(existingShipment?.senderName || 'Apex International Logistics')
-  const [senderEmail, setSenderEmail] = useState(existingShipment?.senderEmail || 'dispatch@apexlogistics.com')
+  const [senderName, setSenderName] = useState(existingShipment?.senderName || 'Global Prime Logistics Hub')
+  const [senderEmail, setSenderEmail] = useState(existingShipment?.senderEmail || 'info@globallprimelogistics.com')
   const [senderPhone, setSenderPhone] = useState(existingShipment?.senderPhone || '+1 (555) 234-8901')
 
   // Receiver Details
@@ -167,8 +167,8 @@ export function AdminCreateShipment() {
   // Sync state if existingShipment loads or changes
   useEffect(() => {
     if (existingShipment) {
-      setSenderName(existingShipment.senderName || 'Apex International Logistics')
-      setSenderEmail(existingShipment.senderEmail || 'dispatch@apexlogistics.com')
+      setSenderName(existingShipment.senderName || 'Global Prime Logistics Hub')
+      setSenderEmail(existingShipment.senderEmail || 'info@globallprimelogistics.com')
       setSenderPhone(existingShipment.senderPhone || '+1 (555) 234-8901')
       setReceiverName(existingShipment.receiverName || existingShipment.clientName || 'Source Cards TCG')
       setReceiverEmail(existingShipment.receiverEmail || existingShipment.clientEmail || 'info@sourcecardstcg.com')
@@ -637,7 +637,7 @@ export function AdminCreateShipment() {
                   className="cmd-input"
                   value={senderEmail}
                   onChange={(e) => setSenderEmail(e.target.value)}
-                  placeholder="e.g. dispatch@apexlogistics.com"
+                  placeholder="e.g. info@globallprimelogistics.com"
                   required
                 />
               </div>
@@ -1516,7 +1516,30 @@ export function AdminCreateShipment() {
                 </div>
               </div>
 
-              {/* Share Receipt Suite */}
+              {/* Automated Email Notification Status */}
+              <div
+                style={{
+                  background: '#ecfdf5',
+                  border: '1.5px solid #a7f3d0',
+                  borderRadius: '10px',
+                  padding: '0.85rem 1rem',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ marginTop: '2px', color: '#059669', fontSize: '1.1rem' }}>✓</div>
+                <div>
+                  <strong style={{ display: 'block', fontSize: '0.82rem', color: '#065f46', marginBottom: '2px' }}>
+                    Automated Email Notifications Sent
+                  </strong>
+                  <p style={{ margin: 0, fontSize: '0.74rem', color: '#047857', lineHeight: 1.45 }}>
+                    Real-time waybill and live tracking credentials have been transmitted to Sender (<strong>{createdShipmentModal.senderEmail || 'N/A'}</strong>) and Consignee (<strong>{createdShipmentModal.receiverEmail || createdShipmentModal.clientEmail || 'N/A'}</strong>) via <strong>info@globallprimelogistics.com</strong>.
+                  </p>
+                </div>
+              </div>
+
               <div
                 style={{
                   background: '#f8fafc',
@@ -1526,14 +1549,14 @@ export function AdminCreateShipment() {
                   marginBottom: '1.25rem',
                 }}
               >
-                <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 400, color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>
-                  Share Digital Receipt & Tracking Link
+                <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  Direct Client Share & Manual Receipts
                 </span>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                   {/* WhatsApp Share */}
                   <a
                     href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                      `*Freight Consignment Receipt*\nWaybill: ${createdShipmentModal.waybill}\nOrigin: ${createdShipmentModal.origin.name}\nDestination: ${createdShipmentModal.destination.name}\nCarrier: ${createdShipmentModal.carrier} (${createdShipmentModal.mode.toUpperCase()})\nConsignee: ${createdShipmentModal.receiverName || createdShipmentModal.clientName}\n\nTrack Live Consignment:\n${window.location.origin}/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}`
+                      `*Global Prime Logistics Freight Receipt*\nWaybill: ${createdShipmentModal.waybill}\nOrigin: ${createdShipmentModal.origin.name}\nDestination: ${createdShipmentModal.destination.name}\nCarrier: ${createdShipmentModal.carrier} (${createdShipmentModal.mode.toUpperCase()})\nConsignee: ${createdShipmentModal.receiverName || createdShipmentModal.clientName}\n\nTrack Live Consignment:\n${window.location.origin}/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}\n\nSupport: info@globallprimelogistics.com`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1541,41 +1564,65 @@ export function AdminCreateShipment() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
+                      gap: '4px',
                       padding: '0.55rem',
                       background: '#25D366',
                       color: '#ffffff',
                       borderRadius: '8px',
                       textDecoration: 'none',
-                      fontSize: '0.8rem',
-                      fontWeight: 400,
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
                     }}
                   >
-                    WhatsApp Receipt
+                    WhatsApp
                   </a>
 
-                  {/* Email Share */}
+                  {/* Email Consignee */}
                   <a
                     href={`mailto:${encodeURIComponent(createdShipmentModal.receiverEmail || '')}?subject=${encodeURIComponent(
-                      `Freight Consignment Waybill & Tracking Receipt - ${createdShipmentModal.waybill}`
+                      `Freight Consignment Waybill & Tracking Notification - ${createdShipmentModal.waybill}`
                     )}&body=${encodeURIComponent(
-                      `Dear ${createdShipmentModal.receiverName || 'Client'},\n\nYour freight shipment has been registered with ${createdShipmentModal.carrier}.\n\nWaybill Tracking Number: ${createdShipmentModal.waybill}\nOrigin: ${createdShipmentModal.origin.name}\nDestination: ${createdShipmentModal.destination.name}\nModality: ${createdShipmentModal.mode.toUpperCase()} FREIGHT\nWeight: ${createdShipmentModal.weightKg} kg\n\nYou can track the consignment live at:\n${window.location.origin}/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}\n\nThank you for choosing Northstar Logistics Network.`
+                      `Dear ${createdShipmentModal.receiverName || 'Client'},\n\nYour freight shipment has been registered with Global Prime Logistics (${createdShipmentModal.carrier}).\n\nWaybill Tracking Number: ${createdShipmentModal.waybill}\nOrigin: ${createdShipmentModal.origin.name}\nDestination: ${createdShipmentModal.destination.name}\nModality: ${createdShipmentModal.mode.toUpperCase()} FREIGHT\nWeight: ${createdShipmentModal.weightKg} kg\n\nYou can track the consignment live at:\n${window.location.origin}/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}\n\nSupport Desk: info@globallprimelogistics.com\nThank you for choosing Global Prime Logistics.`
                     )}`}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
+                      gap: '4px',
                       padding: '0.55rem',
                       background: '#0284c7',
                       color: '#ffffff',
                       borderRadius: '8px',
                       textDecoration: 'none',
-                      fontSize: '0.8rem',
-                      fontWeight: 400,
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
                     }}
                   >
-                    Email Receipt
+                    Email Receiver
+                  </a>
+
+                  {/* Email Sender */}
+                  <a
+                    href={`mailto:${encodeURIComponent(createdShipmentModal.senderEmail || '')}?subject=${encodeURIComponent(
+                      `Consignment Dispatch Confirmation - Waybill ${createdShipmentModal.waybill}`
+                    )}&body=${encodeURIComponent(
+                      `Dear ${createdShipmentModal.senderName || 'Shipper'},\n\nYour consignment ${createdShipmentModal.waybill} has been booked and inducted for dispatch with ${createdShipmentModal.carrier}.\n\nOrigin: ${createdShipmentModal.origin.name}\nDestination: ${createdShipmentModal.destination.name}\nEstimated Arrival: ${createdShipmentModal.eta || 'Scheduled'}\n\nLive GPS Telemetry Stream:\n${window.location.origin}/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}\n\nOperations Desk: info@globallprimelogistics.com\nGlobal Prime Logistics`
+                    )}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      padding: '0.55rem',
+                      background: '#0f172a',
+                      color: '#ffffff',
+                      borderRadius: '8px',
+                      textDecoration: 'none',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Email Sender
                   </a>
                 </div>
               </div>

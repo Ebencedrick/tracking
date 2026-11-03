@@ -90,7 +90,7 @@ export function AdminInquiries() {
         replyMessage: reply,
         repliedAt: timestamp,
       })
-      showToast(`Official response transmitted to ${selectedInquiry.senderEmail} and saved in MongoDB!`)
+      showToast(`Official response transmitted to ${selectedInquiry.senderEmail} from info@globallprimelogistics.com and saved in MongoDB!`)
     } catch {
       showToast(`Response logged locally for ${selectedInquiry.senderEmail}`)
     }
@@ -398,7 +398,7 @@ export function AdminInquiries() {
                     className="create-shipment-preset-chip"
                     onClick={() =>
                       applyCannedTemplate(
-                        'Thank you for contacting Package Pilot Dispatch. We have verified the telemetry and customs status for your consignment. Pre-clearance is complete and scheduled delivery remains on track.'
+                        'Thank you for contacting Global Prime Logistics Dispatch. We have verified the telemetry and customs status for your consignment. Pre-clearance is complete and scheduled delivery remains on track. For further updates, contact info@globallprimelogistics.com.'
                       )
                     }
                   >

@@ -441,7 +441,7 @@ export async function searchLiveGeocode(query: string): Promise<GeocodeResult[]>
       {
         headers: {
           'Accept-Language': 'en',
-          'User-Agent': 'NorthstarFreightTracking/2.0 (operations@northstar-freight.com)',
+          'User-Agent': 'GlobalPrimeLogisticsTracking/2.0 (info@globallprimelogistics.com)',
         },
         signal: controller.signal,
       }

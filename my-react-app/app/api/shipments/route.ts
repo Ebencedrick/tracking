@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { connectToDatabase } from '../../../src/lib/db'
 import { Shipment } from '../../../server/models/Shipment.js'
+import { sendConsignmentCreationNotifications } from '../../../src/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -83,6 +84,14 @@ export async function POST(request: Request) {
       { $set: data },
       { upsert: true, new: true, runValidators: false }
     ).lean()
+
+    // Automate email notifications to sender and receiver
+    try {
+      const emailResult = await sendConsignmentCreationNotifications(created)
+      ;(created as any).emailNotificationStatus = emailResult
+    } catch (emailErr: any) {
+      console.warn('[API /api/shipments POST] Automated notification warning:', emailErr?.message || emailErr)
+    }
 
     return NextResponse.json(created, { status: 201 })
   } catch (err: any) {

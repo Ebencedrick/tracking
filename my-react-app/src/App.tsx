@@ -9,6 +9,7 @@ import {
   useLocation,
   useSearchParams,
   useParams,
+  useNavigate,
 } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import {
@@ -288,11 +289,11 @@ function PublicLayout() {
           </div>
 
           <div>
-            <h4>Enterprise</h4>
+            <h4>Enterprise & Support</h4>
             <ul>
-              <li><Link to="/about">Custom Routing</Link></li>
-              <li><Link to="/services">Cold-Chain</Link></li>
+              <li><a href="mailto:info@globallprimelogistics.com" style={{ color: '#38bdf8', fontWeight: 600 }}>info@globallprimelogistics.com</a></li>
               <li><Link to="/contact">Operations Desk</Link></li>
+              <li><Link to="/about">Custom Routing</Link></li>
               <li><Link to="/policies">Cargo Protection</Link></li>
             </ul>
           </div>
@@ -2370,9 +2371,9 @@ function ContactPage() {
           <div className="support-contact-panel">
             <p className="eyebrow">Direct contact</p>
             <h2>Speak with operations</h2>
-            <a href="mailto:ops@northstarfreight.example" className="support-channel">
+            <a href="mailto:info@globallprimelogistics.com" className="support-channel">
               <span>Email the desk</span>
-              <strong>ops@northstarfreight.example</strong>
+              <strong>info@globallprimelogistics.com</strong>
             </a>
             <a href="tel:+14155550182" className="support-channel">
               <span>Call dispatch</span>
@@ -2580,28 +2581,65 @@ function PoliciesPage() {
 }
 
 function AuthPage({ mode }: { mode: 'login' | 'register' }) {
+  const navigate = useNavigate()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const cleanEmail = email.trim().toLowerCase()
+
+    if (cleanEmail === 'info@globallprimelogistics.com' && password === '675Amiri$$') {
+      sessionStorage.setItem('gpl_admin_auth', 'true')
+      localStorage.setItem('gpl_admin_auth', 'true')
+      navigate('/admin')
+      return
+    }
+
+    // Standard client user redirect
+    navigate('/dashboard')
+  }
+
   return (
     <div className="auth-page">
       <div className="auth-card card">
         <p className="eyebrow">{mode === 'login' ? 'Welcome back' : 'Create account'}</p>
         <h1>{mode === 'login' ? 'Login' : 'Register'}</h1>
 
-        <form className="auth-form">
+        <form className="auth-form" onSubmit={handleSubmit}>
           {mode === 'register' && (
             <label>
               Full name
-              <input type="text" placeholder="Jordan Smith" />
+              <input
+                type="text"
+                placeholder="Jordan Smith"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
             </label>
           )}
 
           <label>
             Email
-            <input type="email" placeholder="name@company.com" />
+            <input
+              type="email"
+              required
+              placeholder="info@globallprimelogistics.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </label>
 
           <label>
             Password
-            <input type="password" placeholder="••••••••" />
+            <input
+              type="password"
+              required
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </label>
 
           <button type="submit" className="button button-primary full-width">

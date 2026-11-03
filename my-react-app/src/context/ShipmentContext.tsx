@@ -127,9 +127,9 @@ const INITIAL_USERS: UserAccount[] = [
   {
     id: 'u1',
     name: 'Admin Chief Controller',
-    email: 'admin@northstar-freight.com',
+    email: 'info@globallprimelogistics.com',
     role: 'admin',
-    companyName: 'Northstar Global Ops HQ',
+    companyName: 'Global Prime Logistics HQ',
     billingAddress: '350 5th Ave, New York, NY 10118',
     taxId: 'US-99-887766',
     creditBalance: 500000,
