@@ -202,4 +202,8 @@ export interface TariffSettings {
   securityInspectionCharge: number
   priorityExpressMultiplier: number
   freeStorageDays: number
+  resendApiKey?: string
+  brevoApiKey?: string
+  emailFrom?: string
 }
+

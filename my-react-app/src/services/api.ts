@@ -152,4 +152,22 @@ export const apiService = {
     if (!res.ok) throw new Error('Backend health check failed')
     return res.json()
   },
+
+  // --- Email Notifications ---
+  async sendShipmentEmail(payload: {
+    waybill: string
+    target?: 'both' | 'sender' | 'receiver' | 'custom'
+    customRecipientEmail?: string
+  }): Promise<{ success: boolean; result: any }> {
+    const res = await fetch(`${API_BASE}/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.details || err.error || 'Failed to dispatch notification')
+    }
+    return res.json()
+  },
 }

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { useShipments } from '../../context/ShipmentContext'
 import type { Shipment, ShipmentStatus } from '../../types'
 import { getShipmentProgressMetrics } from '../../utils/mapApis'
+import { apiService } from '../../services/api'
+import { buildConsigneeMailto, buildShipperMailto, buildWhatsAppShareUrl } from '../../lib/email'
 
 export function AdminShipments() {
   const {
@@ -17,6 +19,8 @@ export function AdminShipments() {
 
   // Modals state
   const [reassignShipment, setReassignShipment] = useState<Shipment | null>(null)
+  const [shareShipment, setShareShipment] = useState<Shipment | null>(null)
+  const [isSendingBackground, setIsSendingBackground] = useState(false)
 
   // Status select temporary states per waybill
   const [selectedStatuses, setSelectedStatuses] = useState<Record<string, ShipmentStatus>>({})
@@ -410,6 +414,17 @@ export function AdminShipments() {
                     Copy
                   </button>
 
+                  {/* Notify / Share Button */}
+                  <button
+                    type="button"
+                    className="shipment-action-btn"
+                    style={{ background: '#0284c7', color: '#ffffff' }}
+                    onClick={() => setShareShipment(s)}
+                    title="Send Email or WhatsApp notification to client"
+                  >
+                    ✉️ Notify
+                  </button>
+
                   {/* Delete Button */}
                   <button
                     type="button"
@@ -482,6 +497,148 @@ export function AdminShipments() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Consignment Notification & Share Modal */}
+      {shareShipment && (
+        <div className="admin-modal-overlay" onClick={() => setShareShipment(null)}>
+          <div className="admin-modal" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <div>
+                <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#0284c7', fontWeight: 600 }}>
+                  Client Notification Dispatch
+                </span>
+                <h3 style={{ margin: '2px 0 0' }}>Waybill {shareShipment.waybill}</h3>
+              </div>
+              <button
+                type="button"
+                className="admin-modal-close"
+                onClick={() => setShareShipment(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: '1.25rem' }}>
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  marginBottom: '1rem',
+                  fontSize: '0.82rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ color: '#64748b' }}>Consignee (Receiver):</span>
+                  <strong style={{ color: '#0f172a' }}>{shareShipment.receiverEmail || shareShipment.clientEmail || 'N/A'}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#64748b' }}>Shipper (Sender):</span>
+                  <strong style={{ color: '#0f172a' }}>{shareShipment.senderEmail || 'N/A'}</strong>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1.25rem' }}>
+                <a
+                  href={buildConsigneeMailto(shareShipment as any)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.75rem 1rem',
+                    background: '#0284c7',
+                    color: '#ffffff',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <span>✉️ Email Consignee ({shareShipment.receiverEmail || 'Receiver'})</span>
+                  <span style={{ fontSize: '0.72rem', opacity: 0.85 }}>Open Mail ↗</span>
+                </a>
+
+                <a
+                  href={buildShipperMailto(shareShipment as any)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.75rem 1rem',
+                    background: '#0f172a',
+                    color: '#ffffff',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <span>✉️ Email Shipper ({shareShipment.senderEmail || 'Sender'})</span>
+                  <span style={{ fontSize: '0.72rem', opacity: 0.85 }}>Open Mail ↗</span>
+                </a>
+
+                <a
+                  href={buildWhatsAppShareUrl(shareShipment as any)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.75rem 1rem',
+                    background: '#16a34a',
+                    color: '#ffffff',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <span>💬 WhatsApp (+1 (640) 223-1869)</span>
+                  <span style={{ fontSize: '0.72rem', opacity: 0.85 }}>Direct Chat ↗</span>
+                </a>
+              </div>
+
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+                <button
+                  type="button"
+                  disabled={isSendingBackground}
+                  onClick={async () => {
+                    setIsSendingBackground(true)
+                    try {
+                      const res = await apiService.sendShipmentEmail({ waybill: shareShipment.waybill })
+                      if (res.success) {
+                        showToast(`Dispatched to ${res.result.dispatchedTo.join(', ')}!`)
+                        setShareShipment(null)
+                      } else {
+                        showToast(`Notice: ${res.result?.details || 'Check API keys'}`)
+                      }
+                    } catch (err: any) {
+                      showToast(`Error: ${err?.message || 'Could not send'}`)
+                    } finally {
+                      setIsSendingBackground(false)
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    color: '#0f172a',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {isSendingBackground ? 'Dispatching Background Email...' : '⚡ Trigger Silent Background Email (Resend/Brevo)'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

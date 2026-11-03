@@ -13,7 +13,8 @@ import {
   MAP_TILE_PROVIDERS,
   type MapTileKey,
 } from '../../utils/mapApis'
-
+import { apiService } from '../../services/api'
+import { buildConsigneeMailto, buildShipperMailto, buildWhatsAppShareUrl } from '../../lib/email'
 
 export function AdminCreateShipment() {
   const navigate = useNavigate()
@@ -35,6 +36,10 @@ export function AdminCreateShipment() {
   const [isCopiedTracking, setIsCopiedTracking] = useState(false)
   const [shareReceiptStatus, setShareReceiptStatus] = useState('')
   const [printModalWaybill, setPrintModalWaybill] = useState<string | null>(null)
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [isSavingKey, setIsSavingKey] = useState(false)
+  const [apiKeyFeedback, setApiKeyFeedback] = useState('')
+  const [showKeySetup, setShowKeySetup] = useState(false)
 
   // Sender Details
   const [senderName, setSenderName] = useState(existingShipment?.senderName || 'Global Prime Logistics Hub')
@@ -572,6 +577,18 @@ export function AdminCreateShipment() {
 
       // Pop up the confirmation modal with tracking number!
       setCreatedShipmentModal(newShipment)
+
+      // Fetch live backend API response to attach real email delivery report
+      apiService
+        .createShipment(newShipment)
+        .then((apiCreated: any) => {
+          if (apiCreated && apiCreated.emailNotificationStatus) {
+            setCreatedShipmentModal((prev) => (prev ? { ...prev, ...apiCreated, emailNotificationStatus: apiCreated.emailNotificationStatus } : apiCreated))
+          }
+        })
+        .catch((err) => {
+          console.warn('[AdminCreateShipment API Sync Error]:', err)
+        })
     }
   }
 
@@ -1516,116 +1533,215 @@ export function AdminCreateShipment() {
                 </div>
               </div>
 
-              {/* Automated Email Notification Status */}
-              <div
-                style={{
-                  background: '#ecfdf5',
-                  border: '1.5px solid #a7f3d0',
-                  borderRadius: '10px',
-                  padding: '0.85rem 1rem',
-                  marginBottom: '1rem',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '10px',
-                }}
-              >
-                <div style={{ marginTop: '2px', color: '#059669', fontSize: '1.1rem' }}>✓</div>
-                <div>
-                  <strong style={{ display: 'block', fontSize: '0.82rem', color: '#065f46', marginBottom: '2px' }}>
-                    Automated Email Notifications Sent
-                  </strong>
-                  <p style={{ margin: 0, fontSize: '0.74rem', color: '#047857', lineHeight: 1.45 }}>
-                    Real-time waybill and live tracking credentials have been transmitted to Sender (<strong>{createdShipmentModal.senderEmail || 'N/A'}</strong>) and Consignee (<strong>{createdShipmentModal.receiverEmail || createdShipmentModal.clientEmail || 'N/A'}</strong>) via <strong>info@globallprimelogistics.com</strong>.
-                  </p>
-                </div>
-              </div>
+              {/* Automated Email Notification Status & Real-Time Dispatch */}
+              {(() => {
+                const emailStatus = (createdShipmentModal as any).emailNotificationStatus
+                const hasAutomatedSent = emailStatus && emailStatus.success && emailStatus.dispatchedTo && emailStatus.dispatchedTo.length > 0
 
-              <div
-                style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '0.85rem 1rem',
-                  marginBottom: '1.25rem',
-                }}
-              >
-                <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>
-                  Direct Client Share & Manual Receipts
-                </span>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                  {/* WhatsApp Share */}
-                  <a
-                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                      `*Global Prime Logistics Freight Receipt*\nWaybill: ${createdShipmentModal.waybill}\nOrigin: ${createdShipmentModal.origin.name}\nDestination: ${createdShipmentModal.destination.name}\nCarrier: ${createdShipmentModal.carrier} (${createdShipmentModal.mode.toUpperCase()})\nConsignee: ${createdShipmentModal.receiverName || createdShipmentModal.clientName}\n\nTrack Live Consignment:\n${window.location.origin}/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}\n\nSupport: info@globallprimelogistics.com`
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                if (hasAutomatedSent) {
+                  return (
+                    <div
+                      style={{
+                        background: '#ecfdf5',
+                        border: '1.5px solid #a7f3d0',
+                        borderRadius: '10px',
+                        padding: '0.85rem 1rem',
+                        marginBottom: '1rem',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '10px',
+                      }}
+                    >
+                      <div style={{ marginTop: '2px', color: '#059669', fontSize: '1.1rem' }}>✓</div>
+                      <div style={{ flex: 1 }}>
+                        <strong style={{ display: 'block', fontSize: '0.82rem', color: '#065f46', marginBottom: '2px' }}>
+                          Automated Email Notifications Sent ({emailStatus.provider?.toUpperCase()})
+                        </strong>
+                        <p style={{ margin: 0, fontSize: '0.74rem', color: '#047857', lineHeight: 1.45 }}>
+                          Waybill and live tracking credentials successfully delivered to{' '}
+                          <strong>{emailStatus.dispatchedTo.join(' and ')}</strong> from{' '}
+                          <strong>info@globallprimelogistics.com</strong>.
+                        </p>
+                      </div>
+                    </div>
+                  )
+                }
+
+                return (
+                  <div
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px',
-                      padding: '0.55rem',
-                      background: '#25D366',
-                      color: '#ffffff',
-                      borderRadius: '8px',
-                      textDecoration: 'none',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
+                      background: '#f0f9ff',
+                      border: '1.5px solid #bae6fd',
+                      borderRadius: '10px',
+                      padding: '0.85rem 1rem',
+                      marginBottom: '1rem',
                     }}
                   >
-                    WhatsApp
-                  </a>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '1.1rem' }}>⚡</span>
+                      <strong style={{ fontSize: '0.84rem', color: '#0369a1' }}>
+                        1-Click Client Notification Delivery
+                      </strong>
+                    </div>
+                    <p style={{ margin: '0 0 10px 0', fontSize: '0.74rem', color: '#0284c7', lineHeight: 1.45 }}>
+                      Send the official waybill tracking itinerary to the Consignee & Shipper now with one click:
+                    </p>
 
-                  {/* Email Consignee */}
-                  <a
-                    href={`mailto:${encodeURIComponent(createdShipmentModal.receiverEmail || '')}?subject=${encodeURIComponent(
-                      `Freight Consignment Waybill & Tracking Notification - ${createdShipmentModal.waybill}`
-                    )}&body=${encodeURIComponent(
-                      `Dear ${createdShipmentModal.receiverName || 'Client'},\n\nYour freight shipment has been registered with Global Prime Logistics (${createdShipmentModal.carrier}).\n\nWaybill Tracking Number: ${createdShipmentModal.waybill}\nOrigin: ${createdShipmentModal.origin.name}\nDestination: ${createdShipmentModal.destination.name}\nModality: ${createdShipmentModal.mode.toUpperCase()} FREIGHT\nWeight: ${createdShipmentModal.weightKg} kg\n\nYou can track the consignment live at:\n${window.location.origin}/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}\n\nSupport Desk: info@globallprimelogistics.com\nThank you for choosing Global Prime Logistics.`
-                    )}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px',
-                      padding: '0.55rem',
-                      background: '#0284c7',
-                      color: '#ffffff',
-                      borderRadius: '8px',
-                      textDecoration: 'none',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                    }}
-                  >
-                    Email Receiver
-                  </a>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {/* Consignee 1-Click Email */}
+                      <a
+                        href={buildConsigneeMailto(createdShipmentModal as any)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.65rem 0.9rem',
+                          background: '#0284c7',
+                          color: '#ffffff',
+                          borderRadius: '8px',
+                          textDecoration: 'none',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                        }}
+                      >
+                        <span>✉️ Send Consignee Notification ({createdShipmentModal.receiverEmail || 'Consignee'})</span>
+                        <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>Open Mail App ↗</span>
+                      </a>
 
-                  {/* Email Sender */}
-                  <a
-                    href={`mailto:${encodeURIComponent(createdShipmentModal.senderEmail || '')}?subject=${encodeURIComponent(
-                      `Consignment Dispatch Confirmation - Waybill ${createdShipmentModal.waybill}`
-                    )}&body=${encodeURIComponent(
-                      `Dear ${createdShipmentModal.senderName || 'Shipper'},\n\nYour consignment ${createdShipmentModal.waybill} has been booked and inducted for dispatch with ${createdShipmentModal.carrier}.\n\nOrigin: ${createdShipmentModal.origin.name}\nDestination: ${createdShipmentModal.destination.name}\nEstimated Arrival: ${createdShipmentModal.eta || 'Scheduled'}\n\nLive GPS Telemetry Stream:\n${window.location.origin}/track?waybill=${encodeURIComponent(createdShipmentModal.waybill)}\n\nOperations Desk: info@globallprimelogistics.com\nGlobal Prime Logistics`
-                    )}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px',
-                      padding: '0.55rem',
-                      background: '#0f172a',
-                      color: '#ffffff',
-                      borderRadius: '8px',
-                      textDecoration: 'none',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                    }}
-                  >
-                    Email Sender
-                  </a>
-                </div>
-              </div>
+                      {/* Shipper 1-Click Email */}
+                      <a
+                        href={buildShipperMailto(createdShipmentModal as any)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.65rem 0.9rem',
+                          background: '#0f172a',
+                          color: '#ffffff',
+                          borderRadius: '8px',
+                          textDecoration: 'none',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        <span>✉️ Send Shipper Dispatch Notice ({createdShipmentModal.senderEmail || 'Shipper'})</span>
+                        <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>Open Mail App ↗</span>
+                      </a>
+
+                      {/* WhatsApp 1-Click */}
+                      <a
+                        href={buildWhatsAppShareUrl(createdShipmentModal as any)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.65rem 0.9rem',
+                          background: '#16a34a',
+                          color: '#ffffff',
+                          borderRadius: '8px',
+                          textDecoration: 'none',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        <span>💬 Share via WhatsApp (+1 (640) 223-1869)</span>
+                        <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>Direct Chat ↗</span>
+                      </a>
+                    </div>
+
+                    {/* Inline Background Email Setup */}
+                    <div style={{ marginTop: '10px', borderTop: '1px solid #e0f2fe', paddingTop: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowKeySetup(!showKeySetup)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#0369a1',
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          padding: 0,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        ⚙️ {showKeySetup ? 'Hide' : 'Configure'} Silent Background Email (Resend API Key)
+                      </button>
+
+                      {showKeySetup && (
+                        <div style={{ marginTop: '8px', background: '#ffffff', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                          <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', marginBottom: '6px' }}>
+                            Paste a free Resend API key (from resend.com) to automatically deliver emails in the background:
+                          </span>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <input
+                              type="password"
+                              placeholder="re_123456789..."
+                              value={apiKeyInput}
+                              onChange={(e) => setApiKeyInput(e.target.value)}
+                              style={{
+                                flex: 1,
+                                padding: '6px 10px',
+                                fontSize: '0.75rem',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                              }}
+                            />
+                            <button
+                              type="button"
+                              disabled={isSavingKey || !apiKeyInput.trim()}
+                              onClick={async () => {
+                                setIsSavingKey(true)
+                                setApiKeyFeedback('')
+                                try {
+                                  await apiService.updateSettings({ resendApiKey: apiKeyInput.trim() })
+                                  const res = await apiService.sendShipmentEmail({ waybill: createdShipmentModal.waybill })
+                                  if (res.success) {
+                                    setApiKeyFeedback(`Success! Sent to ${res.result.dispatchedTo.join(', ')}`)
+                                    setCreatedShipmentModal((prev: any) => ({
+                                      ...prev,
+                                      emailNotificationStatus: res.result,
+                                    }))
+                                  } else {
+                                    setApiKeyFeedback(`Notice: ${res.result?.details || 'API saved'}`)
+                                  }
+                                } catch (err: any) {
+                                  setApiKeyFeedback(`Error: ${err?.message || 'Could not verify key'}`)
+                                } finally {
+                                  setIsSavingKey(false)
+                                }
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#0284c7',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {isSavingKey ? 'Saving...' : 'Save & Send'}
+                            </button>
+                          </div>
+                          {apiKeyFeedback && (
+                            <span style={{ display: 'block', fontSize: '0.72rem', color: apiKeyFeedback.startsWith('Success') ? '#059669' : '#dc2626', marginTop: '6px' }}>
+                              {apiKeyFeedback}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
+
 
               {/* Action Buttons */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>

@@ -11,6 +11,9 @@ const SettingsSchema = new mongoose.Schema(
     securityInspectionCharge: { type: Number, default: 25.0 },
     priorityExpressMultiplier: { type: Number, default: 1.5 },
     freeStorageDays: { type: Number, default: 3 },
+    resendApiKey: { type: String, default: '' },
+    brevoApiKey: { type: String, default: '' },
+    emailFrom: { type: String, default: 'info@globallprimelogistics.com' },
   },
   { timestamps: true }
 )

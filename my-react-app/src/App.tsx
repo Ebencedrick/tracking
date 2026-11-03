@@ -292,6 +292,7 @@ function PublicLayout() {
             <h4>Enterprise & Support</h4>
             <ul>
               <li><a href="mailto:info@globallprimelogistics.com" style={{ color: '#38bdf8', fontWeight: 600 }}>info@globallprimelogistics.com</a></li>
+              <li><a href="https://wa.me/16402231869" target="_blank" rel="noopener noreferrer" style={{ color: '#22c55e', fontWeight: 600 }}>WhatsApp: +1 (640) 223-1869</a></li>
               <li><Link to="/contact">Operations Desk</Link></li>
               <li><Link to="/about">Custom Routing</Link></li>
               <li><Link to="/policies">Cargo Protection</Link></li>
@@ -1022,6 +1023,7 @@ function TrackPage() {
   const [printModalOpen, setPrintModalOpen] = useState(false)
   const [dbFetchedShipment, setDbFetchedShipment] = useState<Shipment | null>(null)
   const [isFetchingFromDb, setIsFetchingFromDb] = useState(false)
+  const [isPhotoZoomOpen, setIsPhotoZoomOpen] = useState(false)
 
   useEffect(() => {
     const q = (searchParams.get('waybill') || searchParams.get('q'))?.trim()
@@ -1800,18 +1802,196 @@ function TrackPage() {
                 </span>
               </div>
 
-              {/* Package Cargo Image */}
-              <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1.5px solid #cbd5e1', background: '#f8fafc' }}>
-                <img
-                  src={matchedShipment.packageImageUrl || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80'}
-                  alt="Verified Cargo Manifest Preview"
-                  style={{ width: '100%', height: '160px', objectFit: 'cover' }}
-                />
-                <div style={{ padding: '6px 10px', background: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#ffffff' }}>
-                  <span style={{ fontWeight: 400, display: 'inline-flex', alignItems: 'center', gap: '5px' }}><Camera size={13} color='#fca311' strokeWidth={1.5} /> CARGO VERIFICATION PHOTO</span>
-                  <span style={{ color: '#4ade80', fontWeight: 400, display: 'inline-flex', alignItems: 'center', gap: '3px' }}><Check size={12} strokeWidth={2} /> INSPECTED</span>
+              {/* Package Cargo Image (Realistic Photo Dimensions & Styling) */}
+              <div
+                style={{
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  border: '1.5px solid #cbd5e1',
+                  background: '#ffffff',
+                  boxShadow: '0 4px 16px rgba(10, 24, 45, 0.08)',
+                }}
+              >
+                <div
+                  onClick={() => setIsPhotoZoomOpen(true)}
+                  title="Click to view full photo inspection"
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    aspectRatio: '4 / 3',
+                    minHeight: '220px',
+                    maxHeight: '320px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: '#0a182d',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <img
+                    src={matchedShipment.packageImageUrl || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80'}
+                    alt="Verified Consignment Cargo"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                      transition: 'transform 0.3s ease',
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      left: '10px',
+                      background: 'rgba(10, 24, 45, 0.85)',
+                      backdropFilter: 'blur(8px)',
+                      padding: '4px 9px',
+                      borderRadius: '6px',
+                      fontSize: '0.7rem',
+                      color: '#ffffff',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                    }}
+                  >
+                    <Camera size={12} color="#38bdf8" /> CARGO PHOTO
+                  </div>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: '#10b981',
+                      padding: '4px 9px',
+                      borderRadius: '6px',
+                      fontSize: '0.7rem',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                    }}
+                  >
+                    <Check size={12} strokeWidth={2.5} /> INSPECTED
+                  </div>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '8px',
+                      right: '8px',
+                      background: 'rgba(15, 23, 42, 0.75)',
+                      backdropFilter: 'blur(4px)',
+                      color: '#ffffff',
+                      fontSize: '0.68rem',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontWeight: 500,
+                    }}
+                  >
+                    🔍 Enlarge Photo
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    background: '#f8fafc',
+                    borderTop: '1px solid #e2e8f0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '0.75rem',
+                    color: '#64748b',
+                  }}
+                >
+                  <span>Verified Manifest Image</span>
+                  <strong style={{ color: '#0a182d', fontWeight: 600 }}>
+                    {matchedShipment.weightKg} kg · {matchedShipment.packageCount || 1} Pkg
+                  </strong>
                 </div>
               </div>
+
+              {/* Full Photo Inspection Lightbox Modal */}
+              {isPhotoZoomOpen && (
+                <div
+                  onClick={() => setIsPhotoZoomOpen(false)}
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 99999,
+                    backgroundColor: 'rgba(10, 24, 45, 0.92)',
+                    backdropFilter: 'blur(10px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '1.5rem',
+                  }}
+                >
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: 'relative',
+                      maxWidth: '90vw',
+                      maxHeight: '90vh',
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)',
+                      background: '#0f172a',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '12px 16px',
+                        background: '#0a182d',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontSize: '0.88rem', fontWeight: 600 }}>
+                        <Camera size={14} color="#38bdf8" />
+                        <span>Consignment Inspection Photo ({matchedShipment.waybill})</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsPhotoZoomOpen(false)}
+                        style={{
+                          background: 'rgba(255,255,255,0.1)',
+                          border: 'none',
+                          color: '#ffffff',
+                          borderRadius: '50%',
+                          width: '28px',
+                          height: '28px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          fontSize: '1rem',
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <img
+                      src={matchedShipment.packageImageUrl || 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=90'}
+                      alt="Verified Cargo Manifest High Definition"
+                      style={{
+                        width: '100%',
+                        maxHeight: 'calc(85vh - 60px)',
+                        objectFit: 'contain',
+                        display: 'block',
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
 
               {/* Cargo & Driver Summary (No Pricing / No Declared Value) */}
               <dl style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.65rem', margin: 0, padding: 0 }}>
@@ -2375,11 +2555,21 @@ function ContactPage() {
               <span>Email the desk</span>
               <strong>info@globallprimelogistics.com</strong>
             </a>
+            <a
+              href="https://wa.me/16402231869"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="support-channel"
+              style={{ borderLeft: '3px solid #22c55e' }}
+            >
+              <span>WhatsApp Support (24/7)</span>
+              <strong style={{ color: '#16a34a' }}>+1 (640) 223-1869</strong>
+            </a>
             <a href="tel:+14155550182" className="support-channel">
               <span>Call dispatch</span>
               <strong>+1 (415) 555-0182</strong>
             </a>
-            <p className="support-direct-note">For urgent shipment disruptions, call dispatch and have your waybill ready.</p>
+            <p className="support-direct-note">For urgent shipment disruptions, WhatsApp support or call dispatch with your waybill ready.</p>
           </div>
 
           <nav className="support-quick-links" aria-label="Common support tasks">
@@ -2987,6 +3177,31 @@ function CreateShipmentPage() {
             <Link to={`/track?waybill=${encodeURIComponent(createdWaybill)}`} className="button button-secondary">
               Track Publicly ↗
             </Link>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxWidth: '420px', margin: '1.25rem auto 0' }}>
+            <a
+              href={`https://wa.me/16402231869?text=${encodeURIComponent(
+                `Hello Global Prime Logistics Support, I just created consignment ${createdWaybill}. Please confirm dispatch status.`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="button"
+              style={{ background: '#16a34a', color: '#ffffff', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            >
+              💬 WhatsApp Support: +1 (640) 223-1869
+            </a>
+            <a
+              href={`mailto:info@globallprimelogistics.com?subject=${encodeURIComponent(
+                `Shipment Dispatch Confirmation - ${createdWaybill}`
+              )}&body=${encodeURIComponent(
+                `Consignment ${createdWaybill} has been booked.\nTrack live at: ${window.location.origin}/track?waybill=${encodeURIComponent(createdWaybill)}\n\nOperations Desk: info@globallprimelogistics.com`
+              )}`}
+              className="button button-secondary"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+            >
+              ✉️ Email Confirmation Manifest
+            </a>
           </div>
         </div>
       </section>

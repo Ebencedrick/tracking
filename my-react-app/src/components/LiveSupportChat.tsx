@@ -329,10 +329,33 @@ export function LiveSupportChat() {
                   padding: '4px 6px',
                 }}
               >
-                
+                ✕
               </button>
             </div>
           </div>
+
+          {/* Direct WhatsApp Quick Contact Bar */}
+          <a
+            href="https://wa.me/16402231869"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              background: '#16a34a',
+              color: '#ffffff',
+              textDecoration: 'none',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+            }}
+          >
+            <span>💬 Direct WhatsApp Support: +1 (640) 223-1869</span>
+            <span style={{ fontSize: '0.68rem', opacity: 0.85 }}>Chat ↗</span>
+          </a>
 
           {/* User Email Identification Badge */}
           {hasStarted && userEmail && (

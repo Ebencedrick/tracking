@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { connectToDatabase } from '../../../src/lib/db'
 import { Shipment } from '../../../server/models/Shipment.js'
+import { Settings } from '../../../server/models/Settings.js'
 import { sendConsignmentCreationNotifications } from '../../../src/lib/email'
 
 export const dynamic = 'force-dynamic'
@@ -87,7 +88,12 @@ export async function POST(request: Request) {
 
     // Automate email notifications to sender and receiver
     try {
-      const emailResult = await sendConsignmentCreationNotifications(created)
+      const dbSettings = await (Settings as any).findOne({ key: 'global_config' }).lean().catch(() => null)
+      const emailResult = await sendConsignmentCreationNotifications(created, {
+        resendApiKey: dbSettings?.resendApiKey,
+        brevoApiKey: dbSettings?.brevoApiKey,
+        emailFrom: dbSettings?.emailFrom,
+      })
       ;(created as any).emailNotificationStatus = emailResult
     } catch (emailErr: any) {
       console.warn('[API /api/shipments POST] Automated notification warning:', emailErr?.message || emailErr)
